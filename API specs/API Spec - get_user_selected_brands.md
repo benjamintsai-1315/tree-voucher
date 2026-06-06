@@ -71,6 +71,10 @@ Content-Type: `application/json`
 ```
 
 ## Response items
+| 欄位 | 類型 | 說明 |
+| ---- | ---- | ---- |
+| brands | Array | 該用戶目前已選擇、且當前仍具備 active campaign 的品牌清單 |
+
 ### brands
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
@@ -83,15 +87,14 @@ Content-Type: `application/json`
 | updated_at | String | 品牌資料最後更新時間（UTC+8 ISO 8601） |
 
 ### active_campaign
-
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-campaign_id | String | Campaign 識別碼 |
-campaign_name | String | Campaign 名稱 |
-unit_cash_amount | Integer | 每消費滿 N 元可對應使用一張券 |
-unit_point_amount | Integer | 兌換一張券所需點數 |
-unit_discount_amount | Integer | 一張券可折抵的金額（元） |
-updated_at | String | Campaign 最後更新時間（UTC+8 ISO 8601） |
+| campaign_id | String | Campaign 識別碼 |
+| campaign_name | String | Campaign 名稱 |
+| unit_cash_amount | Integer | 每消費滿 N 元可對應使用一張券 |
+| unit_point_amount | Integer | 兌換一張券所需點數 |
+| unit_discount_amount | Integer | 一張券可折抵的金額（元） |
+| updated_at | String | Campaign 最後更新時間（UTC+8 ISO 8601） |
 
 ### 邏輯說明
 

@@ -22,6 +22,7 @@
 | API | Method | Endpoint | 用途 | 狀態 |
 | ---- | ---- | ---- | ---- | ---- |
 | `get_active_brands` | `GET` | `/coupon/get_active_brands` | 取得目前所有具備 active campaign 的品牌清單及 campaign 規則，供品牌一覽頁呈現。 | 已有 spec |
+| `user_authorize` | `POST` | `/coupon/user_authorize` | 記錄使用者已同意樹享券平台可使用其點數，作為後續自動兌換與用點清算的前置授權。 | 需新增 spec |
 | `get_user_selected_brands` | `GET` | `/coupon/get_user_selected_brands` | 取得使用者目前已選擇、且當前仍具備 active campaign 的品牌，以及各品牌對應 active campaign。 | 已有 spec |
 | `update_user_auto_redeem` | `POST` 或 `PATCH` | `/coupon/update_user_auto_redeem` | 統一處理使用者自動兌換設定異動，包含首次選品牌、更換品牌、暫停用券、重啟用券。 | 需新增 spec |
 | `get_user_brand_change_logs` | `GET` | `/coupon/get_user_brand_change_logs` | 查詢使用者過去 1 年內的品牌選擇與自動兌換異動紀錄。 | 需新增 spec |

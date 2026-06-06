@@ -90,17 +90,25 @@ Content-Type: `application/json`
 | order_status | String | 訂單當前狀態：`PROCESSING` \| `COMPLETED` \| `CANCELLED` |
 | finalized_at | String \| null | 訂單最終化時間；`PROCESSING` 時為 `null` |
 | coupons_used | Array | 本次被使用的券明細 |
-| coupons_used[].coupon_id | String | 券識別碼 |
-| coupons_used[].campaign_id | String | 該券所屬 campaign 識別碼 |
-| coupons_used[].unit_cash_amount | Integer | 該券對應的消費門檻金額（元） |
-| coupons_used[].unit_point_amount | Integer | 該券建立時所對應的點數成本 |
-| coupons_used[].unit_discount_amount | Integer | 該券的折抵金額（元） |
-| coupons_used[].expired_at | String | 該券固定到期時間（UTC+8 ISO 8601，毫秒精度） |
-| coupons_used[].type | String | `EXISTING`：原券夾既有券；`NEWLY_ISSUED`：本次即時兌換產生 |
 | events | Array | 訂單事件歷程，依發生時間由舊到新排列 |
-| events[].event | String | 事件類型：`CREATED` \| `COMPLETED` \| `CANCELLED` |
-| events[].occurred_at | String | 事件發生時間（UTC+8 ISO 8601） |
 | created_at | String | 訂單建立時間（UTC+8 ISO 8601） |
+
+### coupons_used
+| 欄位 | 類型 | 說明 |
+| ---- | ---- | ---- |
+| coupon_id | String | 券識別碼 |
+| campaign_id | String | 該券所屬 campaign 識別碼 |
+| unit_cash_amount | Integer | 該券對應的消費門檻金額（元） |
+| unit_point_amount | Integer | 該券建立時所對應的點數成本 |
+| unit_discount_amount | Integer | 該券的折抵金額（元） |
+| expired_at | String | 該券固定到期時間（UTC+8 ISO 8601，毫秒精度） |
+| type | String | `EXISTING`：原券夾既有券；`NEWLY_ISSUED`：本次即時兌換產生 |
+
+### events
+| 欄位 | 類型 | 說明 |
+| ---- | ---- | ---- |
+| event | String | 事件類型：`CREATED` \| `COMPLETED` \| `CANCELLED` |
+| occurred_at | String | 事件發生時間（UTC+8 ISO 8601） |
 
 ### 邏輯說明
 - `discount_amount` = Σ `coupons_used[].unit_discount_amount`

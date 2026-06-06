@@ -51,6 +51,14 @@ Content-Type: `application/json`
 ## Response items
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
+| page | Integer | 當前頁碼，從 1 開始 |
+| limit | Integer | 每頁筆數 |
+| total | Integer | 符合條件的總筆數 |
+| items | Array | 回傳資料列表 |
+
+### items
+| 欄位 | 類型 | 說明 |
+| ---- | ---- | ---- |
 | field_name | String | 說明 |
 | created_at | String | 建立時間（系統 UTC+8 時間轉字串） |
 | updated_at | String | 更新時間（系統 UTC+8 時間轉字串） |

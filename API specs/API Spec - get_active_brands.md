@@ -70,19 +70,27 @@ Content-Type: `application/json`
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | brands | Array | 所有具備 active campaign 的品牌清單 |
-| brands[].brand_id | String | 品牌識別碼 |
-| brands[].brand_name | String | 品牌名稱 |
-| brands[].brand_logo | String | 品牌 logo 圖片 URL |
-| brands[].brand_category | String | 品牌分類（例：便利商店、藥妝、超市） |
-| brands[].active_campaign | Object | 該品牌當前有效的 campaign 規則 |
-| brands[].active_campaign.campaign_id | String | Campaign 識別碼 |
-| brands[].active_campaign.campaign_name | String | Campaign 名稱 |
-| brands[].active_campaign.unit_cash_amount | Integer | 每消費滿 N 元可對應使用一張券 |
-| brands[].active_campaign.unit_point_amount | Integer | 兌換一張券所需點數 |
-| brands[].active_campaign.unit_discount_amount | Integer | 一張券可折抵的金額（元） |
-| brands[].active_campaign.updated_at | String | Campaign 最後更新時間（UTC+8 ISO 8601） |
-| brands[].created_at | String | 品牌建立時間（UTC+8 ISO 8601），可作為「最新合作」的判斷依據 |
-| brands[].updated_at | String | 品牌資料最後更新時間（UTC+8 ISO 8601） |
+
+### brands
+| 欄位 | 類型 | 說明 |
+| ---- | ---- | ---- |
+| brand_id | String | 品牌識別碼 |
+| brand_name | String | 品牌名稱 |
+| brand_logo | String | 品牌 logo 圖片 URL |
+| brand_category | String | 品牌分類（例：便利商店、藥妝、超市） |
+| active_campaign | Object | 該品牌當前有效的 campaign 規則 |
+| created_at | String | 品牌建立時間（UTC+8 ISO 8601），可作為「最新合作」的判斷依據 |
+| updated_at | String | 品牌資料最後更新時間（UTC+8 ISO 8601） |
+
+### active_campaign
+| 欄位 | 類型 | 說明 |
+| ---- | ---- | ---- |
+| campaign_id | String | Campaign 識別碼 |
+| campaign_name | String | Campaign 名稱 |
+| unit_cash_amount | Integer | 每消費滿 N 元可對應使用一張券 |
+| unit_point_amount | Integer | 兌換一張券所需點數 |
+| unit_discount_amount | Integer | 一張券可折抵的金額（元） |
+| updated_at | String | Campaign 最後更新時間（UTC+8 ISO 8601） |
 
 ### 邏輯說明
 - 僅回傳當前有 active campaign 的品牌，無 active campaign 的品牌不列入

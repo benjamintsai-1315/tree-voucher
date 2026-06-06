@@ -113,6 +113,15 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 說明 | 
 | ---- | ---- | ---- |
+| page | Integer | 當前頁碼，從 1 開始 |
+| limit | Integer | 每頁筆數 |
+| total | Integer | 符合條件的總筆數 |
+| items | Array | 符合條件的活動規則列表 |
+
+### items
+
+| 欄位 | 類型 | 說明 | 
+| ---- | ---- | ---- |
 | action_name | String | 原始設定的活動名稱 | 
 | action_code | String | 活動代碼 | 
 | reward | Integer | 每份獎勵對應點數，或為一份兌換碼可兌換點數 | 

@@ -48,6 +48,13 @@
 | 類型 | 同 Request，但多了 `String`（首字大寫慣例，表示 JSON string） |
 | 說明 | 中文說明，若為列舉值需列出所有可能值（e.g., `ACTIVE \| INACTIVE`） |
 
+### Array / Object 表格拆分規則
+- `Response items` 的第一張表只描述該層物件本身的欄位。
+- 若欄位型別是 `Array`，第一張表只保留該 array 欄位本身，例如：`coupons_used | Array | 本次被使用的券明細`。
+- array 內部欄位需另外獨立成一張表，並以 `### coupons_used` 之類的小標題說明。
+- 若欄位型別是 `Object` 且有多個子欄位需要描述，也建議另外獨立成一張表，例如：`### active_campaign`。
+- 不要在同一張表同時混寫父層欄位與 `items[].field` / `array[].field` / `object.child_field`。
+
 ### 計算欄位慣例
 若欄位值可由其他欄位推導，需在「邏輯說明」中寫出公式：
 ```

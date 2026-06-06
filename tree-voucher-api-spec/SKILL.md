@@ -9,11 +9,11 @@ Use this skill to turn Tree Voucher 2.0 requirements into a clear API specificat
 
 ## Load Context
 
-Use the files next to this `SKILL.md` as optional context:
+Use these optional references when needed:
 
-- Read `background.md` when the request depends on Tree Voucher 2.0 domain concepts, coupon lifecycle, brand selection, card transaction flows, or voucher-plus-cash business rules.
-- Read `field-guide.md` when deciding how to fill API spec fields, permission boundaries, request parameter columns, response item descriptions, pagination fields, timestamps, status values, or error codes.
-- Read `api_sample.md` when the user wants the output to match the team's existing style or when an example structure is useful.
+- Read root-level `background.md` when the request depends on Tree Voucher 2.0 domain concepts, coupon lifecycle, brand selection, card transaction flows, or voucher-plus-cash business rules.
+- Read `references/field-guide.md` when deciding how to fill API spec fields, permission boundaries, request parameter columns, response item descriptions, pagination fields, timestamps, status values, or error codes.
+- Read `references/api_sample.md` when the user wants the output to match the team's existing style or when an example structure is useful.
 
 Load only the file needed for the current request.
 
@@ -41,7 +41,7 @@ Load only the file needed for the current request.
 
 4. Use snake_case for API names, endpoint segments, request fields, and response fields. Start `api_name` with a verb, for example `get_brand_list`, `select_brands`, `create_order`, or `finalize_order`.
 
-5. Keep response samples and `Response items` exactly aligned. Every response sample field must be documented; every documented response item must appear in at least one sample. For nested objects, document fields with clear nested names or separate subtables.
+5. Keep response samples and `Response items` exactly aligned. Every response sample field must be documented; every documented response item must appear in at least one sample. For arrays, document the array field itself in the main table, then create a separate titled table for the item shape. For nested objects, prefer separate titled tables instead of mixing parent and child fields in one table.
 
 6. Use UTC+8 ISO 8601 strings for time fields, for example `"2025-10-01T12:00:00+08:00"`.
 
@@ -95,6 +95,11 @@ Content-Type: `application/json`
 | ---- | ---- | ---- |
 | ... | ... | ... |
 
+### {array_field_name}
+| 欄位 | 類型 | 說明 |
+| ---- | ---- | ---- |
+| ... | ... | ... |
+
 ### 邏輯說明
 （補充欄位之間的計算關係、排序邏輯、狀態轉換、特殊條件等）
 
@@ -116,6 +121,7 @@ If null and omitted have the same behavior, still fill `可空` as `FALSE` unles
 
 - For list responses, include `page`, `limit`, `total`, and `items`.
 - For single resource responses, return the object directly unless the existing API convention requires wrapping.
+- For arrays, the main `Response items` table should only include the array field itself, for example `coupons_used | Array | ...`; the fields inside the array must be documented in a separate titled table such as `### coupons_used`.
 - Document calculated fields in `邏輯說明` with formulas, for example `quota_remaining = quota - total_granted_points`.
 - State sort order when response order matters.
 - List all possible enum values in the field description.
