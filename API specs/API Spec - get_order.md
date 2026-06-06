@@ -1,3 +1,8 @@
+---
+title: API Spec - get_order
+permalink: /api-specs/get-order/
+---
+
 # API: get_order
 
 ## 功能說明

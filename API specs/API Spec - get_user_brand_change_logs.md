@@ -1,3 +1,8 @@
+---
+title: API Spec - get_user_brand_change_logs
+permalink: /api-specs/get-user-brand-change-logs/
+---
+
 # API: get_user_brand_change_logs
 
 ## 功能說明

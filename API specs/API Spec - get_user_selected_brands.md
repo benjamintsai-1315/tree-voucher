@@ -1,3 +1,8 @@
+---
+title: API Spec - get_user_selected_brands
+permalink: /api-specs/get-user-selected-brands/
+---
+
 # API: get_user_selected_brands
 ## 功能說明
 讓樹享券平台前台端以 API Key 依 user_id 取得該用戶目前已選擇、且當前仍具備 active campaign 的品牌清單及對應 active campaign 詳情，供前端呈現已選品牌頁面。

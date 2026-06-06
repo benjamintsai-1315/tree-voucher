@@ -1,3 +1,8 @@
+---
+title: API Spec - user_authorize
+permalink: /api-specs/user-authorize/
+---
+
 # API: user_authorize
 
 ## 功能說明

@@ -1,3 +1,8 @@
+---
+title: API Spec - finalize_order
+permalink: /api-specs/finalize-order/
+---
+
 # API: finalize_order
 
 ## 功能說明

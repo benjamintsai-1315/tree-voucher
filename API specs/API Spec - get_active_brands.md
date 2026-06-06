@@ -1,3 +1,8 @@
+---
+title: API Spec - get_active_brands
+permalink: /api-specs/get-active-brands/
+---
+
 # API: get_active_brands
 
 ## 功能說明
