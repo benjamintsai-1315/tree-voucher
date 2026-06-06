@@ -42,9 +42,9 @@ Content-Type: `application/json`
 {
   "user_id": "USR_000123",
   "is_authorized": true,
-  "authorized_at": "2025-10-01T08:00:00+08:00",
+  "authorized_at": "2026-10-01T08:00:00+08:00",
   "terms_version": "treevoucher-v1",
-  "updated_at": "2025-10-01T08:00:00+08:00"
+  "updated_at": "2026-10-01T08:00:00+08:00"
 }
 ```
 

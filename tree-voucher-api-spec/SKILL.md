@@ -43,7 +43,7 @@ Load only the file needed for the current request.
 
 5. Keep response samples and `Response items` exactly aligned. Every response sample field must be documented; every documented response item must appear in at least one sample. For arrays, document the array field itself in the main table, then create a separate titled table for the item shape. For nested objects, prefer separate titled tables instead of mixing parent and child fields in one table.
 
-6. Use UTC+8 ISO 8601 strings for time fields, for example `"2025-10-01T12:00:00+08:00"`.
+6. Use UTC+8 ISO 8601 strings for time fields, for example `"2026-10-01T12:00:00+08:00"`.
 
 7. Name status values and error codes in uppercase snake case, for example `ACTIVE`, `INACTIVE`, `ORDER_NOT_FOUND`, or `BRAND_LIMIT_EXCEEDED`.
 

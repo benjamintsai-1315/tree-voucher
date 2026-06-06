@@ -43,10 +43,10 @@ Content-Type: `application/json`
 
 ```json
 {
-  "order_id": "ORD_20251001_00001",
+  "order_id": "ORD_20261001_00001",
   "order_status": "COMPLETED",
   "finalize_result": "COMPLETED",
-  "finalized_at": "2025-10-03T10:00:00+08:00"
+  "finalized_at": "2026-10-03T10:00:00+08:00"
 }
 ```
 

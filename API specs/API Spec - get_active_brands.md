@@ -46,10 +46,10 @@ Content-Type: `application/json`
         "unit_cash_amount": 100,      // 每消費滿 100 元可使用一張券
         "unit_point_amount": 20,      // 兌換一張券所需點數
         "unit_discount_amount": 21,   // 一張券可折抵金額（元）
-        "updated_at": "2025-10-01T09:00:00+08:00"
+        "updated_at": "2026-10-01T09:00:00+08:00"
       },
-      "created_at": "2025-09-01T00:00:00+08:00",
-      "updated_at": "2025-10-01T09:00:00+08:00"
+      "created_at": "2026-09-01T00:00:00+08:00",
+      "updated_at": "2026-10-01T09:00:00+08:00"
     },
     {
       "brand_id": "BRAND_711",
@@ -62,10 +62,10 @@ Content-Type: `application/json`
         "unit_cash_amount": 150,
         "unit_point_amount": 25,
         "unit_discount_amount": 30,
-        "updated_at": "2025-10-01T09:00:00+08:00"
+        "updated_at": "2026-10-01T09:00:00+08:00"
       },
-      "created_at": "2025-08-01T00:00:00+08:00",
-      "updated_at": "2025-10-01T09:00:00+08:00"
+      "created_at": "2026-08-01T00:00:00+08:00",
+      "updated_at": "2026-10-01T09:00:00+08:00"
     }
   ]
 }

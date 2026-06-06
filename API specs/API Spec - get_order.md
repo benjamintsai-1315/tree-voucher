@@ -39,7 +39,7 @@ Content-Type: `application/json`
 
 ```json
 {
-  "order_id": "ORD_20251001_00001",
+  "order_id": "ORD_20261001_00001",
   "user_id": "USR_000123",
   "brand_id": "BRAND_FAMILYMART",
   "brand_name": "全家便利商店",
@@ -47,7 +47,7 @@ Content-Type: `application/json`
   "card_last_four_digits": "1234",
   "discount_amount": 141,
   "order_status": "COMPLETED",
-  "finalized_at": "2025-10-03T10:00:00+08:00",
+  "finalized_at": "2026-10-03T10:00:00+08:00",
   "coupons_used": [
     {
       "coupon_id": "CPN_001",
@@ -55,7 +55,7 @@ Content-Type: `application/json`
       "unit_cash_amount": 400,
       "unit_point_amount": 100,
       "unit_discount_amount": 120,
-      "expired_at": "2025-10-31T23:59:59.999+08:00",
+      "expired_at": "2026-10-31T23:59:59.999+08:00",
       "type": "EXISTING"
     },
     {
@@ -64,21 +64,21 @@ Content-Type: `application/json`
       "unit_cash_amount": 100,
       "unit_point_amount": 20,
       "unit_discount_amount": 21,
-      "expired_at": "2025-11-30T23:59:59.999+08:00",
+      "expired_at": "2026-11-30T23:59:59.999+08:00",
       "type": "NEWLY_ISSUED"
     }
   ],
   "events": [
     {
       "event": "CREATED",
-      "occurred_at": "2025-10-01T14:30:00+08:00"
+      "occurred_at": "2026-10-01T14:30:00+08:00"
     },
     {
       "event": "COMPLETED",        // 或 CANCELLED
-      "occurred_at": "2025-10-03T10:00:00+08:00"
+      "occurred_at": "2026-10-03T10:00:00+08:00"
     }
   ],
-  "created_at": "2025-10-01T14:30:00+08:00"
+  "created_at": "2026-10-01T14:30:00+08:00"
 }
 ```
 

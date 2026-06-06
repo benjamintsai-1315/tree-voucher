@@ -48,18 +48,18 @@ Content-Type: `application/json`
   "total": 3,
   "items": [
     {
-      "order_id": "ORD_20251001_00001",
+      "order_id": "ORD_20261001_00001",
       "brand_id": "BRAND_FAMILYMART",
       "brand_name": "全家便利商店",
       "cash_amount": 620,
       "card_last_four_digits": "1234",
       "discount_amount": 141,
       "order_status": "COMPLETED",
-      "finalized_at": "2025-10-03T10:00:00+08:00",
-      "created_at": "2025-10-01T14:30:00+08:00"
+      "finalized_at": "2026-10-03T10:00:00+08:00",
+      "created_at": "2026-10-01T14:30:00+08:00"
     },
     {
-      "order_id": "ORD_20251002_00005",
+      "order_id": "ORD_20261002_00005",
       "brand_id": "BRAND_FAMILYMART",
       "brand_name": "全家便利商店",
       "cash_amount": 300,
@@ -67,7 +67,7 @@ Content-Type: `application/json`
       "discount_amount": 21,
       "order_status": "PROCESSING",
       "finalized_at": null,
-      "created_at": "2025-10-02T09:10:00+08:00"
+      "created_at": "2026-10-02T09:10:00+08:00"
     }
   ]
 }

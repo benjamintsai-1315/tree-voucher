@@ -71,7 +71,7 @@ quota_remaining = quota - total_granted_points
 
 ## 時間欄位格式
 - 統一使用 UTC+8，ISO 8601 格式
-- 範例：`"2025-10-01T12:00:00+08:00"`
+- 範例：`"2026-10-01T12:00:00+08:00"`
 - 欄位命名慣例：`created_at`、`updated_at`、`expired_at`、`valid_from`、`valid_until`
 
 ## 狀態欄位慣例

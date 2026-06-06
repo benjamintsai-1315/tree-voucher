@@ -63,8 +63,8 @@ Content-Type: `application/json`
       "granted_counts": 150,
       "total_granted_points": 7500,
       "quota_remaining": 92500,
-      "created_at": "2025-10-01T12:00:00+08:00",
-      "updated_at": "2025-10-08T10:10:00+08:00"
+      "created_at": "2026-10-01T12:00:00+08:00",
+      "updated_at": "2026-10-08T10:10:00+08:00"
     }
   ]
 }
@@ -87,8 +87,8 @@ Content-Type: `application/json`
       "granted_counts": 150,
       "total_granted_points": 7500,
       "quota_remaining": 92500,
-      "created_at": "2025-10-01T12:00:00+08:00",
-      "updated_at": "2025-10-08T10:10:00+08:00"
+      "created_at": "2026-10-01T12:00:00+08:00",
+      "updated_at": "2026-10-08T10:10:00+08:00"
     },
     {
       "action_name": "登入會員送 50 點",
@@ -102,8 +102,8 @@ Content-Type: `application/json`
       "granted_counts": 150,
       "total_granted_points": 7500,
       "quota_remaining": 92500,
-      "created_at": "2025-10-01T12:00:00+08:00",
-      "updated_at": "2025-10-08T10:10:00+08:00"
+      "created_at": "2026-10-01T12:00:00+08:00",
+      "updated_at": "2026-10-08T10:10:00+08:00"
     }
   ]
 }

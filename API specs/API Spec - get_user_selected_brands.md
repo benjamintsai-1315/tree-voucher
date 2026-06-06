@@ -50,10 +50,10 @@ Content-Type: `application/json`
         "unit_cash_amount": 150,
         "unit_point_amount": 25,
         "unit_discount_amount": 30,
-        "updated_at": "2025-10-01T09:00:00+08:00"
+        "updated_at": "2026-10-01T09:00:00+08:00"
       },
-      "created_at": "2025-08-01T00:00:00+08:00",
-      "updated_at": "2025-10-01T09:00:00+08:00"
+      "created_at": "2026-08-01T00:00:00+08:00",
+      "updated_at": "2026-10-01T09:00:00+08:00"
     },
     {
       "brand_id": "BRAND_FAMILYMART",
@@ -66,10 +66,10 @@ Content-Type: `application/json`
         "unit_cash_amount": 100,
         "unit_point_amount": 20,
         "unit_discount_amount": 21,
-        "updated_at": "2025-10-01T09:00:00+08:00"
+        "updated_at": "2026-10-01T09:00:00+08:00"
       },
-      "created_at": "2025-09-01T00:00:00+08:00",
-      "updated_at": "2025-10-01T09:00:00+08:00"
+      "created_at": "2026-09-01T00:00:00+08:00",
+      "updated_at": "2026-10-01T09:00:00+08:00"
     }
   ]
 }

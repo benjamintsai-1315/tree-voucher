@@ -47,17 +47,17 @@ Content-Type: `application/json`
   "total": 3,
   "items": [
     {
-      "log_id": "BCL_20251001_00001",
+      "log_id": "BCL_20261001_00001",
       "action": "INITIAL_SELECTION",
       "before_brand_ids": [],
       "after_brand_ids": [
         "BRAND_FAMILYMART",
         "BRAND_711"
       ],
-      "occurred_at": "2025-10-01T09:00:00+08:00"
+      "occurred_at": "2026-10-01T09:00:00+08:00"
     },
     {
-      "log_id": "BCL_20251015_00002",
+      "log_id": "BCL_20261015_00002",
       "action": "PAUSE",
       "before_brand_ids": [
         "BRAND_FAMILYMART",
@@ -67,7 +67,7 @@ Content-Type: `application/json`
         "BRAND_FAMILYMART",
         "BRAND_711"
       ],
-      "occurred_at": "2025-10-15T20:30:00+08:00"
+      "occurred_at": "2026-10-15T20:30:00+08:00"
     }
   ]
 }
