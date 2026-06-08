@@ -19,9 +19,8 @@ permalink: /background/
 
 ## 名詞定義：
 1. brand: 合作的品牌通路，也稱為特店
-2. store: 品牌通路所底下的實體門店
-3. campaign: 對應於品牌之下的產券邏輯
-4. coupon: 基於 campaign 產出，所屬於用戶的 instance
+2. campaign: 對應於品牌之下的產券邏輯
+3. coupon: 基於 campaign 產出，所屬於用戶的 instance
 
 ## 本體概念：
 Coupon 本質作為本體，不採取「刷卡代金」概念作為本體
@@ -44,6 +43,11 @@ Coupon 本質作為本體，不採取「刷卡代金」概念作為本體
 3. 依照點數的數量，算出可再換多少張 coupon
 4. 彙總回覆實際折抵刷卡額有多少
 
+補充規則：
+- `max_redeem_count` 限制的是「當次交易中，屬於當前 active campaign 的券最多可使用幾張」
+- 若舊券本身就是當前 active campaign 產出的券，會先吃掉這個 quota
+- 歷史 campaign 的舊券不吃這個 quota，仍照 FIFO 規則先用
+
 ### 範例
 campaign_rules:
 - id = 'new_campaign'
@@ -51,6 +55,7 @@ campaign_rules:
 - unit_cash_amount = 100 (每刷 100 元可對應折抵一張)
 - unit_point_amount = 20 (每一張券需要 20 點來換)
 - unit_discount_amount = 21 (每一張券可折抵 21 元)
+- max_redeem_count = 3 (單筆交易中，當前 active campaign 最多可使用 3 張券)
 
 order:
 - order_id = 'ord_01'
@@ -74,7 +79,10 @@ cash_amount - 400 = 220 (剩下可折抵的刷卡金為 220)
 220 // 100 = 2，故可再以 2 張來折抵
 
 而 point_balance(26) // unit_point_amount(20) = 1
-因點數餘額只夠再折 1 張，只會換一張
+campaign 可用 quota 為 3 張
+因點數餘額只夠再折 1 張，故 min(2, 1, 3) = 1，只會換一張
+
+因 `coupon_01` 屬於 `old_campaign`，不是當前 active campaign，所以不占用 `max_redeem_count`
 
 進行點數扣點 point_balance -= 20
 進行 coupon 派送 (coupon_02, campaign_id = 'new_campaign')
@@ -110,7 +118,7 @@ Response discount_amount = 141
 ## Flow 2: 選品牌
 用戶選擇偏好 brand（特店） 例如：全家 / 7-11 or 康是美 / 屈臣氏 or 大全聯 / 頂好...etc
 需檢查下述邏輯：
-1. 用戶是否已完成點數授權
+1. 用戶是否已完成點數授權，且神坊系統可取得或驗證該授權結果
 2. 用戶是否可以更換（商務規定上每月一次，應設定為環境參數）
 3. 用戶選擇的品牌數量（商務規定上每人最多 3 個，應設定為環境參數）
 4. 選擇的品牌是否有 active campaign 可選
@@ -136,6 +144,12 @@ Response discount_amount = 141
 調閱用戶過往 1 年內的異動紀錄，包含異動時間與異動行為（首次啟用、暫停用券、重啟用券、更換品牌）
 其中更換品牌需要包含「更換前有哪些」vs「更換後是哪些」
 
+底層資料模型採 `brand_change_logs` 單表事件模型：
+- 同一 `request_id` 代表同一次異動批次
+- 初次選牌時可在同批寫入多筆 `INITIAL_SELECTION`
+- 一般品牌更換時可在同批寫入多筆 `ADD_BRAND` / `REMOVE_BRAND`
+- `PAUSE` / `RESUME` 為單筆事件，且 `brand_id = null`
+
 此流程由樹享券平台前台端串接異動紀錄 API。
 
 ## Flow 5: 券夾
@@ -150,7 +164,8 @@ Response discount_amount = 141
 6. unit_cash_amount
 7. unit_point_amount
 8. unit_discount_amount
-9. expired_at
+9. max_redeem_count
+10. expired_at
 
 此流程由樹享券平台前台端串接券夾查詢 API。
 
@@ -159,3 +174,7 @@ Response discount_amount = 141
 2. 由發卡主機回報商戶請款完成或取消交易，進行 finalize_order (後續待商戶請款才呼叫，非同步)
 
 create_order 時，發卡主機需額外帶入用戶本次刷卡卡號後四碼，供後續前台端查詢訂單與呈現卡號辨識資訊。
+
+訂單底層資料模型包含：
+- `order_logs`：保存訂單建立與最終化歷程
+- `order_coupon_items`：保存訂單用券明細快照

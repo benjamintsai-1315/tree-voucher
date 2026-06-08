@@ -27,7 +27,7 @@ permalink: /api-list/
 | API | Method | Endpoint | 用途 | 狀態 |
 | ---- | ---- | ---- | ---- | ---- |
 | `get_active_brands` | `GET` | `/coupon/get_active_brands` | 取得目前所有具備 active campaign 的品牌清單及 campaign 規則，供品牌一覽頁呈現。 | 已有 spec |
-| `user_authorize` | `POST` | `/coupon/user_authorize` | 記錄使用者已同意樹享券平台可使用其點數，作為後續自動兌換與用點清算的前置授權。 | 已有 spec |
+| `user_authorize` | `POST` | `/coupon/user_authorize` | 接收或確認使用者已同意樹享券平台可使用其點數的授權結果，作為後續自動兌換與用點清算的前置條件。 | 已有 spec |
 | `get_user_selected_brands` | `GET` | `/coupon/get_user_selected_brands` | 取得使用者目前的品牌設定狀態，包含 `auto_redeem_enabled`，以及目前已選擇、且當前仍具備 active campaign 的品牌。 | 已有 spec |
 | `update_user_selected_brands` | `POST` 或 `PATCH` | `/coupon/update_user_selected_brands` | 對標 `get_user_selected_brands`，統一處理使用者已選品牌設定異動，包含首次選品牌、更換品牌、暫停用券、重啟用券。 | 已有 spec |
 | `get_user_brand_change_logs` | `GET` | `/coupon/get_user_brand_change_logs` | 查詢使用者過去 1 年內的品牌選擇與自動兌換異動紀錄。 | 已有 spec |
@@ -43,6 +43,14 @@ permalink: /api-list/
 | `SELECT_BRANDS` | 首次選擇或更換自動兌換品牌 | `user_id`, `after_brand_ids` | 需檢查每人最多選擇品牌數、每自然月更換次數、品牌是否有 active campaign。 |
 | `PAUSE` | 暫停自動用券 | `user_id` | 暫停後使用者已選品牌可保留，但刷卡時不觸發自動兌換。 |
 | `RESUME` | 重啟自動用券 | `user_id` | 重啟時需確認使用者仍有已選品牌，且至少一個品牌仍有 active campaign。 |
+
+底層異動紀錄模型說明：
+
+- API surface 仍以 `SELECT_BRANDS` / `PAUSE` / `RESUME` 表達操作意圖
+- DB layer 以 `brand_change_logs` 寫入事件
+- 初次選牌時，同一 `request_id` 可寫入多筆 `INITIAL_SELECTION`
+- 一般更換品牌時，同一 `request_id` 可寫入多筆 `ADD_BRAND` / `REMOVE_BRAND`
+- `PAUSE` / `RESUME` 為單筆事件，且 `brand_id = null`
 
 ## 發卡主機端 / 銀行信用卡系統
 
@@ -64,12 +72,9 @@ permalink: /api-list/
 | `get_brands` | `GET` | `/coupon/admin/get_brands` | 後台查詢合作品牌清單，包含啟用狀態、分類、logo、`treepoint_merchant_provider_key`、建立與更新時間。 | 第二階段，out of scope |
 | `create_brand` | `POST` | `/coupon/admin/create_brand` | 建立合作品牌，需包含 `treepoint_merchant_provider_key`。 | 第二階段，out of scope |
 | `update_brand` | `PATCH` | `/coupon/admin/update_brand` | 更新合作品牌基本資料、`treepoint_merchant_provider_key` 或啟用狀態。 | 第二階段，out of scope |
-| `get_stores` | `GET` | `/coupon/admin/get_stores` | 查詢 brand 底下實體門店或特店識別資料，用於刷卡交易對應 brand。 | 第二階段，out of scope |
-| `create_store` | `POST` | `/coupon/admin/create_store` | 建立 brand 底下門店或特店識別資料。 | 第二階段，out of scope |
-| `update_store` | `PATCH` | `/coupon/admin/update_store` | 更新門店或特店識別資料。 | 第二階段，out of scope |
 | `get_campaigns` | `GET` | `/coupon/admin/get_campaigns` | 查詢 campaign 清單與規則內容。 | 第二階段，out of scope |
-| `create_campaign` | `POST` | `/coupon/admin/create_campaign` | 建立 campaign 規則，包含 `unit_cash_amount`、`unit_point_amount`、`unit_discount_amount`、`start_at`、`end_at`。 | 第二階段，out of scope |
-| `update_campaign` | `PATCH` | `/coupon/admin/update_campaign` | 更新 campaign 規則與生效區間，包含 `unit_cash_amount`、`unit_point_amount`、`unit_discount_amount`、`start_at`、`end_at`；active 狀態由當前時間是否落在生效區間內決定。 | 第二階段，out of scope |
+| `create_campaign` | `POST` | `/coupon/admin/create_campaign` | 建立 campaign 規則，包含 `unit_cash_amount`、`unit_point_amount`、`unit_discount_amount`、`max_redeem_count`、`start_at`、`end_at`。 | 第二階段，out of scope |
+| `update_campaign` | `PATCH` | `/coupon/admin/update_campaign` | 更新 campaign 規則與生效區間，包含 `unit_cash_amount`、`unit_point_amount`、`unit_discount_amount`、`max_redeem_count`、`start_at`、`end_at`；active 狀態由當前時間是否落在生效區間內決定。 | 第二階段，out of scope |
 
 ## 神坊內部服務 / Batch Job
 
@@ -78,12 +83,17 @@ permalink: /api-list/
 | `issue_coupon` | Coupon service | 點數扣除後建立新 coupon，初始狀態為 `processing`。 | 需依架構確認 |
 | `batch_create_brands` | Internal CLI | 以批次檔或設定檔一次建立多筆 brand 主資料，作為後台大量上架品牌的內部工具。 | CLI，不開發為 API |
 | `batch_update_brands` | Internal CLI | 以批次檔或設定檔一次更新多筆 brand 主資料，例如名稱、分類、logo、`treepoint_merchant_provider_key` 或啟用狀態。 | CLI，不開發為 API |
-| `batch_create_campaigns` | Internal CLI | 以批次檔或設定檔一次建立多筆 campaign 規則，供營運大量上架活動使用。 | CLI，不開發為 API |
-| `batch_update_campaigns` | Internal CLI | 以批次檔或設定檔一次更新多筆 campaign 規則或生效區間，包含 `start_at`、`end_at`。 | CLI，不開發為 API |
+| `batch_create_campaigns` | Internal CLI | 以批次檔或設定檔一次建立多筆 campaign 規則，供營運大量上架活動使用，欄位包含 `max_redeem_count`。 | CLI，不開發為 API |
+| `batch_update_campaigns` | Internal CLI | 以批次檔或設定檔一次更新多筆 campaign 規則或生效區間，包含 `max_redeem_count`、`start_at`、`end_at`。 | CLI，不開發為 API |
 | `expire_coupons` | Batch job | 定期將超過有效期限的 `available` coupon 改為 `expired`。 | 需新增 job |
 
 ### 系統環境參數說明
 - `coupon_valid_days` 為全域有效天數參數，供發券時計算 `coupon.expired_at`；不屬於 `campaign` 欄位。
+
+### 訂單資料模型說明
+- DB layer 的訂單歷程表使用 `order_logs`
+- DB layer 的訂單用券快照表使用 `order_coupon_items`
+- API response 可維持 `events` / `coupons_used` 作為對外欄位名稱
 
 ## 本次 Scope 外
 

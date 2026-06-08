@@ -6,7 +6,7 @@ permalink: /api-specs/user-authorize/
 # API: user_authorize
 
 ## 功能說明
-讓樹享券平台前台端以 API Key 記錄使用者已同意樹享券平台可使用其點數，作為後續自動兌換設定與用點清算的前置授權依據。
+讓樹享券平台前台端以 API Key 接收或確認使用者已同意樹享券平台可使用其點數的授權結果，作為後續自動兌換設定與用點清算的前置授權依據。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`
@@ -15,7 +15,7 @@ permalink: /api-specs/user-authorize/
   - `user_id` 必須存在於神坊系統中
 
 ## 使用情境
-前台端在使用者首次同意樹享券平台使用其點數時呼叫此 API。神坊需保存使用者授權狀態與授權時間，供後續品牌設定、自動兌換與 `create_order` 清算流程檢查。
+前台端在使用者首次同意樹享券平台使用其點數時呼叫此 API。神坊需接收或確認該授權結果與授權時間，供後續品牌設定、自動兌換與 `create_order` 清算流程檢查；點數授權主記錄可由外部點數系統維護。
 
 # Request
 HTTP method: `POST`
@@ -58,9 +58,10 @@ Content-Type: `application/json`
 | updated_at | String | 授權資訊最後更新時間（UTC+8 ISO 8601） |
 
 ### 邏輯說明
-- 此 API 用於記錄點數授權，不直接處理品牌選擇或自動兌換設定
-- 同一 `user_id` 再次以相同或更新的 `terms_version` 呼叫時，可視為更新既有授權紀錄，不報重複錯誤
-- 後續 `update_user_selected_brands` 與 `create_order` 皆應以此授權紀錄作為前置檢查依據
+- 此 API 用於接收或確認點數授權結果，不直接處理品牌選擇或自動兌換設定
+- 同一 `user_id` 再次以相同或更新的 `terms_version` 呼叫時，可視為重新確認授權結果，不報重複錯誤
+- 後續 `update_user_selected_brands` 與 `create_order` 皆應以前置授權結果作為檢查依據
+- 本文件不要求神坊以獨立授權主檔資料表落地保存完整授權資料
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 1. API Key 非前台端授權：`CALLER_NOT_AUTHORIZED`

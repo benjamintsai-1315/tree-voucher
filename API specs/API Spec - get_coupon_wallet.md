@@ -61,6 +61,7 @@ Content-Type: `application/json`
       "unit_cash_amount": 100,
       "unit_point_amount": 20,
       "unit_discount_amount": 21,
+      "max_redeem_count": 3,
       "expired_at": "2026-10-31T23:59:59.999+08:00",
       "created_at": "2026-10-01T09:00:00+08:00"
     },
@@ -75,6 +76,7 @@ Content-Type: `application/json`
       "unit_cash_amount": 150,
       "unit_point_amount": 25,
       "unit_discount_amount": 30,
+      "max_redeem_count": 2,
       "expired_at": "2026-11-30T23:59:59.999+08:00",
       "created_at": "2026-10-03T10:30:00+08:00"
     }
@@ -103,6 +105,7 @@ Content-Type: `application/json`
 | unit_cash_amount | Integer | 該券對應的消費門檻金額（元） |
 | unit_point_amount | Integer | 該券建立時所對應的點數成本 |
 | unit_discount_amount | Integer | 該券折抵金額（元） |
+| max_redeem_count | Integer | 該券所屬 campaign 定義的單筆交易 active campaign 券使用張數上限 |
 | expired_at | String | 該券固定到期時間（UTC+8 ISO 8601，毫秒精度） |
 | created_at | String | 該券建立時間（UTC+8 ISO 8601） |
 

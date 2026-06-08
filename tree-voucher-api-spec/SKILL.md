@@ -1,6 +1,6 @@
 ---
 name: tree-voucher-api-spec
-description: Create or revise Tree Voucher 2.0 API specification Markdown from product requirements, business flows, field lists, or rough interface notes. Use when the user asks to write, define, design, review, normalize, or convert requirements into an API spec/API document for voucher-plus-cash flows, coupons, campaigns, brands, stores, orders, client apps, issuer hosts, or front-end/back-end interface definitions.
+description: Create or revise Tree Voucher 2.0 API specification Markdown from product requirements, business flows, field lists, or rough interface notes. Use when the user asks to write, define, design, review, normalize, or convert requirements into an API spec/API document for voucher-plus-cash flows, coupons, campaigns, brands, orders, client apps, issuer hosts, or front-end/back-end interface definitions.
 ---
 
 # Tree Voucher API Spec
@@ -22,7 +22,7 @@ Load only the file needed for the current request.
 1. Identify the API purpose:
    - Caller: client app, issuer host, internal service, or admin system.
    - Action: query, create, update, finalize, cancel, list, select, enable, disable, or delete.
-   - Main resource: brand, store, campaign, coupon, order, transaction, user selection, or history.
+   - Main resource: brand, campaign, coupon, order, transaction, user selection, or history.
    - Scenarios: parameter combinations or state transitions that change behavior.
    - Permission boundary: authentication, project scope, merchant scope, brand ownership, user ownership, or service authorization.
    - Error cases: missing resources, unauthorized access, inactive resources, invalid parameters, exceeded limits, duplicated state, or business rule conflicts.

@@ -17,7 +17,7 @@ permalink: /api-specs/create-order/
   - `user_id` 必須存在，且該用戶已啟用該 `brand` 的自動兌換設定
 
 ## 使用情境
-發卡主機於用戶刷卡授權成功後，同步呼叫此 API。神坊以 request 提供的 `brand_id` 作為唯一品牌來源，先取用既有 `available coupon`，再依 active campaign 與剩餘點數決定是否即時發新券；執行扣點時，系統應依 `brand` 讀取其 `treepoint_merchant_provider_key`，作為點數帳務通路識別。
+發卡主機於用戶刷卡授權成功後，同步呼叫此 API。神坊以 request 提供的 `brand_id` 作為唯一品牌來源，先取用既有 `available coupon`，再依 active campaign、剩餘點數與該 campaign 的 `max_redeem_count` 決定是否即時發新券；執行扣點時，系統應依 `brand` 讀取其 `treepoint_merchant_provider_key`，作為點數帳務通路識別。
 
 發卡主機需一併帶入該筆刷卡卡號後四碼，供神坊保存於訂單資料，後續由前台端查詢訂單時顯示。
 
@@ -110,6 +110,11 @@ Content-Type: `application/json`
 - `discount_amount` = Σ `coupons_used[].unit_discount_amount`
 - 既有券只掃描 `status = available` 且尚未過期的 coupons，排序規則為 `expired_at ASC`、`created_at ASC`、`coupon_id ASC`
 - 掃描過程中，若單張券 `unit_cash_amount` 大於當下剩餘消費額，則跳過該券，繼續檢查下一張
+- 若舊券 `campaign_id` 對應當前 active campaign，僅在本次已使用的 active-campaign 券數 `< active_campaign.max_redeem_count` 時才可使用；一旦達上限，後續同 active campaign 舊券全部跳過
+- 若舊券屬於歷史 campaign，則不受 `max_redeem_count` 限制，仍照 FIFO 與金額門檻規則使用
+- 本次依 active campaign 即時發新券前，先計算 `remaining_active_campaign_quota = active_campaign.max_redeem_count - active_campaign_coupon_used_count`
+- 本次可新發張數 = `min(剩餘消費額 // unit_cash_amount, point_balance // unit_point_amount, remaining_active_campaign_quota)`
+- 若 `remaining_active_campaign_quota <= 0`，本次不得再新發任何 active-campaign 券
 - 僅在同一個 DB transaction 內完成扣點、發新券、既有券轉 `processing`、建立 order 與建立 order event 後，才視為建單成功
 - 建單成功後，訂單進入 `PROCESSING` 狀態，等待後續 `finalize_order`
 - 執行扣點時，系統應依 `brand.treepoint_merchant_provider_key` 進行點數帳務歸屬

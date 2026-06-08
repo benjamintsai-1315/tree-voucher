@@ -6,7 +6,7 @@ permalink: /api-specs/get-order/
 # API: get_order
 
 ## 功能說明
-讓樹享券平台前台端或發卡主機以 API Key 依 order_id 查詢單筆訂單的完整資訊，包含折抵明細與從建立到結單的事件歷程。
+讓樹享券平台前台端或發卡主機以 API Key 依 order_id 查詢單筆訂單的完整資訊，包含折抵明細與從建立到結單的事件歷程。DB layer 對應 `order_logs` 與 `order_coupon_items`；API layer 則維持 `events` 與 `coupons_used` 的回傳欄位名稱。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}` 或 `ApiKey {{issuer_api_key}}`
@@ -117,6 +117,8 @@ Content-Type: `application/json`
 
 ### 邏輯說明
 - `discount_amount` = Σ `coupons_used[].unit_discount_amount`
+- `coupons_used[]` 對應 DB layer 的 `order_coupon_items`
+- `events` 對應 DB layer 的 `order_logs`
 - `events` 最少一筆（`CREATED`），finalize_order 執行後新增第二筆（`COMPLETED` 或 `CANCELLED`）
 - `order_status` 與 `events` 最後一筆的 `event` 對應：`CREATED` → `PROCESSING`、`COMPLETED` → `COMPLETED`、`CANCELLED` → `CANCELLED`
 - `coupons_used[]` 用於還原已使用券的清算結果與有效期，不保證回傳未被使用券清單

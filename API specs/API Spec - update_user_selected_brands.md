@@ -13,7 +13,7 @@ permalink: /api-specs/update-user-selected-brands/
 - 邊界檢查：
   - API Key 須為樹享券平台前台端專屬授權，不接受其他呼叫方的 API Key
   - `user_id` 必須存在於神坊系統中
-  - 呼叫前必須已有 `user_authorize` 授權紀錄
+  - 呼叫前必須已完成點數授權，且神坊系統可取得或驗證該授權結果
   - `SELECT_BRANDS` 時，`after_brand_ids` 內所有 `brand` 都必須存在且目前具備 active campaign
 
 ## 使用情境
@@ -63,6 +63,7 @@ Content-Type: `application/json`
         "unit_cash_amount": 150,
         "unit_point_amount": 25,
         "unit_discount_amount": 30,
+        "max_redeem_count": 2,
         "updated_at": "2026-10-01T09:00:00+08:00"
       },
       "created_at": "2026-08-01T00:00:00+08:00",
@@ -100,6 +101,7 @@ Content-Type: `application/json`
 | unit_cash_amount | Integer | 每消費滿 N 元可對應使用一張券 |
 | unit_point_amount | Integer | 兌換一張券所需點數 |
 | unit_discount_amount | Integer | 一張券可折抵的金額（元） |
+| max_redeem_count | Integer | 單筆交易中，當前 active campaign 最多可使用幾張券 |
 | updated_at | String | Campaign 最後更新時間（UTC+8 ISO 8601） |
 
 ### 邏輯說明
@@ -110,9 +112,11 @@ Content-Type: `application/json`
 - `RESUME` 時，若該用戶目前沒有任何已選且具 active campaign 的品牌，應回 business error
 - 回傳的 `brands` 規則與 `get_user_selected_brands` 一致：只回 selected active brands
 - 異動紀錄寫入規則：
-  - 首次有品牌選擇記 `INITIAL_SELECTION`
-  - 後續品牌集合變更記 `REPLACE_BRANDS`
-  - `PAUSE` / `RESUME` 依原 action 寫入異動紀錄
+  - 同一個品牌設定操作共用同一個 `request_id`
+  - 首次有品牌選擇時，依 `after_brand_ids` 寫入多筆 `INITIAL_SELECTION`
+  - 後續品牌集合變更時，逐一比較前後差異，按品牌寫入多筆 `ADD_BRAND` / `REMOVE_BRAND`
+  - `PAUSE` / `RESUME` 依原 action 寫入單筆異動紀錄，且 `brand_id = null`
+  - 底層異動表為 `brand_change_logs`
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 1. API Key 非前台端授權：`CALLER_NOT_AUTHORIZED`

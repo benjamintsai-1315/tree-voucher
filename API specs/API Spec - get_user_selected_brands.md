@@ -52,6 +52,7 @@ Content-Type: `application/json`
         "unit_cash_amount": 150,
         "unit_point_amount": 25,
         "unit_discount_amount": 30,
+        "max_redeem_count": 2,
         "updated_at": "2026-10-01T09:00:00+08:00"
       },
       "created_at": "2026-08-01T00:00:00+08:00",
@@ -68,6 +69,7 @@ Content-Type: `application/json`
         "unit_cash_amount": 100,
         "unit_point_amount": 20,
         "unit_discount_amount": 21,
+        "max_redeem_count": 3,
         "updated_at": "2026-10-01T09:00:00+08:00"
       },
       "created_at": "2026-09-01T00:00:00+08:00",
@@ -103,6 +105,7 @@ Content-Type: `application/json`
 | unit_cash_amount | Integer | 每消費滿 N 元可對應使用一張券 |
 | unit_point_amount | Integer | 兌換一張券所需點數 |
 | unit_discount_amount | Integer | 一張券可折抵的金額（元） |
+| max_redeem_count | Integer | 單筆交易中，當前 active campaign 最多可使用幾張券 |
 | updated_at | String | Campaign 最後更新時間（UTC+8 ISO 8601） |
 
 ### 邏輯說明
