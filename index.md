@@ -21,10 +21,12 @@ permalink: /
 - [create_order]({{ '/api-specs/create-order/' | relative_url }})
 - [finalize_order]({{ '/api-specs/finalize-order/' | relative_url }})
 - [get_active_brands]({{ '/api-specs/get-active-brands/' | relative_url }})
+- [get_coupon_wallet]({{ '/api-specs/get-coupon-wallet/' | relative_url }})
 - [get_order]({{ '/api-specs/get-order/' | relative_url }})
 - [get_user_brand_change_logs]({{ '/api-specs/get-user-brand-change-logs/' | relative_url }})
 - [get_user_orders]({{ '/api-specs/get-user-orders/' | relative_url }})
 - [get_user_selected_brands]({{ '/api-specs/get-user-selected-brands/' | relative_url }})
+- [update_user_selected_brands]({{ '/api-specs/update-user-selected-brands/' | relative_url }})
 - [user_authorize]({{ '/api-specs/user-authorize/' | relative_url }})
 
 ## 備註

@@ -60,7 +60,7 @@ Content-Type: `application/json`
 ### 邏輯說明
 - 此 API 用於記錄點數授權，不直接處理品牌選擇或自動兌換設定
 - 同一 `user_id` 再次以相同或更新的 `terms_version` 呼叫時，可視為更新既有授權紀錄，不報重複錯誤
-- 後續 `update_user_auto_redeem` 與 `create_order` 皆應以此授權紀錄作為前置檢查依據
+- 後續 `update_user_selected_brands` 與 `create_order` 皆應以此授權紀錄作為前置檢查依據
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 1. API Key 非前台端授權：`CALLER_NOT_AUTHORIZED`

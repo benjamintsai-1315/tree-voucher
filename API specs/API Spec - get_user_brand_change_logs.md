@@ -94,6 +94,7 @@ Content-Type: `application/json`
 - 僅回傳過去 1 年內的紀錄，依 `occurred_at` 由新到舊排序
 - `PAUSE` / `RESUME` 不改變品牌清單，因此 `before_brand_ids` 與 `after_brand_ids` 可相同
 - `INITIAL_SELECTION` 的 `before_brand_ids` 為空陣列
+- `REPLACE_BRANDS` 包含一般品牌更換與清空全部品牌的情境
 - 無任何異動紀錄時，回傳 `items: []`，不報錯
 
 ## 400 錯誤回傳（TYPE: MESSAGE）

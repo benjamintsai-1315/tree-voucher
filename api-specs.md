@@ -10,7 +10,9 @@ permalink: /api-specs/
 ## 樹享券平台前台端
 
 - [get_active_brands]({{ '/api-specs/get-active-brands/' | relative_url }})
+- [get_coupon_wallet]({{ '/api-specs/get-coupon-wallet/' | relative_url }})
 - [get_user_selected_brands]({{ '/api-specs/get-user-selected-brands/' | relative_url }})
+- [update_user_selected_brands]({{ '/api-specs/update-user-selected-brands/' | relative_url }})
 - [get_user_brand_change_logs]({{ '/api-specs/get-user-brand-change-logs/' | relative_url }})
 - [get_user_orders]({{ '/api-specs/get-user-orders/' | relative_url }})
 - [get_order]({{ '/api-specs/get-order/' | relative_url }})

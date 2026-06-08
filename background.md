@@ -33,9 +33,10 @@ Coupon 本質作為本體，不採取「刷卡代金」概念作為本體
   - 取消訂單（商戶若向銀行申請刷退，將券狀態改為可使用，返回用戶券夾）
   - 過期
 
-每一 brand 底下只會有一個「自動兌換」的 campaign
+每一 brand 底下同一時間只會有一個「自動兌換」的 campaign
 - 當用戶有同意「在此品牌刷卡時，自動以點數根據當前 campaign 兌換券」時
 - 在對應品牌刷卡發生時，清算可折抵多少刷卡額
+- campaign 是否為 active，依當前時間是否落在其 `start_at` 與 `end_at` 之間判斷
 
 ## 計算邏輯與概念
 1. 已存在的 coupon 採 first-in-first-out -> 先到期先用
@@ -109,14 +110,19 @@ Response discount_amount = 141
 ## Flow 2: 選品牌
 用戶選擇偏好 brand（特店） 例如：全家 / 7-11 or 康是美 / 屈臣氏 or 大全聯 / 頂好...etc
 需檢查下述邏輯：
-1. 用戶是否可以更換（商務規定上每月一次，應設定為環境參數）
-2. 用戶選擇的品牌數量（商務規定上每人最多 3 個，應設定為環境參數）
-3. 選擇的品牌是否有 active campaign 可選
+1. 用戶是否已完成點數授權
+2. 用戶是否可以更換（商務規定上每月一次，應設定為環境參數）
+3. 用戶選擇的品牌數量（商務規定上每人最多 3 個，應設定為環境參數）
+4. 選擇的品牌是否有 active campaign 可選
 
 此流程由樹享券平台前台端串接使用者設定 API。
 
 ## Flow 3: 瀏覽已選品牌
-瀏覽用戶已選、且當前仍具備 active campaign 的品牌，需包含下列資料：
+瀏覽用戶目前的品牌設定狀態，需包含：
+1. auto_redeem_enabled
+2. 已選、且當前仍具備 active campaign 的品牌清單
+
+品牌清單需包含下列資料：
 1. brand_name
 2. brand_logo
 3. brand_category
@@ -124,13 +130,31 @@ Response discount_amount = 141
 
 若用戶尚未選擇任何品牌，或雖曾選擇品牌但目前沒有任何 brand 仍具備 active campaign，則以前台端空狀態呈現。
 
+若用戶已暫停用券，仍可回傳符合條件的已選品牌，但以前台端狀態欄位顯示 `auto_redeem_enabled = false`。
+
 ## Flow 4: 調閱異動紀錄
 調閱用戶過往 1 年內的異動紀錄，包含異動時間與異動行為（首次啟用、暫停用券、重啟用券、更換品牌）
 其中更換品牌需要包含「更換前有哪些」vs「更換後是哪些」
 
 此流程由樹享券平台前台端串接異動紀錄 API。
 
-## Flow 5: 刷卡
+## Flow 5: 券夾
+調閱用戶券夾列表，預設回全部券狀態，並可依品牌或券狀態篩選。
+
+需包含下列資料：
+1. coupon_id
+2. coupon_status
+3. brand_name
+4. brand_logo
+5. campaign_name
+6. unit_cash_amount
+7. unit_point_amount
+8. unit_discount_amount
+9. expired_at
+
+此流程由樹享券平台前台端串接券夾查詢 API。
+
+## Flow 6: 刷卡
 1. 由發卡主機刷卡交易 create_order (信用卡授權後執行)，並由神坊比對品牌與清算後發起用券
 2. 由發卡主機回報商戶請款完成或取消交易，進行 finalize_order (後續待商戶請款才呼叫，非同步)
 
