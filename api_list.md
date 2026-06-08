@@ -15,6 +15,7 @@ permalink: /api-list/
 - 對帳 API 不在本次 project scope，會另起專案處理。
 
 ## 狀態標記
+
 | 狀態 | 說明 |
 | ---- | ---- |
 | 已有 spec | 專案資料夾內已有對應 API spec 草稿 |

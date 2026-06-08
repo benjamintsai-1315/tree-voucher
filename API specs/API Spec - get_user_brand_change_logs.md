@@ -24,6 +24,7 @@ Endpoint: `/coupon/get_user_brand_change_logs`
 Content-Type: `application/json`
 
 ## Request Header（表格）
+
 | Header | 說明 |
 | ------ | ---- |
 | Authorization | ApiKey {{treecoupon_frontend_api_key}} |
@@ -104,6 +105,7 @@ Content-Type: `application/json`
 ```
 
 ## Response items
+
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | page | Integer | 當前頁碼，從 1 開始 |
@@ -112,6 +114,7 @@ Content-Type: `application/json`
 | items | Array | 該用戶過去 1 年內的品牌與服務狀態異動紀錄 |
 
 ### items
+
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | log_id | String | 異動紀錄識別碼 |

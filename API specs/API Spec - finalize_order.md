@@ -26,6 +26,7 @@ Endpoint: `/coupon/finalize_order`
 Content-Type: `application/json`
 
 ## Request Header（表格）
+
 | Header | 說明 |
 | ------ | ---- |
 | Authorization | ApiKey {{issuer_api_key}} |
@@ -51,6 +52,7 @@ Content-Type: `application/json`
 ```
 
 ## Response items
+
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | order_id | String | 訂單識別碼 |

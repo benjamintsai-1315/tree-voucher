@@ -23,6 +23,7 @@ Endpoint: `/coupon/user_authorize`
 Content-Type: `application/json`
 
 ## Request Header（表格）
+
 | Header | 說明 |
 | ------ | ---- |
 | Authorization | ApiKey {{treecoupon_frontend_api_key}} |
@@ -49,6 +50,7 @@ Content-Type: `application/json`
 ```
 
 ## Response items
+
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | user_id | String | 神坊用戶識別碼 |

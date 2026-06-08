@@ -23,6 +23,7 @@ Endpoint: `/coupon/get_order`
 Content-Type: `application/json`
 
 ## Request Header（表格）
+
 | Header | 說明 |
 | ------ | ---- |
 | Authorization | ApiKey {{treecoupon_frontend_api_key}} 或 ApiKey {{issuer_api_key}} |
@@ -83,6 +84,7 @@ Content-Type: `application/json`
 ```
 
 ## Response items
+
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | order_id | String | 訂單識別碼 |
@@ -99,6 +101,7 @@ Content-Type: `application/json`
 | created_at | String | 訂單建立時間（UTC+8 ISO 8601） |
 
 ### coupons_used
+
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | coupon_id | String | 券識別碼 |
@@ -110,6 +113,7 @@ Content-Type: `application/json`
 | type | String | `EXISTING`：原券夾既有券；`NEWLY_ISSUED`：本次即時兌換產生 |
 
 ### events
+
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | event | String | 事件類型：`CREATED` \| `COMPLETED` \| `CANCELLED` |

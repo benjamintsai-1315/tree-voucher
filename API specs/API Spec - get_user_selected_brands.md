@@ -24,6 +24,7 @@ HTTP method: `GET`
 Endpoint: `/coupon/get_user_selected_brands?user_id={{user_id}}`
 Content-Type: `application/json`
 ## Request Header（表格）
+
 | Header | 說明 |
 | ------ | --- |
 | Authorization | ApiKey {{treecoupon_frontend_api_key}} |
@@ -80,6 +81,7 @@ Content-Type: `application/json`
 ```
 
 ## Response items
+
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | user_id | String | 神坊用戶識別碼 |
@@ -87,6 +89,7 @@ Content-Type: `application/json`
 | brands | Array | 該用戶目前已選擇、且當前仍具備 active campaign 的品牌清單 |
 
 ### brands
+
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | brand_id | String | 品牌識別碼 |
@@ -98,6 +101,7 @@ Content-Type: `application/json`
 | updated_at | String | 品牌資料最後更新時間（UTC+8 ISO 8601） |
 
 ### active_campaign
+
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | campaign_id | String | Campaign 識別碼 |

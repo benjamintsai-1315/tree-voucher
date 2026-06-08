@@ -26,6 +26,7 @@ Endpoint: `/coupon/get_coupon_wallet`
 Content-Type: `application/json`
 
 ## Request Header（表格）
+
 | Header | 說明 |
 | ------ | ---- |
 | Authorization | ApiKey {{treecoupon_frontend_api_key}} |
@@ -85,6 +86,7 @@ Content-Type: `application/json`
 ```
 
 ## Response items
+
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | page | Integer | 當前頁碼，從 1 開始 |
@@ -93,6 +95,7 @@ Content-Type: `application/json`
 | coupons | Array | 該用戶符合篩選條件的券夾列表 |
 
 ### coupons
+
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | coupon_id | String | 券識別碼 |

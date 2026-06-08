@@ -31,6 +31,7 @@ Endpoint: `/coupon/update_user_selected_brands`
 Content-Type: `application/json`
 
 ## Request Header（表格）
+
 | Header | 說明 |
 | ------ | ---- |
 | Authorization | ApiKey {{treecoupon_frontend_api_key}} |
@@ -75,6 +76,7 @@ Content-Type: `application/json`
 ```
 
 ## Response items
+
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | user_id | String | 神坊用戶識別碼 |
@@ -83,6 +85,7 @@ Content-Type: `application/json`
 | updated_at | String | 本次更新完成時間（UTC+8 ISO 8601） |
 
 ### brands
+
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | brand_id | String | 品牌識別碼 |
@@ -94,6 +97,7 @@ Content-Type: `application/json`
 | updated_at | String | 品牌資料最後更新時間（UTC+8 ISO 8601） |
 
 ### active_campaign
+
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | campaign_id | String | Campaign 識別碼 |

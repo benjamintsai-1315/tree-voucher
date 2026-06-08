@@ -23,6 +23,7 @@ Endpoint: `/coupon/get_user_orders`
 Content-Type: `application/json`
 
 ## Request Header（表格）
+
 | Header | 說明 |
 | ------ | ---- |
 | Authorization | ApiKey {{treecoupon_frontend_api_key}} |
@@ -74,6 +75,7 @@ Content-Type: `application/json`
 ```
 
 ## Response items
+
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | page | Integer | 當前頁碼，從 1 開始 |
@@ -82,6 +84,7 @@ Content-Type: `application/json`
 | items | Array | 訂單摘要列表 |
 
 ### items
+
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | order_id | String | 訂單識別碼 |
