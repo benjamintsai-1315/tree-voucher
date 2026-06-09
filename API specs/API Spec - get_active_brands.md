@@ -109,6 +109,3 @@ Content-Type: `application/json`
 - 每個 brand 同一時間只會有一個 active campaign，故 `active_campaign` 為單一物件而非陣列
 - 排列順序以 `brand_category` 分組後，組內依 `brand_name` 字母順序排列
 - 無任何符合條件的品牌時，回傳 `brands: []`，不報錯
-
-## 400 錯誤回傳（TYPE: MESSAGE）
-1. API Key 非前台端授權：`CALLER_NOT_AUTHORIZED`

@@ -149,4 +149,5 @@ Before final output, verify:
 - Response sample fields and `Response items` match exactly.
 - Time fields use UTC+8 ISO 8601 format.
 - Status values and error codes use uppercase snake case.
+- 文件內僅保留 `400` 錯誤段落；其他 HTTP status 的通用說明由外部文件維護。
 - Any calculated fields, pagination behavior, sorting, and lifecycle transitions are explained.

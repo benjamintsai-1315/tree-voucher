@@ -68,6 +68,5 @@ Content-Type: `application/json`
 - 排列順序以 created_at 由新到舊排序
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
-1. 無法查詢未授權商戶 / 商戶不存在：`MERCHANT_NOT_AUTHORIZED_TO_CLIENT_APP`
-2. 商戶已停用：`INACTIVE_MERCHANT`
-3. 資源不存在：`{RESOURCE}_NOT_FOUND`
+1. 商戶已停用：`INACTIVE_MERCHANT`
+2. 資源不存在：`{RESOURCE}_NOT_FOUND`

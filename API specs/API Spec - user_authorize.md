@@ -66,5 +66,4 @@ Content-Type: `application/json`
 - 本文件不要求神坊以獨立授權主檔資料表落地保存完整授權資料
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
-1. API Key 非前台端授權：`CALLER_NOT_AUTHORIZED`
-2. `user_id` 不存在：`USER_NOT_FOUND`
+1. `user_id` 不存在：`USER_NOT_FOUND`

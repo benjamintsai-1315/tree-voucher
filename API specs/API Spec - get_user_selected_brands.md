@@ -121,6 +121,5 @@ Content-Type: `application/json`
 - 若使用者存在但尚未選擇任何品牌，回傳 brands: []，不報錯
 - 若使用者曾選擇品牌，但目前所有已選品牌都已無 active campaign，回傳 brands: []，不報錯
 
-### 400 錯誤回傳（TYPE: MESSAGE）
-- API Key 非屬前台端授權：CALLER_NOT_AUTHORIZED
-- user_id 不存在：USER_NOT_FOUND
+## 400 錯誤回傳（TYPE: MESSAGE）
+- user_id 不存在：`USER_NOT_FOUND`

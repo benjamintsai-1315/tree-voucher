@@ -68,7 +68,5 @@ Content-Type: `application/json`
 - 重複 `finalize_order` 不得再次改變訂單狀態、券狀態、點數或新增事件
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
-1. API Key 非發卡主機授權：`CALLER_NOT_AUTHORIZED`
-2. `order_id` 不存在：`ORDER_NOT_FOUND`
-3. 訂單已完成最終化：`ORDER_ALREADY_FINALIZED`
-4. `finalize_result` 不合法：`INVALID_FINALIZE_RESULT`
+1. `order_id` 不存在：`ORDER_NOT_FOUND`
+2. 訂單已完成最終化：`ORDER_ALREADY_FINALIZED`

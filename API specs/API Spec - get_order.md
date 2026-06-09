@@ -130,5 +130,4 @@ Content-Type: `application/json`
 - 重複 `create_order` 或重複 `finalize_order` 不新增第二筆同類事件；重送請求僅回 business error，不產生任何 side effect
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
-1. API Key 非前台端或發卡主機授權：`CALLER_NOT_AUTHORIZED`
-2. order_id 不存在：`ORDER_NOT_FOUND`
+1. order_id 不存在：`ORDER_NOT_FOUND`

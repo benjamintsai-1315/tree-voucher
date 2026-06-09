@@ -123,12 +123,10 @@ Content-Type: `application/json`
   - 底層異動表為 `brand_change_logs`
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
-1. API Key 非前台端授權：`CALLER_NOT_AUTHORIZED`
-2. `user_id` 不存在：`USER_NOT_FOUND`
-3. 使用者尚未完成點數授權：`POINT_USAGE_NOT_AUTHORIZED`
-4. `action` 不合法：`INVALID_ACTION`
-5. `brand_id` 不存在：`BRAND_NOT_FOUND`
-6. 該品牌目前無 active campaign：`BRAND_HAS_NO_ACTIVE_CAMPAIGN`
-7. 選擇品牌數超過上限：`BRAND_SELECTION_LIMIT_EXCEEDED`
-8. 超過每月更換次數限制：`BRAND_CHANGE_LIMIT_EXCEEDED`
-9. 目前無可恢復的已選有效品牌：`NO_ACTIVE_SELECTED_BRANDS`
+1. `user_id` 不存在：`USER_NOT_FOUND`
+2. 使用者尚未完成點數授權：`POINT_USAGE_NOT_AUTHORIZED`
+3. `brand_id` 不存在：`BRAND_NOT_FOUND`
+4. 該品牌目前無 active campaign：`BRAND_HAS_NO_ACTIVE_CAMPAIGN`
+5. 選擇品牌數超過上限：`BRAND_SELECTION_LIMIT_EXCEEDED`
+6. 超過每月更換次數限制：`BRAND_CHANGE_LIMIT_EXCEEDED`
+7. 目前無可恢復的已選有效品牌：`NO_ACTIVE_SELECTED_BRANDS`

@@ -122,7 +122,5 @@ Content-Type: `application/json`
 - 本 API 不回傳訂單關聯欄位，例如 `order_id`
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
-1. API Key 非前台端授權：`CALLER_NOT_AUTHORIZED`
-2. `user_id` 不存在：`USER_NOT_FOUND`
-3. `brand_id` 不存在：`BRAND_NOT_FOUND`
-4. `status` 不合法：`INVALID_STATUS`
+1. `user_id` 不存在：`USER_NOT_FOUND`
+2. `brand_id` 不存在：`BRAND_NOT_FOUND`

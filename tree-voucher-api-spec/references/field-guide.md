@@ -81,10 +81,11 @@ quota_remaining = quota - total_granted_points
 ## 400 錯誤碼命名規則
 - 全大寫 SNAKE_CASE
 - 以「情境」命名而非「技術錯誤」
+- API spec 文件內僅保留 `400` 錯誤段落；其他 HTTP status 的通用錯誤由外部文件維護
 - 常用後綴：
   - `_NOT_FOUND`：資源不存在
   - `_NOT_AUTHORIZED_TO_CLIENT_APP`：無授權存取
   - `INACTIVE_`：資源已停用
-  - `INVALID_`：參數格式不合法
+  - `INVALID_`：參數格式或枚舉值不合法
   - `_ALREADY_EXISTS`：資源重複建立
   - `_LIMIT_EXCEEDED`：超過商務規定上限

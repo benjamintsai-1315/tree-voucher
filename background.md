@@ -170,10 +170,11 @@ Response discount_amount = 141
 此流程由樹享券平台前台端串接券夾查詢 API。
 
 ## Flow 6: 刷卡
-1. 由發卡主機刷卡交易 create_order (信用卡授權後執行)，並由神坊比對品牌與清算後發起用券
+1. 由發卡主機刷卡交易 create_order (信用卡授權後執行)，並由神坊比對品牌與清算後發起用券；response 僅回 `discount_amount`
 2. 由發卡主機回報商戶請款完成或取消交易，進行 finalize_order (後續待商戶請款才呼叫，非同步)
 
 create_order 時，發卡主機需額外帶入用戶本次刷卡卡號後四碼，供後續前台端查詢訂單與呈現卡號辨識資訊。
+若需查詢訂單完整資訊、用券明細或事件歷程，另以 `order_id` 呼叫 `get_order`。
 
 訂單底層資料模型包含：
 - `order_logs`：保存訂單建立與最終化歷程
