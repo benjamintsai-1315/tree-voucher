@@ -35,6 +35,7 @@ Content-Type: `application/json`
 
 ```json
 {
+  "max_selectable_brand_count": 3,
   "brands": [
     {
       "brand_id": "BRAND_FAMILYMART",
@@ -78,6 +79,7 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
+| max_selectable_brand_count | Integer | 目前環境參數允許用戶最多可選擇的品牌數量 |
 | brands | Array | 所有具備 active campaign 的品牌清單 |
 
 ### brands
@@ -106,6 +108,14 @@ Content-Type: `application/json`
 
 ### 邏輯說明
 - 僅回傳當前有 active campaign 的品牌，無 active campaign 的品牌不列入
+- `max_selectable_brand_count` 取自當前 active rotation 的 `rotations.max_selectable_brand_count`
 - 每個 brand 同一時間只會有一個 active campaign，故 `active_campaign` 為單一物件而非陣列
 - 排列順序以 `brand_category` 分組後，組內依 `brand_name` 字母順序排列
 - 無任何符合條件的品牌時，回傳 `brands: []`，不報錯
+- 若無 active rotation，回傳 `NO_ACTIVE_ROTATION` error（400）
+
+# Error Handling
+
+| HTTP Status | Error Code | 說明 |
+| ----------- | ---------- | ---- |
+| 400 | `NO_ACTIVE_ROTATION` | 目前無 active rotation，無法取得品牌選擇上限 |

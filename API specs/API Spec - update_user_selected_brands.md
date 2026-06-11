@@ -51,7 +51,9 @@ Content-Type: `application/json`
 ```json
 {
   "user_id": "USR_000123",
+  "max_selectable_brand_count": 3,
   "auto_redeem_enabled": true,
+  "last_changed_at": "2026-10-15T20:30:00+08:00",
   "brands": [
     {
       "brand_id": "BRAND_711",
@@ -80,7 +82,9 @@ Content-Type: `application/json`
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | user_id | String | 神坊用戶識別碼 |
+| max_selectable_brand_count | Integer | 目前環境參數允許用戶最多可選擇的品牌數量 |
 | auto_redeem_enabled | Boolean | 使用者自動兌換服務是否啟用；`false` 表示目前為暫停用券狀態 |
+| last_changed_at | String \| null | 該用戶品牌設定狀態最近一次異動時間（UTC+8 ISO 8601）；若從未異動則為 `null` |
 | brands | Array | 該用戶目前已選擇、且當前仍具備 active campaign 的品牌清單 |
 | updated_at | String | 本次更新完成時間（UTC+8 ISO 8601） |
 
@@ -109,24 +113,29 @@ Content-Type: `application/json`
 | updated_at | String | Campaign 最後更新時間（UTC+8 ISO 8601） |
 
 ### 邏輯說明
+- 本 API 為「用戶進入系統」的觸發點之一，呼叫時須先執行 **lazy cleanup**：若用戶現有 `user_selected_brands` 的 `rotation_key` 與當前 active rotation 不符，系統自動清除舊選擇，並為每個被清除品牌寫入 `SYSTEM_CLEAR_BRANDS` 事件（`occurred_at` = 舊 rotation 的 `end_time`），再繼續處理本次操作
 - `SELECT_BRANDS` 以 `after_brand_ids` 作為更新後完整清單；系統以既有品牌設定與 `after_brand_ids` 比對，判定本次為首次選擇或更換品牌
 - `after_brand_ids` 可為空陣列，代表清空全部已選品牌；此情況仍視為一次品牌異動
+- `SELECT_BRANDS` 時，同步將當前 active rotation 的 `rotation_key` 寫入 `user_selected_brands.rotation_key`
+- 回傳中的 `max_selectable_brand_count` 取自當前 active rotation 的 `rotations.max_selectable_brand_count`
 - `SELECT_BRANDS` 不改變 `auto_redeem_enabled` 既有值
 - `PAUSE` / `RESUME` 不改變品牌清單；僅切換 `auto_redeem_enabled`
 - `RESUME` 時，若該用戶目前沒有任何已選且具 active campaign 的品牌，應回 business error
 - 回傳的 `brands` 規則與 `get_user_selected_brands` 一致：只回 selected active brands
+- `last_changed_at` 代表該用戶品牌設定狀態最近一次異動時間，包含首次選牌、更換品牌、清空品牌、`PAUSE`、`RESUME` 與 lazy cleanup 清空
 - 異動紀錄寫入規則：
   - 同一個品牌設定操作共用同一個 `request_id`
   - 首次有品牌選擇時，依 `after_brand_ids` 寫入多筆 `INITIAL_SELECTION`
   - 後續品牌集合變更時，逐一比較前後差異，按品牌寫入多筆 `ADD_BRAND` / `REMOVE_BRAND`
   - `PAUSE` / `RESUME` 依原 action 寫入單筆異動紀錄，且 `brand_id = null`
+  - lazy cleanup 清空時，為每個被清除品牌各寫入一筆 `SYSTEM_CLEAR_BRANDS`，`occurred_at` = 舊 rotation 的 `end_time`
   - 底層異動表為 `brand_change_logs`
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 1. `user_id` 不存在：`USER_NOT_FOUND`
 2. 使用者尚未完成點數授權：`POINT_USAGE_NOT_AUTHORIZED`
-3. `brand_id` 不存在：`BRAND_NOT_FOUND`
-4. 該品牌目前無 active campaign：`BRAND_HAS_NO_ACTIVE_CAMPAIGN`
-5. 選擇品牌數超過上限：`BRAND_SELECTION_LIMIT_EXCEEDED`
-6. 超過每月更換次數限制：`BRAND_CHANGE_LIMIT_EXCEEDED`
+3. 目前無 active rotation：`NO_ACTIVE_ROTATION`
+4. `brand_id` 不存在：`BRAND_NOT_FOUND`
+5. 該品牌目前無 active campaign：`BRAND_HAS_NO_ACTIVE_CAMPAIGN`
+6. 選擇品牌數超過上限：`BRAND_SELECTION_LIMIT_EXCEEDED`
 7. 目前無可恢復的已選有效品牌：`NO_ACTIVE_SELECTED_BRANDS`

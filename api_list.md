@@ -27,9 +27,10 @@ permalink: /api-list/
 
 | API | Method | Endpoint | 用途 | 狀態 |
 | ---- | ---- | ---- | ---- | ---- |
-| `get_active_brands` | `GET` | `/coupon/get_active_brands` | 取得目前所有具備 active campaign 的品牌清單及 campaign 規則，供品牌一覽頁呈現。 | 已有 spec |
+| `get_rotation_config` | `GET` | `/coupon/get_rotation_config` | 取得當前 active rotation（輪播檔期）的設定，包含活動開始/結束時間、本檔期品牌選擇上限及顯示用兌換說明參數。 | 已有 spec |
+| `get_active_brands` | `GET` | `/coupon/get_active_brands` | 取得目前所有具備 active campaign 的品牌清單及 campaign 規則，並回傳目前最多可選品牌數量，供品牌一覽頁呈現。 | 已有 spec |
 | `user_authorize` | `POST` | `/coupon/user_authorize` | 接收或確認使用者已同意樹享券平台可使用其點數的授權結果，作為後續自動兌換與用點清算的前置條件。 | 已有 spec |
-| `get_user_selected_brands` | `GET` | `/coupon/get_user_selected_brands` | 取得使用者目前的品牌設定狀態，包含 `auto_redeem_enabled`，以及目前已選擇、且當前仍具備 active campaign 的品牌。 | 已有 spec |
+| `get_user_selected_brands` | `GET` | `/coupon/get_user_selected_brands` | 取得使用者目前的品牌設定狀態，包含 `max_selectable_brand_count`、`auto_redeem_enabled`、`last_changed_at`，以及目前已選擇、且當前仍具備 active campaign 的品牌。 | 已有 spec |
 | `update_user_selected_brands` | `POST` 或 `PATCH` | `/coupon/update_user_selected_brands` | 對標 `get_user_selected_brands`，統一處理使用者已選品牌設定異動，包含首次選品牌、更換品牌、暫停用券、重啟用券。 | 已有 spec |
 | `get_user_brand_change_logs` | `GET` | `/coupon/get_user_brand_change_logs` | 查詢使用者過去 1 年內的品牌選擇與自動兌換異動紀錄。 | 已有 spec |
 | `get_coupon_wallet` | `GET` | `/coupon/get_coupon_wallet` | 查詢使用者券夾列表，預設回全部券狀態，並支援 `brand_id`、`status` 篩選。 | 已有 spec |
@@ -41,7 +42,7 @@ permalink: /api-list/
 
 | action | 用途 | 主要參數 | 商務規則 |
 | ---- | ---- | ---- | ---- |
-| `SELECT_BRANDS` | 首次選擇或更換自動兌換品牌 | `user_id`, `after_brand_ids` | 需檢查每人最多選擇品牌數、每自然月更換次數、品牌是否有 active campaign。 |
+| `SELECT_BRANDS` | 首次選擇或更換自動兌換品牌 | `user_id`, `after_brand_ids` | 需檢查每人最多選擇品牌數（取自 active rotation）、品牌是否有 active campaign。 |
 | `PAUSE` | 暫停自動用券 | `user_id` | 暫停後使用者已選品牌可保留，但刷卡時不觸發自動兌換。 |
 | `RESUME` | 重啟自動用券 | `user_id` | 重啟時需確認使用者仍有已選品牌，且至少一個品牌仍有 active campaign。 |
 
@@ -52,6 +53,7 @@ permalink: /api-list/
 - 初次選牌時，同一 `request_id` 可寫入多筆 `INITIAL_SELECTION`
 - 一般更換品牌時，同一 `request_id` 可寫入多筆 `ADD_BRAND` / `REMOVE_BRAND`
 - `PAUSE` / `RESUME` 為單筆事件，且 `brand_id = null`
+- 系統 lazy cleanup 清空舊檔期選擇時，為每個被清除的品牌各寫入一筆 `SYSTEM_CLEAR_BRANDS`，`occurred_at` 設為舊 rotation 的 `end_time`
 
 ## 發卡主機端 / 銀行信用卡系統
 
@@ -87,9 +89,12 @@ permalink: /api-list/
 | `batch_create_campaigns` | Internal CLI | 以批次檔或設定檔一次建立多筆 campaign 規則，供營運大量上架活動使用，欄位包含 `max_redeem_count`。 | CLI，不開發為 API |
 | `batch_update_campaigns` | Internal CLI | 以批次檔或設定檔一次更新多筆 campaign 規則或生效區間，包含 `max_redeem_count`、`start_at`、`end_at`。 | CLI，不開發為 API |
 | `expire_coupons` | Batch job | 定期將超過有效期限的 `available` coupon 改為 `expired`。 | 需新增 job |
+| `lazy_clear_user_selected_brands` | 由 API 觸發（`get_user_selected_brands`、`update_user_selected_brands`、`create_order` 等） | 當用戶進入系統時，檢查其 `user_selected_brands.rotation_key` 是否與當前 active rotation 相符。若不符，代表舊檔期選擇已失效：刪除舊選擇並為每個被清除的品牌寫入一筆 `SYSTEM_CLEAR_BRANDS` 事件（`occurred_at` = 舊 rotation 的 `end_time`）。 | 需新增邏輯 |
 
 ### 系統環境參數說明
 - `coupon_valid_days` 為全域有效天數參數，供發券時計算 `coupon.expired_at`；不屬於 `campaign` 欄位。
+- `max_selectable_brand_count` 已移至 `rotations` 表，由各檔期自行定義，不再是全域 `system_configs` 參數。
+- `display_unit_cash_amount` / `display_unit_point_amount` 設置於 `rotations` 表，目前供前端呈現說明文字，不影響清算；未來後台有 campaign 建立介面時，將作為新建 campaign 的 default value。
 
 ### 訂單資料模型說明
 - DB layer 的訂單歷程表使用 `order_logs`

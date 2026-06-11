@@ -21,6 +21,7 @@ erDiagram
     users ||--|| user_auto_redeem_settings : has
     users ||--o{ user_selected_brands : selects
     brands ||--o{ user_selected_brands : selected_by
+    rotations ||--o{ user_selected_brands : scopes
     users ||--o{ brand_change_logs : creates
     brands ||--o{ brand_change_logs : targets
     brands ||--o{ campaigns : has
@@ -44,7 +45,6 @@ erDiagram
         string brand_logo
         string brand_category
         string treepoint_merchant_provider_key
-        boolean is_enabled
         datetime created_at
         datetime updated_at
     }
@@ -69,10 +69,21 @@ erDiagram
         datetime updated_at
     }
 
+    rotations {
+        string rotation_key PK
+        datetime start_time
+        datetime end_time
+        int max_selectable_brand_count
+        int display_unit_cash_amount
+        int display_unit_point_amount
+        datetime created_at
+    }
+
     user_selected_brands {
         string user_selected_brand_id PK
         string user_id FK
         string brand_id FK
+        string rotation_key FK
         datetime selected_at
         datetime created_at
         datetime updated_at
@@ -114,7 +125,7 @@ erDiagram
     order_logs {
         string order_log_id PK
         string order_id FK
-        string event
+        string action
         datetime occurred_at
         datetime created_at
     }
@@ -149,7 +160,6 @@ erDiagram
 
 - 主鍵：`brand_id`
 - `treepoint_merchant_provider_key` 必填，不可為 `null`
-- `is_enabled` 表示品牌主資料是否啟用，不代表是否有 active campaign
 
 ### campaigns
 
@@ -171,7 +181,9 @@ erDiagram
 - 外鍵：
   - `user_id -> users.user_id`
   - `brand_id -> brands.brand_id`
+  - `rotation_key -> rotations.rotation_key`
 - 建議唯一約束：`(user_id, brand_id)`
+- `rotation_key` 於用戶選擇品牌時寫入當下 active rotation，用於 lazy cleanup 判斷是否屬於舊檔期
 - 表示用戶目前保留的已選品牌集合
 
 ### brand_change_logs
@@ -179,7 +191,7 @@ erDiagram
 - 主鍵：`log_id`
 - 外鍵：
   - `user_id -> users.user_id`
-  - `brand_id -> brands.brand_id`，僅 `PAUSE` / `RESUME` 可為 `null`
+  - `brand_id -> brands.brand_id`，僅 `PAUSE` / `RESUME` 可為 `null`；`SYSTEM_CLEAR_BRANDS` 時 `brand_id` 非 null，每筆對應一個被清除的品牌
 - `request_id` 用於分組同一次品牌操作批次
 - `action` enum：
   - `INITIAL_SELECTION`
@@ -187,11 +199,13 @@ erDiagram
   - `REMOVE_BRAND`
   - `PAUSE`
   - `RESUME`
+  - `SYSTEM_CLEAR_BRANDS`
 - 業務規則：
   - 同一 `request_id` 代表同一次品牌異動操作
   - 初次選牌時，同一批次可寫入多筆 `INITIAL_SELECTION`
   - 一般換牌時，同一批次可混合多筆 `ADD_BRAND` / `REMOVE_BRAND`
   - `PAUSE` / `RESUME` 為單筆事件，且 `brand_id = null`
+  - `SYSTEM_CLEAR_BRANDS` 由系統 lazy cleanup 觸發，每筆對應一個被清除的品牌（`brand_id` 非 null），`occurred_at` 為該 rotation 的 `end_time`
   - 同一 `request_id` 內不可重複出現相同 `action + brand_id`
 
 ### coupons
@@ -225,7 +239,7 @@ erDiagram
 
 - 主鍵：`order_log_id`
 - 外鍵：`order_id -> orders.order_id`
-- `event` enum：
+- `action` enum：
   - `CREATED`
   - `COMPLETED`
   - `CANCELLED`
@@ -245,13 +259,20 @@ erDiagram
 - 保留 `unit_cash_amount`、`unit_point_amount`、`unit_discount_amount`、`expired_at` 的訂單時點快照
 - 不直接將 `order_id` 掛在 `coupons` 上，避免取消交易後同一張券重新回到可用狀態時失去歷史關聯能力
 
+### rotations
+
+- 主鍵：`rotation_key`，格式建議為人工可讀識別符，e.g. `2026Q1`
+- `start_time` / `end_time` 均為 UTC+8 時間戳記
+- active rotation 以 `start_time <= now() <= end_time` 判斷
+- 系統同一時間只應有一個 active rotation
+- `max_selectable_brand_count`：此檔期用戶最多可選品牌數，取代原 `system_configs.brand_selection_limit`
+- `display_unit_cash_amount` / `display_unit_point_amount`：目前用途為前端呈現說明文字（e.g. 「每消費 100 元折抵 10 點」），實際清算依各品牌 campaign 規則，與此欄位無關。未來後台有 campaign 建立介面時，這兩個值將作為新建 campaign 的 default value
+
 ### system_configs
 
 - 主鍵：`config_key`
 - 至少應包含：
   - `coupon_valid_days`
-  - `brand_selection_limit`
-  - `brand_change_limit_per_month`
 
 ## 備註
 
