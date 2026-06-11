@@ -6,7 +6,7 @@ permalink: /api-specs/get-order/
 # API: get_order
 
 ## 功能說明
-讓樹享券平台前台端或發卡主機以 API Key 依 order_id 查詢單筆訂單的完整資訊，包含折抵明細與從建立到結單的事件歷程。DB layer 對應 `order_logs` 與 `order_coupon_items`；API layer 則維持 `events` 與 `coupons_used` 的回傳欄位名稱。
+讓樹享券平台前台端或發卡主機以 API Key 依 order_id 查詢單筆訂單的完整資訊，包含折抵明細與從建立到結單的事件歷程。DB layer 對應 `order_logs` 與 `order_coupon_items`；API layer 則維持 `actions` 與 `coupons_used` 的回傳欄位名稱。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}` 或 `ApiKey {{issuer_api_key}}`
@@ -69,13 +69,13 @@ Content-Type: `application/json`
       "type": "NEWLY_ISSUED"
     }
   ],
-  "events": [
+  "actions": [
     {
-      "event": "CREATED",
+      "action": "CREATED",
       "occurred_at": "2026-10-01T14:30:00+08:00"
     },
     {
-      "event": "COMPLETED",        // 或 CANCELLED
+      "action": "COMPLETED",        // 或 CANCELLED
       "occurred_at": "2026-10-03T10:00:00+08:00"
     }
   ],
@@ -97,7 +97,7 @@ Content-Type: `application/json`
 | order_status | String | 訂單當前狀態：`PROCESSING` \| `COMPLETED` \| `CANCELLED` |
 | finalized_at | String \| null | 訂單最終化時間；`PROCESSING` 時為 `null` |
 | coupons_used | Array | 本次被使用的券明細 |
-| events | Array | 訂單事件歷程，依發生時間由舊到新排列 |
+| actions | Array | 訂單事件歷程，依發生時間由舊到新排列 |
 | created_at | String | 訂單建立時間（UTC+8 ISO 8601） |
 
 ### coupons_used
@@ -112,19 +112,19 @@ Content-Type: `application/json`
 | expired_at | String | 該券固定到期時間（UTC+8 ISO 8601，毫秒精度） |
 | type | String | `EXISTING`：原券夾既有券；`NEWLY_ISSUED`：本次即時兌換產生 |
 
-### events
+### actions
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| event | String | 事件類型：`CREATED` \| `COMPLETED` \| `CANCELLED` |
+| action | String | 事件類型：`CREATED` \| `COMPLETED` \| `CANCELLED` |
 | occurred_at | String | 事件發生時間（UTC+8 ISO 8601） |
 
 ### 邏輯說明
 - `discount_amount` = Σ `coupons_used[].unit_discount_amount`
 - `coupons_used[]` 對應 DB layer 的 `order_coupon_items`
-- `events` 對應 DB layer 的 `order_logs`
-- `events` 最少一筆（`CREATED`），finalize_order 執行後新增第二筆（`COMPLETED` 或 `CANCELLED`）
-- `order_status` 與 `events` 最後一筆的 `event` 對應：`CREATED` → `PROCESSING`、`COMPLETED` → `COMPLETED`、`CANCELLED` → `CANCELLED`
+- `actions` 對應 DB layer 的 `order_logs`
+- `actions` 最少一筆（`CREATED`），finalize_order 執行後新增第二筆（`COMPLETED` 或 `CANCELLED`）
+- `order_status` 與 `actions` 最後一筆的 `action` 對應：`CREATED` → `PROCESSING`、`COMPLETED` → `COMPLETED`、`CANCELLED` → `CANCELLED`
 - `coupons_used[]` 用於還原已使用券的清算結果與有效期，不保證回傳未被使用券清單
 - `card_last_four_digits` 為建單時由發卡主機提供並保存於訂單上的顯示資訊，不參與任何清算邏輯
 - 重複 `create_order` 或重複 `finalize_order` 不新增第二筆同類事件；重送請求僅回 business error，不產生任何 side effect

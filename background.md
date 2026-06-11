@@ -108,6 +108,7 @@ Response discount_amount = 141
 ## Flow 1: 品牌一覽
 用戶可先看到所有品牌和對應當期自動兌換的規則
 需包含下列資料：
+1. max_selectable_brand_count
 1. brand_name
 2. brand_logo
 3. brand_category
@@ -127,8 +128,10 @@ Response discount_amount = 141
 
 ## Flow 3: 瀏覽已選品牌
 瀏覽用戶目前的品牌設定狀態，需包含：
-1. auto_redeem_enabled
-2. 已選、且當前仍具備 active campaign 的品牌清單
+1. max_selectable_brand_count
+2. auto_redeem_enabled
+3. last_changed_at
+4. 已選、且當前仍具備 active campaign 的品牌清單
 
 品牌清單需包含下列資料：
 1. brand_name
@@ -140,6 +143,8 @@ Response discount_amount = 141
 
 若用戶已暫停用券，仍可回傳符合條件的已選品牌，但以前台端狀態欄位顯示 `auto_redeem_enabled = false`。
 
+`last_changed_at` 代表用戶品牌設定狀態最近一次異動時間，包含首次選牌、更換品牌、清空品牌、`PAUSE`、`RESUME` 與系統季度批次清空。
+
 ## Flow 4: 調閱異動紀錄
 調閱用戶過往 1 年內的異動紀錄，包含異動時間與異動行為（首次啟用、暫停用券、重啟用券、更換品牌）
 其中更換品牌需要包含「更換前有哪些」vs「更換後是哪些」
@@ -149,8 +154,18 @@ Response discount_amount = 141
 - 初次選牌時可在同批寫入多筆 `INITIAL_SELECTION`
 - 一般品牌更換時可在同批寫入多筆 `ADD_BRAND` / `REMOVE_BRAND`
 - `PAUSE` / `RESUME` 為單筆事件，且 `brand_id = null`
+- 系統季度批次清空時，寫入單筆 `SYSTEM_CLEAR_BRANDS`
 
 此流程由樹享券平台前台端串接異動紀錄 API。
+
+## Flow 4-1: 季度批次清空已選品牌
+初期活動設計可能會在每一季度開始前，由系統全量清空用戶所選品牌。
+
+規則如下：
+1. 清空所有目標用戶的 selected brands
+2. `auto_redeem_enabled` 保留原值，不強制改為 `false`
+3. 為每位受影響用戶寫入 `SYSTEM_CLEAR_BRANDS`
+4. 該事件時間會成為 `get_user_selected_brands.last_changed_at`
 
 ## Flow 5: 券夾
 調閱用戶券夾列表，預設回全部券狀態，並可依品牌或券狀態篩選。

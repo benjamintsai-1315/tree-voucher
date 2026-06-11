@@ -45,8 +45,19 @@ Content-Type: `application/json`
 {
   "page": 1,
   "limit": 20,
-  "total": 4,
+  "total": 5,
   "items": [
+    {
+      "log_id": "BCL_20270101_00001",
+      "request_id": "SYS_20270101_Q1_CLEAR",
+      "action": "SYSTEM_CLEAR_BRANDS",
+      "before_brand_ids": [
+        "BRAND_711",
+        "BRAND_COSMED"
+      ],
+      "after_brand_ids": [],
+      "occurred_at": "2027-01-01T00:00:00+08:00"
+    },
     {
       "log_id": "BCL_20261020_00003",
       "request_id": "REQ_20261020_00002",
@@ -119,7 +130,7 @@ Content-Type: `application/json`
 | ---- | ---- | ---- |
 | log_id | String | 異動紀錄識別碼 |
 | request_id | String | 同一次品牌操作批次識別碼 |
-| action | String | 異動行為：`INITIAL_SELECTION` \| `ADD_BRAND` \| `REMOVE_BRAND` \| `PAUSE` \| `RESUME` |
+| action | String | 異動行為：`INITIAL_SELECTION` \| `ADD_BRAND` \| `REMOVE_BRAND` \| `PAUSE` \| `RESUME` \| `SYSTEM_CLEAR_BRANDS` |
 | before_brand_ids | Array | 異動前品牌清單；若不適用則為空陣列 |
 | after_brand_ids | Array | 異動後品牌清單；若不適用則為空陣列 |
 | occurred_at | String | 異動發生時間（UTC+8 ISO 8601） |
@@ -132,6 +143,7 @@ Content-Type: `application/json`
 - `PAUSE` / `RESUME` 不改變品牌清單，因此 `before_brand_ids` 與 `after_brand_ids` 可相同
 - `INITIAL_SELECTION` 的 `before_brand_ids` 為空陣列
 - `ADD_BRAND` / `REMOVE_BRAND` 用於表達一般品牌更換與清空全部品牌的差異事件
+- `SYSTEM_CLEAR_BRANDS` 代表系統季度批次清空已選品牌；其 `after_brand_ids` 固定為空陣列
 - 無任何異動紀錄時，回傳 `items: []`，不報錯
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
