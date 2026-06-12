@@ -3,6 +3,11 @@ title: API Spec - get_rotation_config
 permalink: /api-specs/get-rotation-config/
 ---
 
+## Changelog
+
+| Date | Summary |
+| ---- | ------- |
+
 # API: get_rotation_config
 
 ## 功能說明

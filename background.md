@@ -165,7 +165,7 @@ Response discount_amount = 141
 1. 清空所有目標用戶的 selected brands
 2. `auto_redeem_enabled` 保留原值，不強制改為 `false`
 3. 為每位受影響用戶寫入 `SYSTEM_CLEAR_BRANDS`
-4. 該事件時間會成為 `get_user_selected_brands.last_changed_at`
+4. 該事件時間會成為 `get_member_selected_brands.last_changed_at`
 
 ## Flow 5: 券夾
 調閱用戶券夾列表，預設回全部券狀態，並可依品牌或券狀態篩選。

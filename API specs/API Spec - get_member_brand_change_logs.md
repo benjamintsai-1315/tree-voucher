@@ -1,26 +1,32 @@
 ---
-title: API Spec - get_user_brand_change_logs
-permalink: /api-specs/get-user-brand-change-logs/
+title: API Spec - get_member_brand_change_logs
+permalink: /api-specs/get-member-brand-change-logs/
 ---
 
-# API: get_user_brand_change_logs
+## Changelog
+
+| Date | Summary |
+| ---- | ------- |
+| 2026-06-12 | 由 `get_user_brand_change_logs` 更名；`user_id` → `member_id`；`USER_NOT_FOUND` → `MEMBER_NOT_FOUND`；endpoint 改為 `/coupon/get_member_brand_change_logs` |
+
+# API: get_member_brand_change_logs
 
 ## 功能說明
-讓樹享券平台前台端以 API Key 依 `user_id` 查詢該用戶過去品牌異動與服務狀態異動紀錄，包含首次選擇品牌、更換品牌、暫停用券與重啟用券，供前端呈現異動紀錄頁。
+讓樹享券平台前台端以 API Key 依 `member_id` 查詢該會員過去品牌異動與服務狀態異動紀錄，包含首次選擇品牌、更換品牌、暫停用券與重啟用券，供前端呈現異動紀錄頁。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`
 - 邊界檢查：
   - API Key 須為樹享券平台前台端專屬授權，不接受其他呼叫方的 API Key
-  - `user_id` 必須存在於神坊系統中
-  - 僅可查詢該 `user_id` 過去 1 年內的異動紀錄
+  - `member_id` 必須存在於神坊系統中
+  - 僅可查詢該 `member_id` 過去 1 年內的異動紀錄
 
 ## 使用情境
-前台端帶入 `user_id` 查詢該用戶過去 1 年內的品牌異動與自動兌換狀態異動紀錄，供用戶回看曾經選過哪些品牌，以及何時暫停或重啟服務。
+前台端帶入 `member_id` 查詢該會員過去 1 年內的品牌異動與自動兌換狀態異動紀錄，供會員回看曾經選過哪些品牌，以及何時暫停或重啟服務。
 
 # Request
 HTTP method: `GET`
-Endpoint: `/coupon/get_user_brand_change_logs`
+Endpoint: `/coupon/get_member_brand_change_logs`
 Content-Type: `application/json`
 
 ## Request Header（表格）
@@ -34,7 +40,7 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 必填 | 可空 | 預設值 | 限制條件 |
 | ---- | ---- | ---- | ---- | ------ | -------- |
-| user_id | string | TRUE | FALSE | ❎ | 最多 64 字 |
+| member_id | string | TRUE | FALSE | ❎ | 最多 64 字 |
 | page | integer | FALSE | FALSE | 1 | > 0 |
 | limit | integer | FALSE | FALSE | 20 | > 0 |
 
@@ -147,4 +153,4 @@ Content-Type: `application/json`
 - 無任何異動紀錄時，回傳 `items: []`，不報錯
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
-1. `user_id` 不存在：`USER_NOT_FOUND`
+1. `member_id` 不存在：`MEMBER_NOT_FOUND`

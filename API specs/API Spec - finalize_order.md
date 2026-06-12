@@ -3,6 +3,11 @@ title: API Spec - finalize_order
 permalink: /api-specs/finalize-order/
 ---
 
+## Changelog
+
+| Date | Summary |
+| ---- | ------- |
+
 # API: finalize_order
 
 ## 功能說明

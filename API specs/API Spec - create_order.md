@@ -3,6 +3,12 @@ title: API Spec - create_order
 permalink: /api-specs/create-order/
 ---
 
+## Changelog
+
+| Date | Summary |
+| ---- | ------- |
+| 2026-06-12 | `user_selected_brands` → `member_selected_brands`；`USER_NOT_FOUND` → `MEMBER_NOT_FOUND` |
+
 # API: create_order
 
 ## 功能說明
@@ -62,7 +68,7 @@ Content-Type: `application/json`
 | discount_amount | Integer | 本次實際折抵總金額（元） |
 
 ### 邏輯說明
-- 本 API 為「用戶進入系統」的觸發點之一，執行清算前須先進行 **lazy cleanup**：若 `member_id` 在 `user_selected_brands` 中的記錄 `rotation_key` 與當前 active rotation 不符，系統自動清除舊選擇，並為每個被清除品牌寫入 `SYSTEM_CLEAR_BRANDS` 事件（`occurred_at` = 舊 rotation 的 `end_time`）；清除後若本 `brand_id` 不再在用戶已選清單中，則回傳 `AUTO_REDEEM_NOT_ENABLED_FOR_BRAND`
+- 本 API 為「用戶進入系統」的觸發點之一，執行清算前須先進行 **lazy cleanup**：若 `member_id` 在 `member_selected_brands` 中的記錄 `rotation_key` 與當前 active rotation 不符，系統自動清除舊選擇，並為每個被清除品牌寫入 `SYSTEM_CLEAR_BRANDS` 事件（`occurred_at` = 舊 rotation 的 `end_time`）；清除後若本 `brand_id` 不再在用戶已選清單中，則回傳 `AUTO_REDEEM_NOT_ENABLED_FOR_BRAND`
 - `discount_amount` = Σ（本次所有 processing coupon 的 `unit_discount_amount`）
 - 既有券只掃描 `status = available` 且尚未過期的 coupons，排序規則為 `expired_at ASC`、`created_at ASC`、`coupon_id ASC`
 - 掃描過程中，若單張券 `unit_cash_amount` 大於當下剩餘消費額，則跳過該券，繼續檢查下一張
@@ -83,7 +89,7 @@ Content-Type: `application/json`
 - 重複 `create_order` 不得再次扣點、發券、改券狀態或新增事件
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
-1. `member_id` 不存在：`USER_NOT_FOUND`
+1. `member_id` 不存在：`MEMBER_NOT_FOUND`
 2. `brand_id` 不存在：`BRAND_NOT_FOUND`
 3. `order_id` 已存在：`ORDER_ALREADY_EXISTS`
 4. 使用者未啟用該品牌自動兌換：`AUTO_REDEEM_NOT_ENABLED_FOR_BRAND`

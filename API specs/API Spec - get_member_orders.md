@@ -1,25 +1,31 @@
 ---
-title: API Spec - get_user_orders
-permalink: /api-specs/get-user-orders/
+title: API Spec - get_member_orders
+permalink: /api-specs/get-member-orders/
 ---
 
-# API: get_user_orders
+## Changelog
+
+| Date | Summary |
+| ---- | ------- |
+| 2026-06-12 | 由 `get_user_orders` 更名；`user_id` → `member_id`；`USER_NOT_FOUND` → `MEMBER_NOT_FOUND`；endpoint 改為 `/coupon/get_member_orders` |
+
+# API: get_member_orders
 
 ## 功能說明
-讓樹享券平台前台端以 API Key 依 user_id 取得該用戶的訂單列表，支援分頁與排序，供用戶瀏覽歷史折抵紀錄。
+讓樹享券平台前台端以 API Key 依 member_id 取得該會員的訂單列表，支援分頁與排序，供會員瀏覽歷史折抵紀錄。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`
 - 邊界檢查：
   - API Key 須為樹享券平台前台端專屬授權，不接受發卡主機的 API Key
-  - `user_id` 必須存在於神坊系統中
+  - `member_id` 必須存在於神坊系統中
 
 ## 使用情境
-前台端帶入 `user_id` 取得該用戶所有訂單的摘要列表；如需查看單筆完整明細（含 events 歷程），再以 `order_id` 呼叫 `get_order`。
+前台端帶入 `member_id` 取得該會員所有訂單的摘要列表；如需查看單筆完整明細（含 events 歷程），再以 `order_id` 呼叫 `get_order`。
 
 # Request
 HTTP method: `GET`
-Endpoint: `/coupon/get_user_orders`
+Endpoint: `/coupon/get_member_orders`
 Content-Type: `application/json`
 
 ## Request Header（表格）
@@ -33,7 +39,7 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 必填 | 可空 | 預設值 | 限制條件 |
 | ---- | ---- | ---- | ---- | ------ | -------- |
-| user_id | string | TRUE | FALSE | ❎ | 最多 64 字 |
+| member_id | string | TRUE | FALSE | ❎ | 最多 64 字 |
 | page | integer | FALSE | FALSE | 1 | > 0 |
 | limit | integer | FALSE | FALSE | 20 | > 0 |
 | sort_by | string | FALSE | FALSE | `created_at` | 僅接受 `created_at` \| `order_status` |
@@ -104,4 +110,4 @@ Content-Type: `application/json`
 - `sort_by = order_status`：依狀態排序，順序為 `PROCESSING` → `COMPLETED` → `CANCELLED`
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
-1. user_id 不存在：`USER_NOT_FOUND`
+1. member_id 不存在：`MEMBER_NOT_FOUND`

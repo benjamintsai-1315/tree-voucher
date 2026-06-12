@@ -3,6 +3,11 @@ title: API Spec - get_active_brands
 permalink: /api-specs/get-active-brands/
 ---
 
+## Changelog
+
+| Date | Summary |
+| ---- | ------- |
+
 # API: get_active_brands
 
 ## 功能說明

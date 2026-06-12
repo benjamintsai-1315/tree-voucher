@@ -11,32 +11,46 @@ permalink: /database-schema/
 
 - `coupon_wallet` 是查詢視角，不是獨立資料表。
 - active campaign 由 `campaigns.start_at` / `campaigns.end_at` 推導，不另存布林欄位。
-- 點數授權、點數餘額、扣點流水屬外部點數系統，本系統不另外設計獨立授權主檔或點數帳務表。
+- 點數餘額、扣點流水屬外部點數系統，本系統不另外設計點數帳務表。
+- 授權狀態以 `members` 主表欄位記錄當前狀態，完整異動歷史由 `member_authorization_logs` 保存。
 - API layer 可沿用 `events`、`coupons_used` 等回傳欄位；DB layer 對應名詞統一使用 `order_logs`、`order_coupon_items`。
 
 ## Mermaid ERD
 
 ```mermaid
 erDiagram
-    users ||--|| user_auto_redeem_settings : has
-    users ||--o{ user_selected_brands : selects
-    brands ||--o{ user_selected_brands : selected_by
-    rotations ||--o{ user_selected_brands : scopes
-    users ||--o{ brand_change_logs : creates
+    members ||--|| member_auto_redeem_settings : has
+    members ||--o{ member_selected_brands : selects
+    brands ||--o{ member_selected_brands : selected_by
+    rotations ||--o{ member_selected_brands : scopes
+    members ||--o{ brand_change_logs : creates
     brands ||--o{ brand_change_logs : targets
     brands ||--o{ campaigns : has
-    users ||--o{ coupons : owns
+    members ||--o{ coupons : owns
     campaigns ||--o{ coupons : issues
-    users ||--o{ orders : places
+    members ||--o{ orders : places
     brands ||--o{ orders : belongs_to
     orders ||--o{ order_logs : records
     orders ||--o{ order_coupon_items : contains
     coupons ||--o{ order_coupon_items : referenced_by
+    members ||--o{ member_authorization_logs : has
 
-    users {
-        string user_id PK
+    members {
+        string member_id PK
+        string auth_status
+        string auth_terms_version
+        datetime auth_updated_at
         datetime created_at
         datetime updated_at
+    }
+
+    member_authorization_logs {
+        string log_id PK
+        string member_id FK
+        string action
+        string terms_version
+        datetime occurred_at
+        datetime created_at
     }
 
     brands {
@@ -63,8 +77,8 @@ erDiagram
         datetime updated_at
     }
 
-    user_auto_redeem_settings {
-        string user_id PK FK
+    member_auto_redeem_settings {
+        string member_id PK FK
         boolean auto_redeem_enabled
         datetime updated_at
     }
@@ -79,9 +93,9 @@ erDiagram
         datetime created_at
     }
 
-    user_selected_brands {
-        string user_selected_brand_id PK
-        string user_id FK
+    member_selected_brands {
+        string member_selected_brand_id PK
+        string member_id FK
         string brand_id FK
         string rotation_key FK
         datetime selected_at
@@ -92,7 +106,7 @@ erDiagram
     brand_change_logs {
         string log_id PK
         string request_id
-        string user_id FK
+        string member_id FK
         string brand_id FK
         string action
         datetime occurred_at
@@ -100,7 +114,7 @@ erDiagram
 
     coupons {
         string coupon_id PK
-        string user_id FK
+        string member_id FK
         string campaign_id FK
         string status
         datetime issued_at
@@ -111,7 +125,7 @@ erDiagram
 
     orders {
         string order_id PK
-        string user_id FK
+        string member_id FK
         string brand_id FK
         int cash_amount
         int discount_amount
@@ -151,10 +165,29 @@ erDiagram
 
 ## 關鍵欄位與約束
 
-### users
+### members
 
-- 主鍵：`user_id`
+- 主鍵：`member_id`
 - 作為品牌設定、券、訂單與異動紀錄的關聯主體
+
+- `auth_status` enum：
+  - `AUTHORIZED`
+  - `DEAUTHORIZED`
+  - `null`（用戶建立後尚未完成任何授權動作）
+- `auth_terms_version`：最新一次授權動作對應的條款版本
+- `auth_updated_at`：最新一次授權狀態變更時間
+- `create_order` 與 `update_member_selected_brands` 應以 `auth_status = AUTHORIZED` 作為前置檢查
+
+### member_authorization_logs
+
+- 主鍵：`log_id`
+- 外鍵：`member_id -> members.member_id`
+- 每次授權動作寫入一筆，不更新、不刪除，保留完整歷史
+- `action` enum：
+  - `AUTHORIZE`
+  - `DEAUTHORIZE`
+- `terms_version`：本次動作對應的條款版本
+- `occurred_at`：動作發生時間（UTC+8）
 
 ### brands
 
@@ -169,20 +202,20 @@ erDiagram
 - active campaign 以 `start_at <= now <= end_at` 判斷
 - 同一 `brand` 同一時間只允許一個 active campaign
 
-### user_auto_redeem_settings
+### member_auto_redeem_settings
 
-- 主鍵兼外鍵：`user_id -> users.user_id`
+- 主鍵兼外鍵：`member_id -> members.member_id`
 - `auto_redeem_enabled` 表示該用戶目前是否啟用自動兌換
 - 本表僅保存自動兌換服務狀態，不承擔點數授權主檔角色
 
-### user_selected_brands
+### member_selected_brands
 
-- 主鍵：`user_selected_brand_id`
+- 主鍵：`member_selected_brand_id`
 - 外鍵：
-  - `user_id -> users.user_id`
+  - `member_id -> members.member_id`
   - `brand_id -> brands.brand_id`
   - `rotation_key -> rotations.rotation_key`
-- 建議唯一約束：`(user_id, brand_id)`
+- 建議唯一約束：`(member_id, brand_id)`
 - `rotation_key` 於用戶選擇品牌時寫入當下 active rotation，用於 lazy cleanup 判斷是否屬於舊檔期
 - 表示用戶目前保留的已選品牌集合
 
@@ -190,7 +223,7 @@ erDiagram
 
 - 主鍵：`log_id`
 - 外鍵：
-  - `user_id -> users.user_id`
+  - `member_id -> members.member_id`
   - `brand_id -> brands.brand_id`，僅 `PAUSE` / `RESUME` 可為 `null`；`SYSTEM_CLEAR_BRANDS` 時 `brand_id` 非 null，每筆對應一個被清除的品牌
 - `request_id` 用於分組同一次品牌操作批次
 - `action` enum：
@@ -212,7 +245,7 @@ erDiagram
 
 - 主鍵：`coupon_id`
 - 外鍵：
-  - `user_id -> users.user_id`
+  - `member_id -> members.member_id`
   - `campaign_id -> campaigns.campaign_id`
 - `status` enum：
   - `AVAILABLE`
@@ -226,7 +259,7 @@ erDiagram
 
 - 主鍵：`order_id`
 - 外鍵：
-  - `user_id -> users.user_id`
+  - `member_id -> members.member_id`
   - `brand_id -> brands.brand_id`
 - `order_id` 由發卡主機提供，但在本系統內必須唯一
 - `order_status` enum：
@@ -276,6 +309,6 @@ erDiagram
 
 ## 備註
 
-- `coupon_wallet` 對應的是 `coupons` 的查詢投影，可依 `user_id`、`brand_id`、`status` 組合查詢，不需獨立建表。
-- `get_user_brand_change_logs` API 若需回傳 `before_brand_ids` / `after_brand_ids`，應以同一 `request_id` 的 `brand_change_logs` 批次事件進行重建。
+- `coupon_wallet` 對應的是 `coupons` 的查詢投影，可依 `member_id`、`brand_id`、`status` 組合查詢，不需獨立建表。
+- `get_member_brand_change_logs` API 若需回傳 `before_brand_ids` / `after_brand_ids`，應以同一 `request_id` 的 `brand_change_logs` 批次事件進行重建。
 - `get_order` API 的 `events` 對應 `order_logs`；`coupons_used` 對應 `order_coupon_items`。

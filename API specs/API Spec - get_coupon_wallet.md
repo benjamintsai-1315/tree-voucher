@@ -3,20 +3,26 @@ title: API Spec - get_coupon_wallet
 permalink: /api-specs/get-coupon-wallet/
 ---
 
+## Changelog
+
+| Date | Summary |
+| ---- | ------- |
+| 2026-06-12 | `user_id` → `member_id`；`USER_NOT_FOUND` → `MEMBER_NOT_FOUND` |
+
 # API: get_coupon_wallet
 
 ## 功能說明
-讓樹享券平台前台端以 API Key 依 `user_id` 查詢該用戶的券夾列表，支援依 `brand_id` 與單一 `status` 篩選，供前端呈現可用券、處理中券與歷史券狀態。
+讓樹享券平台前台端以 API Key 依 `member_id` 查詢該用戶的券夾列表，支援依 `brand_id` 與單一 `status` 篩選，供前端呈現可用券、處理中券與歷史券狀態。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`
 - 邊界檢查：
   - API Key 須為樹享券平台前台端專屬授權，不接受其他呼叫方的 API Key
-  - `user_id` 必須存在於神坊系統中
+  - `member_id` 必須存在於神坊系統中
   - `brand_id` 若有帶入，必須存在於神坊系統中
 
 ## 使用情境
-前台端帶入 `user_id` 查詢該用戶所有券狀態的券夾列表。若前端只想看特定品牌或特定券狀態，可搭配 `brand_id`、`status` 進行篩選。
+前台端帶入 `member_id` 查詢該用戶所有券狀態的券夾列表。若前端只想看特定品牌或特定券狀態，可搭配 `brand_id`、`status` 進行篩選。
 
 若使用者目前沒有任何券，回傳 `coupons: []`，不視為錯誤。
 
@@ -36,7 +42,7 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 必填 | 可空 | 預設值 | 限制條件 |
 | ---- | ---- | ---- | ---- | ------ | -------- |
-| user_id | string | TRUE | FALSE | ❎ | UUID |
+| member_id | string | TRUE | FALSE | ❎ | UUID |
 | page | integer | FALSE | FALSE | 1 | > 0 |
 | limit | integer | FALSE | FALSE | 20 | > 0 |
 | brand_id | string | FALSE | FALSE | ❎ | UUID |
@@ -122,5 +128,5 @@ Content-Type: `application/json`
 - 本 API 不回傳訂單關聯欄位，例如 `order_id`
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
-1. `user_id` 不存在：`USER_NOT_FOUND`
+1. `member_id` 不存在：`MEMBER_NOT_FOUND`
 2. `brand_id` 不存在：`BRAND_NOT_FOUND`

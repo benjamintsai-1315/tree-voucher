@@ -3,6 +3,12 @@ title: API Spec - get_order
 permalink: /api-specs/get-order/
 ---
 
+## Changelog
+
+| Date | Summary |
+| ---- | ------- |
+| 2026-06-12 | response 欄位 `user_id` → `member_id` |
+
 # API: get_order
 
 ## 功能說明
@@ -41,7 +47,7 @@ Content-Type: `application/json`
 ```json
 {
   "order_id": "ORD_20261001_00001",
-  "user_id": "USR_000123",
+  "member_id": "USR_000123",
   "brand_id": "BRAND_FAMILYMART",
   "brand_name": "全家便利商店",
   "cash_amount": 620,
@@ -88,7 +94,7 @@ Content-Type: `application/json`
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | order_id | String | 訂單識別碼 |
-| user_id | String | 神坊用戶識別碼 |
+| member_id | String | 神坊會員識別碼 |
 | brand_id | String | 對應 brand 識別碼 |
 | brand_name | String | 對應 brand 名稱 |
 | cash_amount | Integer | 本次刷卡金額（元） |

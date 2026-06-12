@@ -1,11 +1,17 @@
 ---
-title: API Spec - get_user_selected_brands
-permalink: /api-specs/get-user-selected-brands/
+title: API Spec - get_member_selected_brands
+permalink: /api-specs/get-member-selected-brands/
 ---
 
-# API: get_user_selected_brands
+## Changelog
+
+| Date | Summary |
+| ---- | ------- |
+| 2026-06-12 | 由 `get_user_selected_brands` 更名；`user_selected_brands` → `member_selected_brands`；`USER_NOT_FOUND` → `MEMBER_NOT_FOUND`；endpoint 改為 `/coupon/get_member_selected_brands` |
+
+# API: get_member_selected_brands
 ## 功能說明
-讓樹享券平台前台端以 API Key 依 member_id 取得該用戶目前的已選品牌狀態，包含服務是否啟用，以及目前已選擇、且當前仍具備 active campaign 的品牌清單與對應 active campaign 詳情，供前端呈現已選品牌頁面。
+讓樹享券平台前台端以 API Key 依 member_id 取得該會員目前的已選品牌狀態，包含服務是否啟用，以及目前已選擇、且當前仍具備 active campaign 的品牌清單與對應 active campaign 詳情，供前端呈現已選品牌頁面。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`
@@ -21,7 +27,7 @@ permalink: /api-specs/get-user-selected-brands/
 
 # Request
 HTTP method: `GET`
-Endpoint: `/coupon/get_user_selected_brands?member_id={{member_id}}`
+Endpoint: `/coupon/get_member_selected_brands?member_id={{member_id}}`
 Content-Type: `application/json`
 ## Request Header（表格）
 
@@ -118,7 +124,7 @@ Content-Type: `application/json`
 
 ### 邏輯說明
 
-- 本 API 為「用戶進入系統」的觸發點之一，回傳前須先執行 **lazy cleanup**：若用戶現有 `user_selected_brands` 的 `rotation_key` 與當前 active rotation 不符，系統自動清除舊選擇，並為每個被清除品牌寫入 `SYSTEM_CLEAR_BRANDS` 事件（`occurred_at` = 舊 rotation 的 `end_time`），再回傳清除後的最新狀態
+- 本 API 為「用戶進入系統」的觸發點之一，回傳前須先執行 **lazy cleanup**：若用戶現有 `member_selected_brands` 的 `rotation_key` 與當前 active rotation 不符，系統自動清除舊選擇，並為每個被清除品牌寫入 `SYSTEM_CLEAR_BRANDS` 事件（`occurred_at` = 舊 rotation 的 `end_time`），再回傳清除後的最新狀態
 - 回傳欄位結構與 get_active_brands 保持一致，避免前台端處理兩套品牌資料格式
 - `max_selectable_brand_count` 取自當前 active rotation 的 `rotations.max_selectable_brand_count`；若無 active rotation，則回傳 `null`
 - `auto_redeem_enabled` 為使用者層級服務狀態；`PAUSE` 後為 `false`，`RESUME` 後為 `true`
@@ -130,4 +136,4 @@ Content-Type: `application/json`
 - 若使用者從未發生任何品牌設定異動，回傳 `last_changed_at: null`
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
-- member_id 不存在：`USER_NOT_FOUND`
+- member_id 不存在：`MEMBER_NOT_FOUND`
