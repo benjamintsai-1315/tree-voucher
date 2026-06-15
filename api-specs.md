@@ -22,3 +22,4 @@ permalink: /api-specs/
 
 - [create_order]({{ '/api-specs/create-order/' | relative_url }})
 - [finalize_order]({{ '/api-specs/finalize-order/' | relative_url }})
+- [bank_get_order]({{ '/api-specs/bank-get-order/' | relative_url }})

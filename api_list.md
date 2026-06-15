@@ -34,7 +34,7 @@ permalink: /api-list/
 | `get_member_brand_change_logs` | `GET` | `/coupon/get_member_brand_change_logs` | 查詢使用者過去 1 年內的品牌選擇與自動兌換異動紀錄。 | 已有 spec |
 | `get_coupon_wallet` | `GET` | `/coupon/get_coupon_wallet` | 查詢使用者券夾列表，預設回全部券狀態，並支援 `brand_id`、`status` 篩選。 | 已有 spec |
 | `get_member_orders` | `GET` | `/coupon/get_member_orders` | 查詢使用者歷史折抵訂單列表，供用戶瀏覽折抵紀錄。 | 已有 spec |
-| `get_order` | `GET` | `/coupon/get_order` | 查詢單筆訂單完整資訊，包含折抵明細與事件歷程。 | 已有 spec |
+| `get_order` | `GET` | `/coupon/get_order` | 查詢單筆訂單完整資訊，包含折抵明細與事件歷程。需帶 `member_id` 防呆。 | 已有 spec |
 | `preview_discount` | `POST` | `/coupon/preview_discount` | 在未建立訂單前，試算指定品牌與刷卡金額可能折抵多少。若前端不需要即時試算，可不做。 | 可選 |
 
 ### `update_member_selected_brands` action 建議
@@ -60,7 +60,7 @@ permalink: /api-list/
 | ---- | ---- | ---- | ---- | ---- |
 | `create_order` | `POST` | `/bank/create_order` | 信用卡授權後由發卡主機呼叫。神坊依 brand、用戶、刷卡金額執行清算，使用既有 coupon、扣點、即時發新 coupon，並保存卡號後四碼供後續前台查詢顯示。 | 已有 spec |
 | `finalize_order` | `POST` | `/bank/finalize_order` | 商戶請款完成或取消交易後由發卡主機非同步呼叫。請款成功時 coupon `processing -> completed`；取消時依是否已到期轉為 `available` 或 `expired`，點數不返還。 | 已有 spec |
-| `get_order` | `GET` | `/bank/get_order` | 發卡主機依 `order_id` 查詢單筆訂單狀態、折抵明細與事件歷程。 | 已有 spec |
+| `bank_get_order` | `GET` | `/bank/get_order` | 發卡主機依 `order_id` 查詢訂單狀態與折抵金額，僅回傳銀行端必要欄位。 | 已有 spec |
 
 ### 發卡主機端說明
 - `order_id` 由發卡主機編制，神坊直接以該 `order_id` 作為訂單主識別。
