@@ -58,9 +58,9 @@ permalink: /api-list/
 
 | API | Method | Endpoint | 用途 | 狀態 |
 | ---- | ---- | ---- | ---- | ---- |
-| `create_order` | `POST` | `/coupon/create_order` | 信用卡授權後由發卡主機呼叫。神坊依 brand、用戶、刷卡金額執行清算，使用既有 coupon、扣點、即時發新 coupon，並保存卡號後四碼供後續前台查詢顯示。 | 已有 spec |
-| `finalize_order` | `POST` | `/coupon/finalize_order` | 商戶請款完成或取消交易後由發卡主機非同步呼叫。請款成功時 coupon `processing -> completed`；取消時依是否已到期轉為 `available` 或 `expired`，點數不返還。 | 已有 spec |
-| `get_order` | `GET` | `/coupon/get_order` | 發卡主機依 `order_id` 查詢單筆訂單狀態、折抵明細與事件歷程。 | 已有 spec |
+| `create_order` | `POST` | `/bank/create_order` | 信用卡授權後由發卡主機呼叫。神坊依 brand、用戶、刷卡金額執行清算，使用既有 coupon、扣點、即時發新 coupon，並保存卡號後四碼供後續前台查詢顯示。 | 已有 spec |
+| `finalize_order` | `POST` | `/bank/finalize_order` | 商戶請款完成或取消交易後由發卡主機非同步呼叫。請款成功時 coupon `processing -> completed`；取消時依是否已到期轉為 `available` 或 `expired`，點數不返還。 | 已有 spec |
+| `get_order` | `GET` | `/bank/get_order` | 發卡主機依 `order_id` 查詢單筆訂單狀態、折抵明細與事件歷程。 | 已有 spec |
 
 ### 發卡主機端說明
 - `order_id` 由發卡主機編制，神坊直接以該 `order_id` 作為訂單主識別。
@@ -71,12 +71,12 @@ permalink: /api-list/
 
 | API | Method | Endpoint | 用途 | 狀態 |
 | ---- | ---- | ---- | ---- | ---- |
-| `get_brands` | `GET` | `/coupon/admin/get_brands` | 後台查詢合作品牌清單，包含啟用狀態、分類、logo、`treepoint_merchant_provider_key`、建立與更新時間。 | 第二階段，out of scope |
-| `create_brand` | `POST` | `/coupon/admin/create_brand` | 建立合作品牌，需包含 `treepoint_merchant_provider_key`。 | 第二階段，out of scope |
-| `update_brand` | `PATCH` | `/coupon/admin/update_brand` | 更新合作品牌基本資料、`treepoint_merchant_provider_key` 或啟用狀態。 | 第二階段，out of scope |
-| `get_campaigns` | `GET` | `/coupon/admin/get_campaigns` | 查詢 campaign 清單與規則內容。 | 第二階段，out of scope |
-| `create_campaign` | `POST` | `/coupon/admin/create_campaign` | 建立 campaign 規則，包含 `unit_cash_amount`、`unit_point_amount`、`unit_discount_amount`、`max_redeem_count`、`start_at`、`end_at`。 | 第二階段，out of scope |
-| `update_campaign` | `PATCH` | `/coupon/admin/update_campaign` | 更新 campaign 規則與生效區間，包含 `unit_cash_amount`、`unit_point_amount`、`unit_discount_amount`、`max_redeem_count`、`start_at`、`end_at`；active 狀態由當前時間是否落在生效區間內決定。 | 第二階段，out of scope |
+| `get_brands` | `GET` | `/admin/get_brands` | 後台查詢合作品牌清單，包含啟用狀態、分類、logo、`treepoint_merchant_provider_key`、建立與更新時間。 | 第二階段，out of scope |
+| `create_brand` | `POST` | `/admin/create_brand` | 建立合作品牌，需包含 `treepoint_merchant_provider_key`。 | 第二階段，out of scope |
+| `update_brand` | `PATCH` | `/admin/update_brand` | 更新合作品牌基本資料、`treepoint_merchant_provider_key` 或啟用狀態。 | 第二階段，out of scope |
+| `get_campaigns` | `GET` | `/admin/get_campaigns` | 查詢 campaign 清單與規則內容。 | 第二階段，out of scope |
+| `create_campaign` | `POST` | `/admin/create_campaign` | 建立 campaign 規則，包含 `unit_cash_amount`、`unit_point_amount`、`unit_discount_amount`、`max_redeem_count`、`start_at`、`end_at`。 | 第二階段，out of scope |
+| `update_campaign` | `PATCH` | `/admin/update_campaign` | 更新 campaign 規則與生效區間，包含 `unit_cash_amount`、`unit_point_amount`、`unit_discount_amount`、`max_redeem_count`、`start_at`、`end_at`；active 狀態由當前時間是否落在生效區間內決定。 | 第二階段，out of scope |
 
 ## 神坊內部服務 / Batch Job
 

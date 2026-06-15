@@ -58,7 +58,7 @@ AVAILABLE → PROCESSING → COMPLETED
 
 ## API 範圍
 
-### 前台端（樹享券平台）
+### 前台端（`/coupon/...`）
 
 | API | Method | 說明 |
 |-----|--------|------|
@@ -71,7 +71,7 @@ AVAILABLE → PROCESSING → COMPLETED
 | `get_member_orders` | GET | 查詢消費折抵紀錄 |
 | `get_order` | GET | 查詢單筆訂單詳情 |
 
-### 發卡主機端
+### 發卡主機端（`/bank/...`）
 
 | API | Method | 說明 |
 |-----|--------|------|
