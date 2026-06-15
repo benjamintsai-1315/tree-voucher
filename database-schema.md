@@ -9,7 +9,7 @@ permalink: /database-schema/
 
 | Date | Summary |
 | ---- | ------- |
-| 2026-06-15 | `coupons` 移除 `issued_at`（與 `created_at` 重複）；移除 `order_coupon_items` 表（快照改於發券時存入 `coupons`）；移除獨立的 `member_auto_redeem_settings` 表（`auto_redeem_enabled` 併入 `members`）；全文 `occurred_at` 統一改為 `created_at`；約束區段 PK 命名去除 table prefix，統一使用 `id` |
+| 2026-06-15 | `coupons` 移除 `issued_at`（與 `created_at` 重複）；移除 `order_coupon_items` 表（快照改於發券時存入 `coupons`）；移除獨立的 `member_auto_redeem_settings` 表（`auto_redeem_enabled` 併入 `members`）；全文 `occurred_at` 統一改為 `created_at`；約束區段 PK 命名去除 table prefix，統一使用 `id`；`rotations` 的 `display_unit_cash_amount` / `display_unit_point_amount` 改為 `description`（避免誤解為 override campaign 屬性） |
 
 ---
 
@@ -112,8 +112,7 @@ erDiagram
         datetime start_time
         datetime end_time
         int max_selectable_brand_count
-        int display_unit_cash_amount
-        int display_unit_point_amount
+        string description "前端顯示用說明文字，由後台設定"
         datetime created_at
         datetime updated_at
     }
@@ -162,7 +161,7 @@ erDiagram
         string(64) order_id PK
         string(36) member_id FK
         string(64) brand_id FK
-        int cash_amount
+        int order_amount
         int discount_amount
         string card_last_four_digits
         string(16) order_status
@@ -288,7 +287,7 @@ erDiagram
 - active rotation 以 `start_time <= now() <= end_time` 判斷
 - 系統同一時間只應有一個 active rotation
 - `max_selectable_brand_count`：此檔期用戶最多可選品牌數，取代原 `system_configs.brand_selection_limit`
-- `display_unit_cash_amount` / `display_unit_point_amount`：目前用途為前端呈現說明文字（e.g. 「每消費 100 元折抵 10 點」），實際清算依各品牌 campaign 規則，與此欄位無關。未來後台有 campaign 建立介面時，這兩個值將作為新建 campaign 的 default value
+- `description`：前端顯示用說明文字，由後台人工維護，直接回傳給前端呈現，不參與任何清算邏輯
 
 ### system_configs
 
