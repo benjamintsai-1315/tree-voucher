@@ -7,22 +7,23 @@ permalink: /api-specs/get-member-brand-change-logs/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-06-15 | 回傳結構改為 request 粒度（一筆 = 一次操作）；diff 於寫入時預先計算，`change_brand` 類型才展開 `added_brand_ids`/`removed_brand_ids`；`occurred_at` → `created_at` |
 | 2026-06-12 | 由 `get_user_brand_change_logs` 更名；`user_id` → `member_id`；`USER_NOT_FOUND` → `MEMBER_NOT_FOUND`；endpoint 改為 `/coupon/get_member_brand_change_logs` |
 
 # API: get_member_brand_change_logs
 
 ## 功能說明
-讓樹享券平台前台端以 API Key 依 `member_id` 查詢該會員過去品牌異動與服務狀態異動紀錄，包含首次選擇品牌、更換品牌、暫停用券與重啟用券，供前端呈現異動紀錄頁。
+讓樹享券平台前台端以 API Key 依 `member_id` 查詢該會員過去品牌設定與服務狀態的異動紀錄，供前端呈現異動歷程頁。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`
 - 邊界檢查：
   - API Key 須為樹享券平台前台端專屬授權，不接受其他呼叫方的 API Key
   - `member_id` 必須存在於神坊系統中
-  - 僅可查詢該 `member_id` 過去 1 年內的異動紀錄
+  - 僅回傳過去 1 年內的異動紀錄
 
 ## 使用情境
-前台端帶入 `member_id` 查詢該會員過去 1 年內的品牌異動與自動兌換狀態異動紀錄，供會員回看曾經選過哪些品牌，以及何時暫停或重啟服務。
+前台端帶入 `member_id` 查詢該會員過去 1 年內的設定異動紀錄，供會員回看曾經的品牌選擇變更與服務暫停／啟用歷程。
 
 # Request
 HTTP method: `GET`
@@ -51,71 +52,29 @@ Content-Type: `application/json`
 {
   "page": 1,
   "limit": 20,
-  "total": 5,
+  "total": 4,
   "items": [
     {
-      "log_id": "BCL_20270101_00001",
       "request_id": "SYS_20270101_Q1_CLEAR",
-      "action": "SYSTEM_CLEAR_BRANDS",
-      "before_brand_ids": [
-        "BRAND_711",
-        "BRAND_COSMED"
-      ],
-      "after_brand_ids": [],
-      "occurred_at": "2027-01-01T00:00:00+08:00"
+      "type": "system_clear_brands",
+      "created_at": "2027-01-01T00:00:00+08:00"
     },
     {
-      "log_id": "BCL_20261020_00003",
       "request_id": "REQ_20261020_00002",
-      "action": "REMOVE_BRAND",
-      "before_brand_ids": [
-        "BRAND_FAMILYMART",
-        "BRAND_711"
-      ],
-      "after_brand_ids": [
-        "BRAND_711",
-        "BRAND_COSMED"
-      ],
-      "occurred_at": "2026-10-20T11:00:00+08:00"
+      "type": "change_brand",
+      "added_brand_ids": ["BRAND_COSMED"],
+      "removed_brand_ids": ["BRAND_FAMILYMART"],
+      "created_at": "2026-10-20T11:00:00+08:00"
     },
     {
-      "log_id": "BCL_20261020_00004",
-      "request_id": "REQ_20261020_00002",
-      "action": "ADD_BRAND",
-      "before_brand_ids": [
-        "BRAND_FAMILYMART",
-        "BRAND_711"
-      ],
-      "after_brand_ids": [
-        "BRAND_711",
-        "BRAND_COSMED"
-      ],
-      "occurred_at": "2026-10-20T11:00:00+08:00"
-    },
-    {
-      "log_id": "BCL_20261015_00002",
       "request_id": "REQ_20261015_00001",
-      "action": "PAUSE",
-      "before_brand_ids": [
-        "BRAND_FAMILYMART",
-        "BRAND_711"
-      ],
-      "after_brand_ids": [
-        "BRAND_FAMILYMART",
-        "BRAND_711"
-      ],
-      "occurred_at": "2026-10-15T20:30:00+08:00"
+      "type": "pause",
+      "created_at": "2026-10-15T20:30:00+08:00"
     },
     {
-      "log_id": "BCL_20261001_00001",
       "request_id": "REQ_20261001_00001",
-      "action": "INITIAL_SELECTION",
-      "before_brand_ids": [],
-      "after_brand_ids": [
-        "BRAND_FAMILYMART",
-        "BRAND_711"
-      ],
-      "occurred_at": "2026-10-01T09:00:00+08:00"
+      "type": "initial_selection",
+      "created_at": "2026-10-01T09:00:00+08:00"
     }
   ]
 }
@@ -128,28 +87,26 @@ Content-Type: `application/json`
 | page | Integer | 當前頁碼，從 1 開始 |
 | limit | Integer | 每頁筆數 |
 | total | Integer | 符合條件的總筆數 |
-| items | Array | 該用戶過去 1 年內的品牌與服務狀態異動紀錄 |
+| items | Array | 該用戶過去 1 年內的設定異動紀錄，每筆對應一次操作 |
 
 ### items
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| log_id | String | 異動紀錄識別碼 |
-| request_id | String | 同一次品牌操作批次識別碼 |
-| action | String | 異動行為：`INITIAL_SELECTION` \| `ADD_BRAND` \| `REMOVE_BRAND` \| `PAUSE` \| `RESUME` \| `SYSTEM_CLEAR_BRANDS` |
-| before_brand_ids | Array | 異動前品牌清單；若不適用則為空陣列 |
-| after_brand_ids | Array | 異動後品牌清單；若不適用則為空陣列 |
-| occurred_at | String | 異動發生時間（UTC+8 ISO 8601） |
+| request_id | String | 操作批次識別碼 |
+| type | String | 操作類型：`initial_selection` \| `change_brand` \| `pause` \| `resume` \| `system_clear_brands` |
+| added_brand_ids | Array \| 省略 | 本次新增的品牌 ID 清單；**僅 `change_brand` 類型回傳** |
+| removed_brand_ids | Array \| 省略 | 本次移除的品牌 ID 清單；**僅 `change_brand` 類型回傳** |
+| created_at | String | 操作發生時間（UTC+8 ISO 8601） |
 
 ### 邏輯說明
-- 僅回傳過去 1 年內的紀錄，依 `occurred_at` 由新到舊排序
-- 底層資料來源為 `brand_change_logs`
-- 同一 `request_id` 代表同一次品牌設定操作；若該次操作同時包含新增與移除品牌，API 可回傳多筆相同 `request_id` 的資料列
-- `before_brand_ids` / `after_brand_ids` 為查詢層 projection，由同一 `request_id` 的事件批次重建
-- `PAUSE` / `RESUME` 不改變品牌清單，因此 `before_brand_ids` 與 `after_brand_ids` 可相同
-- `INITIAL_SELECTION` 的 `before_brand_ids` 為空陣列
-- `ADD_BRAND` / `REMOVE_BRAND` 用於表達一般品牌更換與清空全部品牌的差異事件
-- `SYSTEM_CLEAR_BRANDS` 代表系統季度批次清空已選品牌；其 `after_brand_ids` 固定為空陣列
+- 依 `created_at` 由新到舊排序，僅回傳過去 1 年內紀錄
+- 每筆 `items` 對應一次完整操作（一個 `request_id`），不再以個別品牌事件展開
+- `added_brand_ids` / `removed_brand_ids` 於寫入時預先計算並存入 DB，查詢時直接回傳，不做動態重建
+- `change_brand`：代表一般品牌更換操作，展開 `added_brand_ids` 與 `removed_brand_ids`
+- `initial_selection`：首次選牌，不展開品牌子項
+- `pause` / `resume`：服務暫停／重啟，不展開品牌子項
+- `system_clear_brands`：系統 lazy cleanup 清空舊檔期選擇，不展開品牌子項；`created_at` 為舊 rotation 的 `end_time`
 - 無任何異動紀錄時，回傳 `items: []`，不報錯
 
 ## 400 錯誤回傳（TYPE: MESSAGE）

@@ -7,6 +7,7 @@ permalink: /api-specs/get-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-06-15 | `coupons_used[]` 新增 `discount_rate` 計算欄位 |
 | 2026-06-15 | 拆分為前台端（`/coupon/get_order`）與發卡主機端（`/bank/get_order`）兩支獨立 API；前台端加入 `member_id` 參數防呆，回傳完整訂單與事件歷程；發卡主機端請見 [API Spec - bank_get_order](API Spec - bank_get_order.md) |
 | 2026-06-15 | 路徑依呼叫端拆分（原共用同一份 spec） |
 | 2026-06-12 | response 欄位 `user_id` → `member_id` |
@@ -66,6 +67,7 @@ Content-Type: `application/json`
       "unit_cash_amount": 400,
       "unit_point_amount": 100,
       "unit_discount_amount": 120,
+      "discount_rate": 1.2,
       "expired_at": "2026-10-31T23:59:59.999+08:00",
       "type": "EXISTING"
     },
@@ -75,6 +77,7 @@ Content-Type: `application/json`
       "unit_cash_amount": 100,
       "unit_point_amount": 20,
       "unit_discount_amount": 21,
+      "discount_rate": 1.05,
       "expired_at": "2026-11-30T23:59:59.999+08:00",
       "type": "NEWLY_ISSUED"
     }
@@ -119,6 +122,7 @@ Content-Type: `application/json`
 | unit_cash_amount | Integer | 該券對應的消費門檻金額（元） |
 | unit_point_amount | Integer | 該券建立時所對應的點數成本 |
 | unit_discount_amount | Integer | 該券的折抵金額（元） |
+| discount_rate | Float | 每點折抵金額比率，`roundup(unit_discount_amount / unit_point_amount, 2)`，純計算欄位 |
 | expired_at | String | 該券固定到期時間（UTC+8 ISO 8601，毫秒精度） |
 | type | String | `EXISTING`：原券夾既有券；`NEWLY_ISSUED`：本次即時兌換產生 |
 
