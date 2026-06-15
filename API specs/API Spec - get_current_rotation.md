@@ -7,6 +7,7 @@ permalink: /api-specs/get-current-rotation/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-06-15 | `active_campaign` 新增 `discount_rate` 計算欄位（`roundup(unit_discount_amount / unit_point_amount, 2)`）；此 API 僅回傳 `type = auto` 的 campaign，不回傳 `type` 欄位 |
 | 2026-06-15 | 由 `get_rotation_config` 與 `get_active_brands` 合併而來；將 brands 清單納入回傳，統一為單一呼叫 |
 
 # API: get_current_rotation
@@ -58,6 +59,7 @@ Content-Type: `application/json`
         "unit_cash_amount": 100,
         "unit_point_amount": 20,
         "unit_discount_amount": 21,
+        "discount_rate": 1.05,
         "max_redeem_count": 3,
         "updated_at": "2026-10-01T09:00:00+08:00"
       },
@@ -75,6 +77,7 @@ Content-Type: `application/json`
         "unit_cash_amount": 150,
         "unit_point_amount": 25,
         "unit_discount_amount": 30,
+        "discount_rate": 1.2,
         "max_redeem_count": 2,
         "updated_at": "2026-10-01T09:00:00+08:00"
       },
@@ -117,12 +120,14 @@ Content-Type: `application/json`
 | unit_cash_amount | Integer | 每消費滿 N 元可對應使用一張券 |
 | unit_point_amount | Integer | 兌換一張券所需點數 |
 | unit_discount_amount | Integer | 一張券可折抵的金額（元） |
+| discount_rate | Float | 每點折抵金額比率，`roundup(unit_discount_amount / unit_point_amount, 2)`，純計算欄位 |
 | max_redeem_count | Integer | 單筆交易中，當前 active campaign 最多可使用幾張券 |
 | updated_at | String | Campaign 最後更新時間（UTC+8 ISO 8601） |
 
 ### 邏輯說明
-- 僅回傳當前有 active campaign 的品牌，無 active campaign 的品牌不列入
-- 每個 brand 同一時間只會有一個 active campaign，故 `active_campaign` 為單一物件而非陣列
+- 僅回傳 `type = auto` 且當前為 active rotation 的 campaign 品牌
+- 每個 brand 同一時間只會有一個 active `auto` campaign，故 `active_campaign` 為單一物件而非陣列
+- `discount_rate` 為 server 端計算後附帶回傳，不存於 DB
 - 排列順序以 `brand_category` 分組後，組內依 `brand_name` 字母順序排列
 - 無任何符合條件的品牌時，回傳 `brands: []`，不報錯
 

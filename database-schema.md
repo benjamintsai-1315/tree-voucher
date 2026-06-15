@@ -9,6 +9,7 @@ permalink: /database-schema/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-06-15 | `campaigns` 新增 `type`（`auto`\|`manual`）與 `rotation_id FK`；移除 `start_at`/`end_at`（active 判斷改由 rotation 繼承）；ERD 新增 `rotations \|\|--o\{ campaigns` 關聯；約束說明更新 active 判斷規則與唯一性約束 |
 | 2026-06-15 | `coupons` 移除 `issued_at`（與 `created_at` 重複）；移除 `order_coupon_items` 表（快照改於發券時存入 `coupons`）；移除獨立的 `member_auto_redeem_settings` 表（`auto_redeem_enabled` 併入 `members`）；全文 `occurred_at` 統一改為 `created_at`；約束區段 PK 命名去除 table prefix，統一使用 `id`；`rotations` 的 `display_unit_cash_amount` / `display_unit_point_amount` 改為 `description`（避免誤解為 override campaign 屬性） |
 
 ---
@@ -18,7 +19,7 @@ permalink: /database-schema/
 設計原則：
 
 - `coupon_wallet` 是查詢視角，不是獨立資料表。
-- active campaign 由 `campaigns.start_at` / `campaigns.end_at` 推導，不另存布林欄位。
+- campaign 的 active 狀態由其 `rotation_id` 所對應的 rotation 是否為當前 active rotation 推導，不另存布林欄位。
 - 點數餘額、扣點流水屬外部點數系統，本系統不另外設計點數帳務表。
 - 授權狀態以 `members` 主表欄位記錄當前狀態，完整異動歷史由 `member_authorization_logs` 保存。
 - API layer 可沿用 `events`、`coupons_used` 等回傳欄位；DB layer 對應名詞統一使用 `order_logs`、`order_coupon_logs`。
@@ -34,6 +35,7 @@ erDiagram
 
     %% --- 特店相關 ---
     brands ||--o{ campaigns : has
+    rotations ||--o{ campaigns : scopes
     campaigns ||--o{ coupons : issues
     members ||--o{ coupons : owns
 
@@ -95,14 +97,14 @@ erDiagram
     campaigns {
         string(26) id PK
         string(64) brand_id FK
+        string(26) rotation_id FK
+        string(16) type "auto, manual"
         string(32) name
         string(64) description "預開欄位"
         int coupon_min_order_amount
         int coupon_redeem_points
         int coupon_discount_amount
         int max_redemptions_per_order
-        datetime start_at
-        datetime end_at
         datetime created_at
         datetime updated_at
     }
@@ -205,10 +207,15 @@ erDiagram
 ### campaigns
 
 - 主鍵：`id`
-- 外鍵：`brand_id -> brands.id`
-- `unit_cash_amount`、`unit_point_amount`、`unit_discount_amount`、`max_redeem_count` 皆應大於 0
-- active campaign 以 `start_at <= now <= end_at` 判斷
-- 同一 `brand` 同一時間只允許一個 active campaign
+- 外鍵：
+  - `brand_id -> brands.id`
+  - `rotation_id -> rotations.id`（兩種 type 皆必填）
+- `type` enum：`auto`、`manual`
+  - `auto`：系統自動兌換型，依附於 rotation；刷卡時自動觸發
+  - `manual`：用戶手動兌換型，同樣依附於 rotation，但兌換行為由用戶發起
+- campaign 的 active 判斷改為其 `rotation_id` 對應的 rotation 是否為當前 active rotation（`start_time <= now() <= end_time`）
+- `coupon_min_order_amount`、`coupon_redeem_points`、`coupon_discount_amount`、`max_redemptions_per_order` 皆應大於 0
+- 同一 `brand` 同一時間只允許一個 `type = auto` 的 active campaign
 
 ### member_selected_brands
 

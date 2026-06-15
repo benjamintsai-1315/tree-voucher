@@ -7,6 +7,7 @@ permalink: /api-specs/get-member-selected-brands/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-06-15 | `active_campaign` 新增 `discount_rate` 計算欄位；此 API 僅回傳 `type = auto` 的 campaign |
 | 2026-06-12 | 由 `get_user_selected_brands` 更名；`user_selected_brands` → `member_selected_brands`；`USER_NOT_FOUND` → `MEMBER_NOT_FOUND`；endpoint 改為 `/coupon/get_member_selected_brands` |
 
 # API: get_member_selected_brands
@@ -61,6 +62,7 @@ Content-Type: `application/json`
         "unit_cash_amount": 150,
         "unit_point_amount": 25,
         "unit_discount_amount": 30,
+        "discount_rate": 1.2,
         "max_redeem_count": 2,
         "updated_at": "2026-10-01T09:00:00+08:00"
       },
@@ -78,6 +80,7 @@ Content-Type: `application/json`
         "unit_cash_amount": 100,
         "unit_point_amount": 20,
         "unit_discount_amount": 21,
+        "discount_rate": 1.05,
         "max_redeem_count": 3,
         "updated_at": "2026-10-01T09:00:00+08:00"
       },
@@ -119,6 +122,7 @@ Content-Type: `application/json`
 | unit_cash_amount | Integer | 每消費滿 N 元可對應使用一張券 |
 | unit_point_amount | Integer | 兌換一張券所需點數 |
 | unit_discount_amount | Integer | 一張券可折抵的金額（元） |
+| discount_rate | Float | 每點折抵金額比率，`roundup(unit_discount_amount / unit_point_amount, 2)`，純計算欄位 |
 | max_redeem_count | Integer | 單筆交易中，當前 active campaign 最多可使用幾張券 |
 | updated_at | String | Campaign 最後更新時間（UTC+8 ISO 8601） |
 
@@ -129,7 +133,8 @@ Content-Type: `application/json`
 - `max_selectable_brand_count` 取自當前 active rotation 的 `rotations.max_selectable_brand_count`；若無 active rotation，則回傳 `null`
 - `auto_redeem_enabled` 為使用者層級服務狀態；`PAUSE` 後為 `false`，`RESUME` 後為 `true`
 - `last_changed_at` 代表該用戶品牌設定狀態最近一次異動時間，包含首次選牌、更換品牌、清空品牌、`PAUSE`、`RESUME` 與 lazy cleanup 清空
-- 僅回傳該用戶已選擇、且當前仍具備 active campaign 的品牌，不回傳未選擇的 active brands，也不回傳已無 active campaign 的已選品牌
+- 僅回傳該用戶已選擇、且當前仍具備 `type = auto` active campaign 的品牌，不回傳未選擇的 active brands，也不回傳已無 active campaign 的已選品牌
+- `discount_rate` 為 server 端計算後附帶回傳，不存於 DB
 - 排列順序以 `brand_category` 分組後，組內依 `brand.updated_at` 由新到舊排序，時間相同時以 `brand_name` 字母順序排列
 - 若使用者存在但尚未選擇任何品牌，回傳 brands: []，不報錯
 - 若使用者曾選擇品牌，但目前所有已選品牌都已無 active campaign，回傳 brands: []，不報錯
