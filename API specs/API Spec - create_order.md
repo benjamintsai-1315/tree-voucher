@@ -7,6 +7,7 @@ permalink: /api-specs/create-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-06-15 | Endpoint 改為 `/bank/create_order`（原 `/coupon/create_order`），依呼叫端分類路徑 |
 | 2026-06-12 | `user_selected_brands` → `member_selected_brands`；`USER_NOT_FOUND` → `MEMBER_NOT_FOUND` |
 
 # API: create_order
@@ -32,7 +33,7 @@ permalink: /api-specs/create-order/
 
 # Request
 HTTP method: `POST`
-Endpoint: `/coupon/create_order`
+Endpoint: `/bank/create_order`
 Content-Type: `application/json`
 
 ## Request Header（表格）

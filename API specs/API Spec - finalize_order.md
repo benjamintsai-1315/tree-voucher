@@ -7,6 +7,7 @@ permalink: /api-specs/finalize-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-06-15 | Endpoint 改為 `/bank/finalize_order`（原 `/coupon/finalize_order`），依呼叫端分類路徑 |
 
 # API: finalize_order
 
@@ -36,7 +37,7 @@ permalink: /api-specs/finalize-order/
 
 # Request
 HTTP method: `POST`
-Endpoint: `/coupon/finalize_order`
+Endpoint: `/bank/finalize_order`
 Content-Type: `application/json`
 
 ## Request Header（表格）

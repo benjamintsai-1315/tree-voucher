@@ -7,6 +7,7 @@ permalink: /api-specs/get-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-06-15 | 路徑依呼叫端拆分：前台端使用 `/coupon/get_order`，發卡主機端使用 `/bank/get_order`；目前共用同一份 spec，待點 3 討論後決定是否拆分欄位定義 |
 | 2026-06-12 | response 欄位 `user_id` → `member_id` |
 
 # API: get_order
@@ -25,7 +26,7 @@ permalink: /api-specs/get-order/
 
 # Request
 HTTP method: `GET`
-Endpoint: `/coupon/get_order`
+Endpoint: `/coupon/get_order`（前台端）、`/bank/get_order`（發卡主機端）
 Content-Type: `application/json`
 
 ## Request Header（表格）
