@@ -7,33 +7,35 @@ permalink: /api-specs/get-order/
 
 | Date | Summary |
 | ---- | ------- |
-| 2026-06-15 | 路徑依呼叫端拆分：前台端使用 `/coupon/get_order`，發卡主機端使用 `/bank/get_order`；目前共用同一份 spec，待點 3 討論後決定是否拆分欄位定義 |
+| 2026-06-15 | 拆分為前台端（`/coupon/get_order`）與發卡主機端（`/bank/get_order`）兩支獨立 API；前台端加入 `member_id` 參數防呆，回傳完整訂單與事件歷程；發卡主機端請見 [API Spec - bank_get_order](API Spec - bank_get_order.md) |
+| 2026-06-15 | 路徑依呼叫端拆分（原共用同一份 spec） |
 | 2026-06-12 | response 欄位 `user_id` → `member_id` |
 
-# API: get_order
+# API: get_order（前台端）
 
 ## 功能說明
-讓樹享券平台前台端或發卡主機以 API Key 依 order_id 查詢單筆訂單的完整資訊，包含折抵明細與從建立到結單的事件歷程。DB layer 對應 `order_logs` 與 `order_coupon_items`；API layer 則維持 `actions` 與 `coupons_used` 的回傳欄位名稱。
+讓樹享券平台前台端依 `order_id` 與 `member_id` 查詢單筆訂單的完整資訊，包含折抵券明細與從建立到結單的事件歷程。
 
 ## 權限需求
-- 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}` 或 `ApiKey {{issuer_api_key}}`
+- 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`
 - 邊界檢查：
-  - API Key 須為樹享券平台前台端或發卡主機授權，其餘一律拒絕
+  - API Key 須為樹享券平台前台端專屬授權
   - `order_id` 必須存在於神坊系統中
+  - `order_id` 對應訂單的 `member_id` 必須與 request 帶入的 `member_id` 相符，否則回 `ORDER_NOT_FOUND`
 
 ## 使用情境
-前台端或發卡主機帶入 `order_id` 查詢該筆訂單的當前狀態、折抵明細及事件歷程。
+前台端帶入 `order_id` 與 `member_id` 查詢該筆訂單的當前狀態、折抵明細及事件歷程，供用戶於歷史紀錄頁面查看。
 
 # Request
 HTTP method: `GET`
-Endpoint: `/coupon/get_order`（前台端）、`/bank/get_order`（發卡主機端）
+Endpoint: `/coupon/get_order`
 Content-Type: `application/json`
 
 ## Request Header（表格）
 
 | Header | 說明 |
 | ------ | ---- |
-| Authorization | ApiKey {{treecoupon_frontend_api_key}} 或 ApiKey {{issuer_api_key}} |
+| Authorization | ApiKey {{treecoupon_frontend_api_key}} |
 
 ## Request Parameters
 （query）
@@ -41,6 +43,7 @@ Content-Type: `application/json`
 | 欄位 | 類型 | 必填 | 可空 | 預設值 | 限制條件 |
 | ---- | ---- | ---- | ---- | ------ | -------- |
 | order_id | string | TRUE | FALSE | ❎ | 最多 64 字 |
+| member_id | string | TRUE | FALSE | ❎ | 最多 36 字 |
 
 # Response
 ## Sample（JSON）
@@ -79,11 +82,11 @@ Content-Type: `application/json`
   "actions": [
     {
       "action": "CREATED",
-      "occurred_at": "2026-10-01T14:30:00+08:00"
+      "created_at": "2026-10-01T14:30:00+08:00"
     },
     {
-      "action": "COMPLETED",        // 或 CANCELLED
-      "occurred_at": "2026-10-03T10:00:00+08:00"
+      "action": "COMPLETED",
+      "created_at": "2026-10-03T10:00:00+08:00"
     }
   ],
   "created_at": "2026-10-01T14:30:00+08:00"
@@ -124,17 +127,19 @@ Content-Type: `application/json`
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | action | String | 事件類型：`CREATED` \| `COMPLETED` \| `CANCELLED` |
-| occurred_at | String | 事件發生時間（UTC+8 ISO 8601） |
+| created_at | String | 事件發生時間（UTC+8 ISO 8601） |
 
 ### 邏輯說明
 - `discount_amount` = Σ `coupons_used[].unit_discount_amount`
-- `coupons_used[]` 對應 DB layer 的 `order_coupon_items`
+- `coupons_used[]` 對應 DB layer 的 `order_coupon_logs`
 - `actions` 對應 DB layer 的 `order_logs`
 - `actions` 最少一筆（`CREATED`），finalize_order 執行後新增第二筆（`COMPLETED` 或 `CANCELLED`）
 - `order_status` 與 `actions` 最後一筆的 `action` 對應：`CREATED` → `PROCESSING`、`COMPLETED` → `COMPLETED`、`CANCELLED` → `CANCELLED`
-- `coupons_used[]` 用於還原已使用券的清算結果與有效期，不保證回傳未被使用券清單
+- `member_id` 不符時一律回 `ORDER_NOT_FOUND`，不透露訂單存在與否
 - `card_last_four_digits` 為建單時由發卡主機提供並保存於訂單上的顯示資訊，不參與任何清算邏輯
-- 重複 `create_order` 或重複 `finalize_order` 不新增第二筆同類事件；重送請求僅回 business error，不產生任何 side effect
 
-## 400 錯誤回傳（TYPE: MESSAGE）
-1. order_id 不存在：`ORDER_NOT_FOUND`
+# Error Handling
+
+| HTTP Status | Error Code | 說明 |
+| ----------- | ---------- | ---- |
+| 400 | `ORDER_NOT_FOUND` | `order_id` 不存在，或 `member_id` 與訂單不符 |

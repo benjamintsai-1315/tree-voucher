@@ -77,7 +77,7 @@ AVAILABLE → PROCESSING → COMPLETED
 |-----|--------|------|
 | `create_order` | POST | 建立折抵訂單（卡片授權後呼叫） |
 | `finalize_order` | POST | 完成或取消訂單（結帳後呼叫） |
-| `get_order` | GET | 查詢訂單狀態 |
+| `bank_get_order` | GET | 查詢訂單狀態與折抵金額（僅回傳銀行端必要欄位） |
 
 ---
 
