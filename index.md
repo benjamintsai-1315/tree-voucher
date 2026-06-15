@@ -20,7 +20,7 @@ permalink: /
 - [API 規格總覽]({{ '/api-specs/' | relative_url }})
 - [create_order]({{ '/api-specs/create-order/' | relative_url }})
 - [finalize_order]({{ '/api-specs/finalize-order/' | relative_url }})
-- [get_active_brands]({{ '/api-specs/get-active-brands/' | relative_url }})
+- [get_current_rotation]({{ '/api-specs/get-current-rotation/' | relative_url }})
 - [get_coupon_wallet]({{ '/api-specs/get-coupon-wallet/' | relative_url }})
 - [get_order]({{ '/api-specs/get-order/' | relative_url }})
 - [get_member_brand_change_logs]({{ '/api-specs/get-member-brand-change-logs/' | relative_url }})

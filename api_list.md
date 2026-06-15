@@ -27,8 +27,7 @@ permalink: /api-list/
 
 | API | Method | Endpoint | 用途 | 狀態 |
 | ---- | ---- | ---- | ---- | ---- |
-| `get_rotation_config` | `GET` | `/coupon/get_rotation_config` | 取得當前 active rotation（輪播檔期）的設定，包含活動開始/結束時間、本檔期品牌選擇上限及顯示用兌換說明參數。 | 已有 spec |
-| `get_active_brands` | `GET` | `/coupon/get_active_brands` | 取得目前所有具備 active campaign 的品牌清單及 campaign 規則，並回傳目前最多可選品牌數量，供品牌一覽頁呈現。 | 已有 spec |
+| `get_current_rotation` | `GET` | `/coupon/get_current_rotation` | 取得當前 active rotation 的設定（活動期間、品牌選擇上限、顯示用說明參數），及本檔期所有具備 active campaign 的品牌清單與 campaign 規則。 | 已有 spec |
 | `member_authorization` | `POST` | `/coupon/member_authorization` | 用戶在 CR 前台發起授權或解除授權。樹享券平台收到請求後主動呼叫點數系統 API；兩邊皆成功後更新授權狀態並寫入異動 log。 | 已有 spec |
 | `get_member_selected_brands` | `GET` | `/coupon/get_member_selected_brands` | 取得使用者目前的品牌設定狀態，包含 `max_selectable_brand_count`、`auto_redeem_enabled`、`last_changed_at`，以及目前已選擇、且當前仍具備 active campaign 的品牌。 | 已有 spec |
 | `update_member_selected_brands` | `POST` 或 `PATCH` | `/coupon/update_member_selected_brands` | 對標 `get_member_selected_brands`，統一處理使用者已選品牌設定異動，包含首次選品牌、更換品牌、暫停用券、重啟用券。 | 已有 spec |
