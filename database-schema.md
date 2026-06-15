@@ -9,6 +9,7 @@ permalink: /database-schema/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-06-15 | `member_brand_change_logs` 改為 request 粒度（一筆一次操作）；移除 `brand_id FK`；新增 `type`、`added_brand_ids`、`removed_brand_ids`（diff 於寫入時計算） |
 | 2026-06-15 | `campaigns` 新增 `type`（`auto`\|`manual`）與 `rotation_id FK`；移除 `start_at`/`end_at`（active 判斷改由 rotation 繼承）；ERD 新增 `rotations \|\|--o\{ campaigns` 關聯；約束說明更新 active 判斷規則與唯一性約束 |
 | 2026-06-15 | `coupons` 移除 `issued_at`（與 `created_at` 重複）；移除 `order_coupon_items` 表（快照改於發券時存入 `coupons`）；移除獨立的 `member_auto_redeem_settings` 表（`auto_redeem_enabled` 併入 `members`）；全文 `occurred_at` 統一改為 `created_at`；約束區段 PK 命名去除 table prefix，統一使用 `id`；`rotations` 的 `display_unit_cash_amount` / `display_unit_point_amount` 改為 `description`（避免誤解為 override campaign 屬性） |
 
@@ -137,11 +138,12 @@ erDiagram
 
     member_brand_change_logs {
         string(26) id PK
-        string(36) request_id
+        string(36) request_id "unique per operation"
         string(36) member_id FK
         string(26) rotation_id FK
-        string(64) brand_id FK
-        string(16) action "selected, removed"
+        string(32) type "initial_selection, change_brand, pause, resume, system_clear_brands"
+        json added_brand_ids "change_brand 時必填，其餘為 null"
+        json removed_brand_ids "change_brand 時必填，其餘為 null"
         datetime created_at
     }
 
@@ -231,24 +233,15 @@ erDiagram
 ### member_brand_change_logs
 
 - 主鍵：`id`
-- 外鍵：
-  - `member_id -> members.id`
-  - `brand_id -> brands.id`，僅 `PAUSE` / `RESUME` 可為 `null`；`SYSTEM_CLEAR_BRANDS` 時 `brand_id` 非 null，每筆對應一個被清除的品牌
-- `request_id` 用於分組同一次品牌操作批次
-- `action` enum：
-  - `INITIAL_SELECTION`
-  - `ADD_BRAND`
-  - `REMOVE_BRAND`
-  - `PAUSE`
-  - `RESUME`
-  - `SYSTEM_CLEAR_BRANDS`
-- 業務規則：
-  - 同一 `request_id` 代表同一次品牌異動操作
-  - 初次選牌時，同一批次可寫入多筆 `INITIAL_SELECTION`
-  - 一般換牌時，同一批次可混合多筆 `ADD_BRAND` / `REMOVE_BRAND`
-  - `PAUSE` / `RESUME` 為單筆事件，且 `brand_id = null`
-  - `SYSTEM_CLEAR_BRANDS` 由系統 lazy cleanup 觸發，每筆對應一個被清除的品牌（`brand_id` 非 null），`created_at` 為該 rotation 的 `end_time`
-  - 同一 `request_id` 內不可重複出現相同 `action + brand_id`
+- 外鍵：`member_id -> members.id`
+- 一筆紀錄 = 一次完整操作（一個 `request_id`），不再以個別品牌事件展開
+- `type` enum：
+  - `initial_selection`：首次選牌
+  - `change_brand`：品牌更換；`added_brand_ids` / `removed_brand_ids` 於寫入時預先計算並存入
+  - `pause`：暫停自動兌換服務
+  - `resume`：重啟自動兌換服務
+  - `system_clear_brands`：系統 lazy cleanup 清空舊檔期選擇；`created_at` 設為舊 rotation 的 `end_time`
+- `added_brand_ids` / `removed_brand_ids`：僅 `change_brand` 時必填，其餘為 null
 
 ### coupons
 

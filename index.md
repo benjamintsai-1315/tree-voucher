@@ -26,7 +26,7 @@ permalink: /
 - [get_order]({{ '/api-specs/get-order/' | relative_url }})
 - [get_member_brand_change_logs]({{ '/api-specs/get-member-brand-change-logs/' | relative_url }})
 - [get_member_orders]({{ '/api-specs/get-member-orders/' | relative_url }})
-- [get_member_selected_brands]({{ '/api-specs/get-member-selected-brands/' | relative_url }})
+- [get_member_settings]({{ '/api-specs/get-member-settings/' | relative_url }})
 - [update_member_selected_brands]({{ '/api-specs/update-member-selected-brands/' | relative_url }})
 - [member_authorization]({{ '/api-specs/member-authorization/' | relative_url }})
 

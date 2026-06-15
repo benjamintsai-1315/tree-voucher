@@ -64,7 +64,7 @@ AVAILABLE → PROCESSING → COMPLETED
 |-----|--------|------|
 | `get_current_rotation` | GET | 取得當前檔期設定及有效活動品牌列表 |
 | `member_authorization` | POST | 會員授權點數使用（雙重授權機制） |
-| `get_member_selected_brands` | GET | 取得會員已選品牌（觸發懶惰清除） |
+| `get_member_settings` | GET | 取得會員完整設定狀態（品牌選擇、自動兌換啟用狀態，觸發懶惰清除） |
 | `update_member_selected_brands` | POST | 更新品牌選擇 / 暫停、恢復自動折抵 |
 | `get_member_brand_change_logs` | GET | 查詢品牌異動紀錄（一年內） |
 | `get_coupon_wallet` | GET | 查詢折抵券錢包 |
