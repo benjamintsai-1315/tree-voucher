@@ -62,8 +62,7 @@ AVAILABLE → PROCESSING → COMPLETED
 
 | API | Method | 說明 |
 |-----|--------|------|
-| `get_rotation_config` | GET | 取得當前檔期設定 |
-| `get_active_brands` | GET | 查詢有效活動品牌列表 |
+| `get_current_rotation` | GET | 取得當前檔期設定及有效活動品牌列表 |
 | `member_authorization` | POST | 會員授權點數使用（雙重授權機制） |
 | `get_member_selected_brands` | GET | 取得會員已選品牌（觸發懶惰清除） |
 | `update_member_selected_brands` | POST | 更新品牌選擇 / 暫停、恢復自動折抵 |
@@ -91,10 +90,10 @@ AVAILABLE → PROCESSING → COMPLETED
 | `campaigns` | 品牌折抵活動規則 |
 | `rotations` | 輪播檔期設定 |
 | `member_selected_brands` | 會員已選品牌（含檔期關聯） |
-| `coupons` | 折抵券（含狀態、金額、到期日） |
+| `coupons` | 折抵券（含狀態、金額、到期日、campaign 規則快照） |
 | `orders` | 折抵訂單 |
-| `order_coupon_items` | 訂單使用折抵券的快照 |
-| `brand_change_logs` | 品牌異動事件日誌 |
+| `order_coupon_logs` | 訂單與折抵券的關聯日誌 |
+| `member_brand_change_logs` | 品牌異動事件日誌 |
 | `member_authorization_logs` | 授權操作稽核紀錄 |
 
 完整 ER Diagram 請見 [database-schema.md](database-schema.md)。
