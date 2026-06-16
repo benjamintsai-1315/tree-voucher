@@ -25,7 +25,7 @@ permalink: /api-specs/create-order/
   - `brand_id` 必須存在且目前具備 active campaign
 
 ## 使用情境
-發卡主機於用戶刷卡授權成功後，同步呼叫此 API。神坊以 request 提供的 `brand_id` 作為唯一品牌來源，先取用既有 `available coupon`，再依 active campaign、剩餘點數與該 campaign 的 `max_redeem_count` 決定是否即時發新券；執行扣點時，系統應依 `brand` 讀取其 `treepoint_merchant_provider_key`，作為點數帳務通路識別。
+發卡主機於用戶刷卡授權成功後，同步呼叫此 API。神坊以 request 提供的 `brand_id` 作為唯一品牌來源，先取用既有 `available coupon`，再依 active campaign、剩餘點數與該 campaign 的 `max_redemptions_per_order` 決定是否即時發新券；執行扣點時，系統應依 `brand` 讀取其 `treepoint_merchant_provider_key`，作為點數帳務通路識別。
 
 發卡主機需一併帶入該筆刷卡卡號後四碼，供神坊保存於訂單資料，後續由前台端查詢訂單時顯示。
 
@@ -71,13 +71,13 @@ Content-Type: `application/json`
 ### 邏輯說明
 - 本 API 為「用戶進入系統」的觸發點之一，執行清算前須先進行 **lazy cleanup**：若 `member_id` 在 `member_selected_brands` 中的記錄 `rotation_key` 與當前 active rotation 不符，系統自動清除舊選擇，並為每個被清除品牌寫入 `SYSTEM_CLEAR_BRANDS` 事件（`occurred_at` = 舊 rotation 的 `end_time`）；清除後若本 `brand_id` 不再在用戶已選清單中，則回傳 `AUTO_REDEEM_NOT_ENABLED_FOR_BRAND`
 - campaign 的 active 判斷改為確認其 `rotation_id` 對應的 rotation 是否為當前 active rotation（不再以 `campaign.start_at`/`end_at` 判斷）；active campaign 必須為 `type = auto`
-- `discount_amount` = Σ（本次所有 processing coupon 的 `unit_discount_amount`）
+- `discount_amount` = Σ（本次所有 processing coupon 的 `coupon_discount_amount`）
 - 既有券只掃描 `status = available` 且尚未過期的 coupons，排序規則為 `expired_at ASC`、`created_at ASC`、`coupon_id ASC`
-- 掃描過程中，若單張券 `unit_cash_amount` 大於當下剩餘消費額，則跳過該券，繼續檢查下一張
-- 若舊券 `campaign_id` 對應當前 active campaign，僅在本次已使用的 active-campaign 券數 `< active_campaign.max_redeem_count` 時才可使用；一旦達上限，後續同 active campaign 舊券全部跳過
-- 若舊券屬於歷史 campaign，則不受 `max_redeem_count` 限制，仍照 FIFO 與金額門檻規則使用
-- 本次依 active campaign 即時發新券前，先計算 `remaining_active_campaign_quota = active_campaign.max_redeem_count - active_campaign_coupon_used_count
-- 本次可新發張數 = `min(剩餘消費額 // unit_cash_amount, point_balance // unit_point_amount, remaining_active_campaign_quota)`
+- 掃描過程中，若單張券 `coupon_min_order_amount` 大於當下剩餘消費額，則跳過該券，繼續檢查下一張
+- 若舊券 `campaign_id` 對應當前 active campaign，僅在本次已使用的 active-campaign 券數 `< active_campaign.max_redemptions_per_order` 時才可使用；一旦達上限，後續同 active campaign 舊券全部跳過
+- 若舊券屬於歷史 campaign，則不受 `max_redemptions_per_order` 限制，仍照 FIFO 與金額門檻規則使用
+- 本次依 active campaign 即時發新券前，先計算 `remaining_active_campaign_quota = active_campaign.max_redemptions_per_order - active_campaign_coupon_used_count
+- 本次可新發張數 = `min(剩餘消費額 // coupon_min_order_amount, point_balance // coupon_redeem_points, remaining_active_campaign_quota)`
 - 若 `remaining_active_campaign_quota <= 0`，本次不得再新發任何 active-campaign 券
 - 僅在同一個 DB transaction 內完成扣點、發新券、既有券轉 `processing`、建立 order 與建立 order event 後，才視為建單成功
   > 是否以同一 DB transaction 進行待討論

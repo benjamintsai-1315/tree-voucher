@@ -73,8 +73,8 @@ permalink: /api-list/
 | `create_brand` | `POST` | `/admin/create_brand` | 建立合作品牌，需包含 `treepoint_merchant_provider_key`。 | 第二階段，out of scope |
 | `update_brand` | `PATCH` | `/admin/update_brand` | 更新合作品牌基本資料、`treepoint_merchant_provider_key` 或啟用狀態。 | 第二階段，out of scope |
 | `get_campaigns` | `GET` | `/admin/get_campaigns` | 查詢 campaign 清單與規則內容。 | 第二階段，out of scope |
-| `create_campaign` | `POST` | `/admin/create_campaign` | 建立 campaign 規則，包含 `unit_cash_amount`、`unit_point_amount`、`unit_discount_amount`、`max_redeem_count`、`start_at`、`end_at`。 | 第二階段，out of scope |
-| `update_campaign` | `PATCH` | `/admin/update_campaign` | 更新 campaign 規則與生效區間，包含 `unit_cash_amount`、`unit_point_amount`、`unit_discount_amount`、`max_redeem_count`、`start_at`、`end_at`；active 狀態由當前時間是否落在生效區間內決定。 | 第二階段，out of scope |
+| `create_campaign` | `POST` | `/admin/create_campaign` | 建立 campaign 規則，包含 `coupon_min_order_amount`、`coupon_redeem_points`、`coupon_discount_amount`、`max_redemptions_per_order`、`start_at`、`end_at`。 | 第二階段，out of scope |
+| `update_campaign` | `PATCH` | `/admin/update_campaign` | 更新 campaign 規則與生效區間，包含 `coupon_min_order_amount`、`coupon_redeem_points`、`coupon_discount_amount`、`max_redemptions_per_order`、`start_at`、`end_at`；active 狀態由當前時間是否落在生效區間內決定。 | 第二階段，out of scope |
 
 ## 神坊內部服務 / Batch Job
 
@@ -83,8 +83,8 @@ permalink: /api-list/
 | `issue_coupon` | Coupon service | 點數扣除後建立新 coupon，初始狀態為 `processing`。 | 需依架構確認 |
 | `batch_create_brands` | Internal CLI | 以批次檔或設定檔一次建立多筆 brand 主資料，作為後台大量上架品牌的內部工具。 | CLI，不開發為 API |
 | `batch_update_brands` | Internal CLI | 以批次檔或設定檔一次更新多筆 brand 主資料，例如名稱、分類、logo、`treepoint_merchant_provider_key` 或啟用狀態。 | CLI，不開發為 API |
-| `batch_create_campaigns` | Internal CLI | 以批次檔或設定檔一次建立多筆 campaign 規則，供營運大量上架活動使用，欄位包含 `max_redeem_count`。 | CLI，不開發為 API |
-| `batch_update_campaigns` | Internal CLI | 以批次檔或設定檔一次更新多筆 campaign 規則或生效區間，包含 `max_redeem_count`、`start_at`、`end_at`。 | CLI，不開發為 API |
+| `batch_create_campaigns` | Internal CLI | 以批次檔或設定檔一次建立多筆 campaign 規則，供營運大量上架活動使用，欄位包含 `max_redemptions_per_order`。 | CLI，不開發為 API |
+| `batch_update_campaigns` | Internal CLI | 以批次檔或設定檔一次更新多筆 campaign 規則或生效區間，包含 `max_redemptions_per_order`、`start_at`、`end_at`。 | CLI，不開發為 API |
 | `expire_coupons` | Batch job | 定期將超過有效期限的 `available` coupon 改為 `expired`。 | 需新增 job |
 | `lazy_clear_member_selected_brands` | 由 API 觸發（`get_member_selected_brands`、`update_member_selected_brands`、`create_order` 等） | 當用戶進入系統時，檢查其 `member_selected_brands.rotation_key` 是否與當前 active rotation 相符。若不符，代表舊檔期選擇已失效：刪除舊選擇並為每個被清除的品牌寫入一筆 `SYSTEM_CLEAR_BRANDS` 事件（`occurred_at` = 舊 rotation 的 `end_time`）。 | 需新增邏輯 |
 

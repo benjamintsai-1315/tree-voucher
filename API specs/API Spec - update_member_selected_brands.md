@@ -69,10 +69,10 @@ Content-Type: `application/json`
       "active_campaign": {
         "campaign_id": "CPN_CAMP_002",
         "campaign_name": "滿150折30",
-        "unit_cash_amount": 150,
-        "unit_point_amount": 25,
-        "unit_discount_amount": 30,
-        "max_redeem_count": 2,
+        "coupon_min_order_amount": 150,
+        "coupon_redeem_points": 25,
+        "coupon_discount_amount": 30,
+        "max_redemptions_per_order": 2,
         "updated_at": "2026-10-01T09:00:00+08:00"
       },
       "created_at": "2026-08-01T00:00:00+08:00",
@@ -112,10 +112,10 @@ Content-Type: `application/json`
 | ---- | ---- | ---- |
 | campaign_id | String | Campaign 識別碼 |
 | campaign_name | String | Campaign 名稱 |
-| unit_cash_amount | Integer | 每消費滿 N 元可對應使用一張券 |
-| unit_point_amount | Integer | 兌換一張券所需點數 |
-| unit_discount_amount | Integer | 一張券可折抵的金額（元） |
-| max_redeem_count | Integer | 單筆交易中，當前 active campaign 最多可使用幾張券 |
+| coupon_min_order_amount | Integer | 每消費滿 N 元可對應使用一張券 |
+| coupon_redeem_points | Integer | 兌換一張券所需點數 |
+| coupon_discount_amount | Integer | 一張券可折抵的金額（元） |
+| max_redemptions_per_order | Integer | 單筆交易中，當前 active campaign 最多可使用幾張券 |
 | updated_at | String | Campaign 最後更新時間（UTC+8 ISO 8601） |
 
 ### 邏輯說明

@@ -67,11 +67,11 @@ Content-Type: `application/json`
       "campaign_id": "CPN_CAMP_001",
       "campaign_name": "滿100折21",
       "campaign_type": "auto",
-      "unit_cash_amount": 100,
-      "unit_point_amount": 20,
-      "unit_discount_amount": 21,
+      "coupon_min_order_amount": 100,
+      "coupon_redeem_points": 20,
+      "coupon_discount_amount": 21,
       "discount_rate": 1.05,
-      "max_redeem_count": 3,
+      "max_redemptions_per_order": 3,
       "expired_at": "2026-10-31T23:59:59.999+08:00",
       "created_at": "2026-10-01T09:00:00+08:00"
     },
@@ -84,11 +84,11 @@ Content-Type: `application/json`
       "campaign_id": "CPN_CAMP_002",
       "campaign_name": "滿150折30",
       "campaign_type": "manual",
-      "unit_cash_amount": 150,
-      "unit_point_amount": 25,
-      "unit_discount_amount": 30,
+      "coupon_min_order_amount": 150,
+      "coupon_redeem_points": 25,
+      "coupon_discount_amount": 30,
       "discount_rate": 1.2,
-      "max_redeem_count": 2,
+      "max_redemptions_per_order": 2,
       "expired_at": "2026-11-30T23:59:59.999+08:00",
       "created_at": "2026-10-03T10:30:00+08:00"
     }
@@ -117,11 +117,11 @@ Content-Type: `application/json`
 | campaign_id | String | 該券所屬 campaign 識別碼 |
 | campaign_name | String | 該券所屬 campaign 名稱 |
 | campaign_type | String | 該券所屬 campaign 類型：`auto`（系統自動兌換）\| `manual`（用戶手動兌換） |
-| unit_cash_amount | Integer | 該券對應的消費門檻金額（元） |
-| unit_point_amount | Integer | 該券建立時所對應的點數成本 |
-| unit_discount_amount | Integer | 該券折抵金額（元） |
-| discount_rate | Float | 每點折抵金額比率，`roundup(unit_discount_amount / unit_point_amount, 2)`，純計算欄位 |
-| max_redeem_count | Integer | 該券所屬 campaign 定義的單筆交易 active campaign 券使用張數上限 |
+| coupon_min_order_amount | Integer | 該券對應的消費門檻金額（元） |
+| coupon_redeem_points | Integer | 該券建立時所對應的點數成本 |
+| coupon_discount_amount | Integer | 該券折抵金額（元） |
+| discount_rate | Float | 每點折抵金額比率，`round(coupon_discount_amount / coupon_redeem_points, 2)`，純計算欄位 |
+| max_redemptions_per_order | Integer | 該券所屬 campaign 定義的單筆交易 active campaign 券使用張數上限 |
 | expired_at | String | 該券固定到期時間（UTC+8 ISO 8601，毫秒精度） |
 | created_at | String | 該券建立時間（UTC+8 ISO 8601） |
 
