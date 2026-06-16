@@ -21,5 +21,5 @@ permalink: /api-specs/
 ## 發卡主機端
 
 - [create_order]({{ '/api-specs/create-order/' | relative_url }})
-- [finalize_order]({{ '/api-specs/finalize-order/' | relative_url }})
+- [batch_finalize_orders]({{ '/api-specs/batch-finalize-orders/' | relative_url }})
 - [bank_get_order]({{ '/api-specs/bank-get-order/' | relative_url }})

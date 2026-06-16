@@ -44,7 +44,7 @@ Coupon 本質作為本體，不採取「刷卡代金」概念作為本體
 4. 彙總回覆實際折抵刷卡額有多少
 
 補充規則：
-- `max_redeem_count` 限制的是「當次交易中，屬於當前 active campaign 的券最多可使用幾張」
+- `max_redemptions_per_order` 限制的是「當次交易中，屬於當前 active campaign 的券最多可使用幾張」
 - 若舊券本身就是當前 active campaign 產出的券，會先吃掉這個 quota
 - 歷史 campaign 的舊券不吃這個 quota，仍照 FIFO 規則先用
 
@@ -52,10 +52,10 @@ Coupon 本質作為本體，不採取「刷卡代金」概念作為本體
 campaign_rules:
 - id = 'new_campaign'
 - name = '滿100折21'
-- unit_cash_amount = 100 (每刷 100 元可對應折抵一張)
-- unit_point_amount = 20 (每一張券需要 20 點來換)
-- unit_discount_amount = 21 (每一張券可折抵 21 元)
-- max_redeem_count = 3 (單筆交易中，當前 active campaign 最多可使用 3 張券)
+- coupon_min_order_amount = 100 (每刷 100 元可對應折抵一張)
+- coupon_redeem_points = 20 (每一張券需要 20 點來換)
+- coupon_discount_amount = 21 (每一張券可折抵 21 元)
+- max_redemptions_per_order = 3 (單筆交易中，當前 active campaign 最多可使用 3 張券)
 
 order:
 - order_id = 'ord_01'
@@ -64,9 +64,9 @@ order:
 用戶已持有 coupon 共 1 張:
 - coupon_id = 'coupon_01'
 - campaign_id = 'old_campaign'
-- unit_cash_amount = 400 (每刷 100 元可對應折抵一張)
-- unit_point_amount = 100 (每一張券需要 20 點來換)
-- unit_discount_amount = 120 (每一張券可折抵 21 元)
+- coupon_min_order_amount = 400 (每刷 100 元可對應折抵一張)
+- coupon_redeem_points = 100 (每一張券需要 20 點來換)
+- coupon_discount_amount = 120 (每一張券可折抵 21 元)
 
 用戶持有點數:
 - point_balance = 26
@@ -78,11 +78,11 @@ cash_amount - 400 = 220 (剩下可折抵的刷卡金為 220)
 220 仍可再套用現行 campaign (id = 'new_campaign')
 220 // 100 = 2，故可再以 2 張來折抵
 
-而 point_balance(26) // unit_point_amount(20) = 1
+而 point_balance(26) // coupon_redeem_points(20) = 1
 campaign 可用 quota 為 3 張
 因點數餘額只夠再折 1 張，故 min(2, 1, 3) = 1，只會換一張
 
-因 `coupon_01` 屬於 `old_campaign`，不是當前 active campaign，所以不占用 `max_redeem_count`
+因 `coupon_01` 屬於 `old_campaign`，不是當前 active campaign，所以不占用 `max_redemptions_per_order`
 
 進行點數扣點 point_balance -= 20
 進行 coupon 派送 (coupon_02, campaign_id = 'new_campaign')
@@ -176,10 +176,10 @@ Response discount_amount = 141
 3. brand_name
 4. brand_logo
 5. campaign_name
-6. unit_cash_amount
-7. unit_point_amount
-8. unit_discount_amount
-9. max_redeem_count
+6. coupon_min_order_amount
+7. coupon_redeem_points
+8. coupon_discount_amount
+9. max_redemptions_per_order
 10. expired_at
 
 此流程由樹享券平台前台端串接券夾查詢 API。

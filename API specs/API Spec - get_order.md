@@ -64,9 +64,9 @@ Content-Type: `application/json`
     {
       "coupon_id": "CPN_001",
       "campaign_id": "old_campaign",
-      "unit_cash_amount": 400,
-      "unit_point_amount": 100,
-      "unit_discount_amount": 120,
+      "coupon_min_order_amount": 400,
+      "coupon_redeem_points": 100,
+      "coupon_discount_amount": 120,
       "discount_rate": 1.2,
       "expired_at": "2026-10-31T23:59:59.999+08:00",
       "type": "EXISTING"
@@ -74,9 +74,9 @@ Content-Type: `application/json`
     {
       "coupon_id": "CPN_002",
       "campaign_id": "new_campaign",
-      "unit_cash_amount": 100,
-      "unit_point_amount": 20,
-      "unit_discount_amount": 21,
+      "coupon_min_order_amount": 100,
+      "coupon_redeem_points": 20,
+      "coupon_discount_amount": 21,
       "discount_rate": 1.05,
       "expired_at": "2026-11-30T23:59:59.999+08:00",
       "type": "NEWLY_ISSUED"
@@ -119,10 +119,10 @@ Content-Type: `application/json`
 | ---- | ---- | ---- |
 | coupon_id | String | 券識別碼 |
 | campaign_id | String | 該券所屬 campaign 識別碼 |
-| unit_cash_amount | Integer | 該券對應的消費門檻金額（元） |
-| unit_point_amount | Integer | 該券建立時所對應的點數成本 |
-| unit_discount_amount | Integer | 該券的折抵金額（元） |
-| discount_rate | Float | 每點折抵金額比率，`roundup(unit_discount_amount / unit_point_amount, 2)`，純計算欄位 |
+| coupon_min_order_amount | Integer | 該券對應的消費門檻金額（元） |
+| coupon_redeem_points | Integer | 該券建立時所對應的點數成本 |
+| coupon_discount_amount | Integer | 該券的折抵金額（元） |
+| discount_rate | Float | 每點折抵金額比率，`round(coupon_discount_amount / coupon_redeem_points, 2)`，純計算欄位 |
 | expired_at | String | 該券固定到期時間（UTC+8 ISO 8601，毫秒精度） |
 | type | String | `EXISTING`：原券夾既有券；`NEWLY_ISSUED`：本次即時兌換產生 |
 
@@ -134,7 +134,7 @@ Content-Type: `application/json`
 | created_at | String | 事件發生時間（UTC+8 ISO 8601） |
 
 ### 邏輯說明
-- `discount_amount` = Σ `coupons_used[].unit_discount_amount`
+- `discount_amount` = Σ `coupons_used[].coupon_discount_amount`
 - `coupons_used[]` 對應 DB layer 的 `order_coupon_logs`
 - `actions` 對應 DB layer 的 `order_logs`
 - `actions` 最少一筆（`CREATED`），finalize_order 執行後新增第二筆（`COMPLETED` 或 `CANCELLED`）
