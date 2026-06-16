@@ -7,6 +7,7 @@ permalink: /api-specs/get-member-settings/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-06-16 | `brands[]` 欄位改名：`brand_id` → `id`、`brand_name` → `name`、`brand_logo` → `logo`、`brand_category` → `category`；`active_campaign` 的 `campaign_id` → `id`、`campaign_name` → `name`，並新增 `created_at` |
 | 2026-06-15 | 由 `get_member_selected_brands` 更名為 `get_member_settings`；endpoint 改為 `/coupon/get_member_settings`，涵蓋品牌選擇與暫停／啟用狀態 |
 | 2026-06-15 | `active_campaign` 新增 `discount_rate` 計算欄位；此 API 僅回傳 `type = auto` 的 campaign |
 | 2026-06-12 | 由 `get_user_selected_brands` 更名；`user_selected_brands` → `member_selected_brands`；`USER_NOT_FOUND` → `MEMBER_NOT_FOUND` |
@@ -56,36 +57,38 @@ Content-Type: `application/json`
   "last_changed_at": "2026-10-15T20:30:00+08:00",
   "brands": [
     {
-      "brand_id": "BRAND_711",
-      "brand_name": "7-ELEVEN",
-      "brand_logo": "https://cdn.example.com/logos/711.png",
-      "brand_category": "便利商店",
+      "id": "BRAND_711",
+      "name": "7-ELEVEN",
+      "logo": "https://cdn.example.com/logos/711.png",
+      "category": "便利商店",
       "active_campaign": {
-        "campaign_id": "CPN_CAMP_002",
-        "campaign_name": "滿150折30",
+        "id": "CPN_CAMP_002",
+        "name": "滿150折30",
         "coupon_min_order_amount": 150,
         "coupon_redeem_points": 25,
         "coupon_discount_amount": 30,
         "discount_rate": 1.2,
         "max_redemptions_per_order": 2,
+        "created_at": "2026-08-01T00:00:00+08:00",
         "updated_at": "2026-10-01T09:00:00+08:00"
       },
       "created_at": "2026-08-01T00:00:00+08:00",
       "updated_at": "2026-10-01T09:00:00+08:00"
     },
     {
-      "brand_id": "BRAND_FAMILYMART",
-      "brand_name": "全家便利商店",
-      "brand_logo": "https://cdn.example.com/logos/familymart.png",
-      "brand_category": "便利商店",
+      "id": "BRAND_FAMILYMART",
+      "name": "全家便利商店",
+      "logo": "https://cdn.example.com/logos/familymart.png",
+      "category": "便利商店",
       "active_campaign": {
-        "campaign_id": "CPN_CAMP_001",
-        "campaign_name": "滿100折21",
+        "id": "CPN_CAMP_001",
+        "name": "滿100折21",
         "coupon_min_order_amount": 100,
         "coupon_redeem_points": 20,
         "coupon_discount_amount": 21,
         "discount_rate": 1.05,
         "max_redemptions_per_order": 3,
+        "created_at": "2026-08-01T00:00:00+08:00",
         "updated_at": "2026-10-01T09:00:00+08:00"
       },
       "created_at": "2026-09-01T00:00:00+08:00",
@@ -109,10 +112,10 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| brand_id | String | 品牌識別碼 |
-| brand_name | String | 品牌名稱 |
-| brand_logo | String | 品牌 logo 圖片 URL |
-| brand_category | String | 品牌分類（例：便利商店、藥妝、超市） |
+| id | String | 品牌識別碼 |
+| name | String | 品牌名稱 |
+| logo | String | 品牌 logo 圖片 URL |
+| category | String | 品牌分類（例：便利商店、藥妝、超市） |
 | active_campaign | Object | 該品牌當前有效的 auto campaign 規則 |
 | created_at | String | 品牌建立時間（UTC+8 ISO 8601） |
 | updated_at | String | 品牌資料最後更新時間（UTC+8 ISO 8601） |
@@ -121,13 +124,14 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| campaign_id | String | Campaign 識別碼 |
-| campaign_name | String | Campaign 名稱 |
+| id | String | Campaign 識別碼 |
+| name | String | Campaign 名稱 |
 | coupon_min_order_amount | Integer | 每消費滿 N 元可對應使用一張券 |
 | coupon_redeem_points | Integer | 兌換一張券所需點數 |
 | coupon_discount_amount | Integer | 一張券可折抵的金額（元） |
 | discount_rate | Float | 每點折抵金額比率，`round(coupon_discount_amount / coupon_redeem_points, 2)`，純計算欄位 |
 | max_redemptions_per_order | Integer | 單筆交易中，當前 active campaign 最多可使用幾張券 |
+| created_at | String | Campaign 建立時間（UTC+8 ISO 8601） |
 | updated_at | String | Campaign 最後更新時間（UTC+8 ISO 8601） |
 
 ### 邏輯說明
