@@ -7,32 +7,37 @@ permalink: /api-specs/finalize-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-06-16 | Coupon 狀態改名：`processing` → `consumed`、`completed` → `settled` |
+| 2026-06-16 | 改為批次接收（`orders` 陣列）、非同步處理；response 改回 `202 Accepted` 並回傳 `batch_request_id`；移除原單筆同步回傳欄位 |
 | 2026-06-15 | Endpoint 改為 `/bank/finalize_order`（原 `/coupon/finalize_order`），依呼叫端分類路徑 |
 
 # API: finalize_order
 
 ## 功能說明
-讓發卡主機在商戶請款完成或申請退刷後，呼叫此 API 通知神坊更新訂單狀態。請款完成時，神坊將對應券狀態由 `processing` 改為 `completed`，並執行代償；退刷時，券狀態退回 `available`，點數不返還。
+讓發卡主機在商戶請款完成或申請退刷後，批次呼叫此 API 通知神坊更新訂單狀態。神坊收到請求後立即回應 `202 Accepted`，實際狀態轉換以非同步方式執行。發卡主機可透過 `get_finalize_batch_status` 查詢各筆訂單的處理進度。
 
 
 ## 權限需求
-- 認證：Authorization: ApiKey {{發卡主機_api_key}} 
+- 認證：Authorization: ApiKey {{發卡主機_api_key}}
 - 邊界檢查：
-  - 此 API Key 須為發卡主機專屬授權 
-  - order_id 必須存在於神坊系統中 
-  - order_id 對應訂單的券狀態必須為 processing，否則不可執行   
+  - 此 API Key 須為發卡主機專屬授權
 
 
 ## 使用情境
-若同一 `order_id` 已完成最終化，任何再次收到的 `finalize_order` 請求皆不重做狀態轉換，直接回 `ORDER_ALREADY_FINALIZED`。
-### 請款完成（completed）
-- 商戶向銀行請款後，發卡主機通知神坊
-- 神坊將該訂單所有 `processing` 券改為 `completed`
+### 請款完成（COMPLETED）
+- 商戶向銀行請款後，發卡主機批次通知神坊
+- 神坊（非同步）將該訂單所有 `consumed` 券改為 `settled`
 - 神坊執行代償流程
-### 退刷（cancelled）
-- 商戶向銀行申請刷退後，發卡主機通知神坊 
-- 神坊將該訂單所有 `processing` 券改回 `available`
-- 點數不返還；退回的券（含本次即時兌換產生者）成為後續可用的舊券 
+
+### 退刷（CANCELLED）
+- 商戶向銀行申請刷退後，發卡主機批次通知神坊
+- 神坊（非同步）將該訂單所有 `consumed` 券依是否到期轉為 `available` 或 `expired`
+- 點數不返還；退回的券成為後續可用的舊券
+
+### 冪等設計
+- `batch_request_id` 由發卡主機自行產生並帶入，用於識別批次請求
+- 若相同 `batch_request_id` 再次呼叫，神坊直接回傳該批次的接收資訊，不重複建立
+- 此設計讓發卡主機在首次呼叫未收到回應時，可重送請求並確認是否已被接收
 
 
 # Request
@@ -40,7 +45,7 @@ HTTP method: `POST`
 Endpoint: `/bank/finalize_order`
 Content-Type: `application/json`
 
-## Request Header（表格）
+## Request Header
 
 | Header | 說明 |
 | ------ | ---- |
@@ -51,33 +56,53 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 必填 | 可空 | 預設值 | 限制條件 |
 | ---- | ---- | ---- | ---- | ------ | -------- |
-| order_id | string | TRUE | FALSE | ❎ | 最多 64 字 |
-| action | string | TRUE | FALSE | ❎ | 僅接受 `COMPLETED` \| `CANCELLED` |
+| batch_request_id | string | TRUE | FALSE | ❎ | 最多 64 字；由發卡主機自行產生，用於冪等識別 |
+| orders | array | TRUE | FALSE | ❎ | 至少 1 筆，最多 100 筆 |
+| orders[].order_id | string | TRUE | FALSE | ❎ | 最多 64 字 |
+| orders[].action | string | TRUE | FALSE | ❎ | 僅接受 `COMPLETED` \| `CANCELLED` |
 
-# Response
-## Sample（JSON）
+## Request Sample（JSON）
 
 ```json
 {
-  "order_id": "ORD_20261001_00001",
-  "action": "COMPLETED",
-  "finalized_at": "2026-10-03T10:00:00+08:00"
+  "batch_request_id": "BREQ_20261003_00001",
+  "orders": [
+    { "order_id": "ORD_20261001_00001", "action": "COMPLETED" },
+    { "order_id": "ORD_20261001_00002", "action": "CANCELLED" }
+  ]
 }
 ```
 
-## Response items
+# Response
+HTTP Status: `202 Accepted`
+
+## Response Sample（JSON）
+
+```json
+{
+  "batch_request_id": "BREQ_20261003_00001",
+  "accepted_count": 2,
+  "submitted_at": "2026-10-03T10:00:00+08:00"
+}
+```
+
+## Response Items
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| order_id | String | 訂單識別碼 |
-| action | String | 本次 finalize 請求內容：`COMPLETED` \| `CANCELLED` |
-| finalized_at | Datetime | 訂單最終化時間（UTC+8 ISO 8601） |
+| batch_request_id | String | 發卡主機提供的批次識別碼，原樣回傳 |
+| accepted_count | Integer | 本批次接收的訂單筆數 |
+| submitted_at | Datetime | 批次接收時間（UTC+8 ISO 8601）；若為重送相同 `batch_request_id`，回傳原始接收時間 |
 
 ### 邏輯說明
-- `action = COMPLETED`：所有對應券 processing → completed，觸發神坊代償流程 
-- `action = CANCELLED`：本次訂單所有 `processing coupon` 若在 finalize(cancelled) 當下尚未到期則轉回 `available`；若已到期則轉為 `expired`。點數不返還
-- 同一 `order_id` 僅允許成功 finalize 一次；任何再次收到的 `finalize_order` 請求皆回 `ORDER_ALREADY_FINALIZED`
+- 神坊收到請求後，建立（或查找）`finalize_batch_requests` 記錄，並逐筆建立 `finalize_batch_items`（初始狀態 `PENDING`），立即回傳 `202`
+- 非同步 worker 處理各筆 item；每筆沿用原本的狀態轉換邏輯：
+  - `action = COMPLETED`：所有對應券 `consumed → settled`，觸發代償流程
+  - `action = CANCELLED`：`consumed` 券依是否到期轉為 `available` 或 `expired`，點數不返還
+- 單筆驗證失敗（`ORDER_NOT_FOUND`、`ORDER_ALREADY_FINALIZED`）不中斷整批次，錯誤記錄於該 item 的 `error_code`
+- 重送相同 `batch_request_id`：直接回傳原批次接收資訊，不重複建立或重跑
 
-## 400 錯誤回傳（TYPE: MESSAGE）
-1. 訂單編號不存在：`ORDER_NOT_FOUND`
-2. 訂單券狀態非 processing（已完成或已退刷）：`ORDER_ALREADY_FINALIZED`
+## 400 錯誤回傳（request-level）
+1. `orders` 為空陣列：`ORDERS_REQUIRED`
+2. `orders` 超過 100 筆：`TOO_MANY_ORDERS`
+3. `batch_request_id` 未提供：`BATCH_REQUEST_ID_REQUIRED`

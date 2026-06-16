@@ -7,6 +7,7 @@ permalink: /api-specs/create-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-06-16 | Coupon 狀態改名：`processing` → `consumed`、`completed` → `settled` |
 | 2026-06-15 | Endpoint 改為 `/bank/create_order`（原 `/coupon/create_order`），依呼叫端分類路徑 |
 | 2026-06-12 | `user_selected_brands` → `member_selected_brands`；`USER_NOT_FOUND` → `MEMBER_NOT_FOUND` |
 
@@ -14,7 +15,7 @@ permalink: /api-specs/create-order/
 
 ## 功能說明
 讓發卡主機以 API Key 於信用卡授權後建立折抵訂單，神坊依 `order_id`、`member_id`、`brand_id`、`cash_amount` 與 `card_last_four_digits` 執行 coupon 清算
-扣點時依 `brand.treepoint_merchant_provider_key` 帶入點數帳務通路，並於同一個 DB transaction 內完成扣點、即時發券、既有券轉 `processing`、建立訂單與事件後，僅回傳本次折抵金額。
+扣點時依 `brand.treepoint_merchant_provider_key` 帶入點數帳務通路，並於同一個 DB transaction 內完成扣點、即時發券、既有券轉 `consumed`、建立訂單與事件後，僅回傳本次折抵金額。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{issuer_api_key}}`
@@ -79,7 +80,7 @@ Content-Type: `application/json`
 - 本次依 active campaign 即時發新券前，先計算 `remaining_active_campaign_quota = active_campaign.max_redemptions_per_order - active_campaign_coupon_used_count
 - 本次可新發張數 = `min(剩餘消費額 // coupon_min_order_amount, point_balance // coupon_redeem_points, remaining_active_campaign_quota)`
 - 若 `remaining_active_campaign_quota <= 0`，本次不得再新發任何 active-campaign 券
-- 僅在同一個 DB transaction 內完成扣點、發新券、既有券轉 `processing`、建立 order 與建立 order event 後，才視為建單成功
+- 僅在同一個 DB transaction 內完成扣點、發新券、既有券轉 `consumed`、建立 order 與建立 order event 後，才視為建單成功
   > 是否以同一 DB transaction 進行待討論
 - 建單成功後，訂單進入 `PROCESSING` 狀態，等待後續 `finalize_order`
 - 若用戶在該 `brand` 下無任何 `available coupon`，且點數餘額也為 0，則本次清算直接失敗並回 `NO_AVAILABLE_COUPON_AND_POINT`

@@ -9,6 +9,9 @@ permalink: /database-schema/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-06-16 | Coupon 狀態改名：`processing` → `consumed`、`completed` → `settled`；ERD 與 constraints 同步更新 |
+| 2026-06-16 | 新增 `finalize_batch_requests` 與 `finalize_batch_items` 表，支援批次非同步 finalize_order 流程 |
+| 2026-06-16 | `rotations` 的 `display_coupon_min_order_amount` / `display_coupon_redeem_points` 合併為 `description`（string，JSON 格式 `{"order_amount": N, "point_amount": N}`） |
 | 2026-06-16 | campaigns / coupons 欄位改名：`unit_cash_amount` → `coupon_min_order_amount`、`unit_point_amount` → `coupon_redeem_points`、`unit_discount_amount` → `coupon_discount_amount`、`max_redeem_count` → `max_redemptions_per_order`；rotations 的 `description` 改回 `display_coupon_min_order_amount` / `display_coupon_redeem_points` |
 | 2026-06-15 | `member_brand_change_logs` 改為 request 粒度（一筆一次操作）；移除 `brand_id FK`；新增 `type`、`added_brand_ids`、`removed_brand_ids`（diff 於寫入時計算） |
 | 2026-06-15 | `campaigns` 新增 `type`（`auto`\|`manual`）與 `rotation_id FK`；移除 `start_at`/`end_at`（active 判斷改由 rotation 繼承）；ERD 新增 `rotations \|\|--o\{ campaigns` 關聯；約束說明更新 active 判斷規則與唯一性約束 |
@@ -58,6 +61,10 @@ erDiagram
     brands ||--o{ orders : belongs_to
     coupons ||--o{ order_coupon_logs : records
     orders o|--o{ order_coupon_logs : references
+
+    %% --- 批次 finalize 相關 ---
+    finalize_batch_requests ||--o{ finalize_batch_items : contains
+    orders o|--o{ finalize_batch_items : referenced_by
 
 
     %% --------------------------------------------------
@@ -116,8 +123,7 @@ erDiagram
         datetime start_time
         datetime end_time
         int max_selectable_brand_count
-        int display_coupon_min_order_amount "顯示用單位消費金額，供前端說明文字"
-        int display_coupon_redeem_points "顯示用單位兌換點數，供前端說明文字"
+        string description "顯示用說明參數，JSON 字串，格式固定為 {\"order_amount\": N, \"point_amount\": N}"
         datetime created_at
         datetime updated_at
     }
@@ -154,7 +160,7 @@ erDiagram
         string(36) member_id FK
         string(26) campaign_id FK
         string(16) type "from_campaign, from_member"
-        string(16) status "available, consumed, settled, expired"
+        string(16) status "available, consumed, settled, expired" "consumed=交易授權中; settled=請款完成"
         int coupon_min_order_amount "snapshot"
         int coupon_redeem_points "snapshot"
         int coupon_discount_amount "snapshot"
@@ -179,9 +185,31 @@ erDiagram
     order_coupon_logs {
         string(26) id PK
         string(64) order_id FK "nullable for expired"
-        string(26) coupon_id FK        
+        string(26) coupon_id FK
         string(16) type "issued, consumed, expired, updated"
         datetime created_at
+    }
+
+    finalize_batch_requests {
+        string(64) id PK "由發卡主機提供的 batch_request_id"
+        integer total_count
+        string(16) status "PENDING, PROCESSING, COMPLETED"
+        datetime submitted_at "批次接收時間（UTC+8）"
+        datetime completed_at "全部處理完成時間（UTC+8），nullable"
+        datetime created_at
+        datetime updated_at
+    }
+
+    finalize_batch_items {
+        string(26) id PK
+        string(64) batch_request_id FK
+        string(64) order_id FK
+        string(16) action "COMPLETED, CANCELLED"
+        string(16) status "PENDING, SUCCESS, FAILED"
+        datetime finalized_at "單筆成功時間（UTC+8），nullable"
+        string error_code "nullable"
+        datetime created_at
+        datetime updated_at
     }
 ```
 
@@ -253,8 +281,8 @@ erDiagram
   - `campaign_id -> campaigns.id`
 - `status` enum：
   - `AVAILABLE`
-  - `PROCESSING`
-  - `COMPLETED`
+  - `CONSUMED`（交易授權中，等待商戶請款）
+  - `SETTLED`（請款完成，神坊代償完畢）
   - `EXPIRED`
 - `expired_at` 於發券時計算後寫死：
   - `expired_at = (created_at 所在 UTC+8 日期 + coupon_valid_days) 的 23:59:59.999`
@@ -289,13 +317,35 @@ erDiagram
 - active rotation 以 `start_time <= now() <= end_time` 判斷
 - 系統同一時間只應有一個 active rotation
 - `max_selectable_brand_count`：此檔期用戶最多可選品牌數，取代原 `system_configs.brand_selection_limit`
-- `display_coupon_min_order_amount` / `display_coupon_redeem_points`：前端顯示用說明參數，由後台維護，供前端組合說明文字，不參與任何清算邏輯
+- `description`：前端顯示用說明參數，固定以 JSON 字串寫入，格式為 `{"order_amount": N, "point_amount": N}`，由後台維護，前端自行 parse 組合說明文字，不參與任何清算邏輯
 
 ### system_configs
 
 - 主鍵：`config_key`
 - 至少應包含：
   - `coupon_valid_days`
+
+### finalize_batch_requests
+
+- 主鍵：`id`（即發卡主機提供的 `batch_request_id`，最多 64 字）
+- `status` enum：
+  - `PENDING`：批次建立，尚未處理任何 item
+  - `PROCESSING`：至少一筆 item 已處理
+  - `COMPLETED`：所有 item 皆已處理（含部分失敗）
+- 冪等設計：若重送相同 `id`，直接回傳現有記錄，不重複建立
+
+### finalize_batch_items
+
+- 主鍵：`id`（ULID）
+- 外鍵：
+  - `batch_request_id -> finalize_batch_requests.id`
+  - `order_id -> orders.order_id`
+- `action` enum：`COMPLETED`、`CANCELLED`
+- `status` enum：
+  - `PENDING`：尚未處理
+  - `SUCCESS`：處理成功，`finalized_at` 有值
+  - `FAILED`：處理失敗，`error_code` 有值
+- `error_code` 可能值：`ORDER_NOT_FOUND`、`ORDER_ALREADY_FINALIZED`
 
 ## 備註
 

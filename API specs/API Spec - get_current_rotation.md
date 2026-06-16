@@ -7,6 +7,7 @@ permalink: /api-specs/get-current-rotation/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-06-16 | `display_coupon_min_order_amount` / `display_coupon_redeem_points` 合併為 `description`（JSON 字串，格式 `{"order_amount": N, "point_amount": N}`），由前端自行 parse 呈現 |
 | 2026-06-16 | 欄位命名去除 prefix（`brand_id` → `id`、`brand_name` → `name` 等）；`description` 改回 `display_coupon_min_order_amount` / `display_coupon_redeem_points`；`rotation_id` → `id`；active_campaign 新增 `created_at`；`discount_rate` 說明改為四捨五入至小數點第二位 |
 | 2026-06-15 | `active_campaign` 新增 `discount_rate` 計算欄位；此 API 僅回傳 `type = auto` 的 campaign，不回傳 `type` 欄位 |
 | 2026-06-15 | 由 `get_rotation_config` 與 `get_active_brands` 合併而來；將 brands 清單納入回傳，統一為單一呼叫 |
@@ -24,7 +25,7 @@ permalink: /api-specs/get-current-rotation/
 ## 使用情境
 前台端於頁面初始化時呼叫此 API，一次取得當前檔期基本設定（開始/結束時間、可選品牌數上限、顯示用說明參數）及可供用戶選擇的品牌完整清單。
 
-> **注意：** `display_coupon_min_order_amount` 與 `display_coupon_redeem_points` 目前供前端呈現說明文字（例如：「每消費 100 元折抵 20 點」），不影響實際清算邏輯。實際清算依各品牌 campaign 的規則執行。
+> **注意：** `description` 為顯示用說明參數，格式為 JSON 字串（`{"order_amount": N, "point_amount": N}`），由前端自行 parse 後組合說明文字（例如：「每消費 100 元可兌換 20 點折抵」），不影響實際清算邏輯。實際清算依各品牌 campaign 的規則執行。
 
 # Request
 HTTP method: `GET`
@@ -48,8 +49,7 @@ Content-Type: `application/json`
   "id": "rotation_ulid",
   "start_time": "2026-01-01T00:00:00+08:00",
   "end_time": "2026-03-31T23:59:59+08:00",
-  "display_coupon_min_order_amount": 100,
-  "display_coupon_redeem_points": 20,
+  "description": "{\"order_amount\": 100, \"point_amount\": 20}",
   "max_selectable_brand_count": 3,
   "brands": [
     {
@@ -101,8 +101,7 @@ Content-Type: `application/json`
 | id | String | 當前檔期識別碼 |
 | start_time | String | 檔期開始時間（UTC+8 ISO 8601） |
 | end_time | String | 檔期結束時間（UTC+8 ISO 8601） |
-| display_coupon_min_order_amount | Integer | 顯示用單位消費金額（元），供前端呈現說明文字 |
-| display_coupon_redeem_points | Integer | 顯示用單位兌換點數，供前端呈現說明文字 |
+| description | String | 顯示用說明參數，JSON 字串格式：`{"order_amount": N, "point_amount": N}`，由前端自行 parse 呈現，不影響清算 |
 | max_selectable_brand_count | Integer | 本檔期用戶最多可選擇的品牌數量 |
 | brands | Array | 本檔期所有具備 active auto campaign 的品牌清單 |
 

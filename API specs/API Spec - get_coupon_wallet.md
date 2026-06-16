@@ -7,6 +7,7 @@ permalink: /api-specs/get-coupon-wallet/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-06-16 | Coupon 狀態改名：`processing` → `consumed`、`completed` → `settled`；更新預設排序 bucket 說明 |
 | 2026-06-15 | 每張券新增 `campaign_type`（`auto`\|`manual`）與 `discount_rate` 計算欄位 |
 | 2026-06-12 | `user_id` → `member_id`；`USER_NOT_FOUND` → `MEMBER_NOT_FOUND` |
 
@@ -126,10 +127,10 @@ Content-Type: `application/json`
 | created_at | String | 該券建立時間（UTC+8 ISO 8601） |
 
 ### 邏輯說明
-- 預設回傳該用戶所有券狀態，不只 `available` / `processing`
+- 預設回傳該用戶所有券狀態，不只 `available` / `consumed`
 - 若帶 `status`，僅回傳該單一狀態的券
 - 若帶 `brand_id`，僅回傳該品牌底下的券
-- 預設排序先依狀態 bucket：`AVAILABLE` → `PROCESSING` → `COMPLETED` → `EXPIRED`
+- 預設排序先依狀態 bucket：`AVAILABLE` → `CONSUMED` → `SETTLED` → `EXPIRED`
 - 同一狀態 bucket 內依 `expired_at ASC`、`created_at ASC`、`coupon_id ASC` 排序
 - 無任何券時，回傳 `coupons: []`，不報錯
 - 本 API 不回傳訂單關聯欄位，例如 `order_id`
