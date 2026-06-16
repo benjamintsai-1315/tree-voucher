@@ -9,10 +9,10 @@ permalink: /database-schema/
 
 | Date | Summary |
 | ---- | ------- |
-| 2026-06-16 | campaigns / coupons 欄位改名：`unit_cash_amount` → `coupon_min_order_amount`、`unit_point_amount` → `coupon_redeem_points`、`unit_discount_amount` → `coupon_discount_amount`、`max_redeem_count` → `max_redemptions_per_order`；rotations 的 `description` 改回 `display_unit_cash_amount` / `display_unit_point_amount` |
+| 2026-06-16 | campaigns / coupons 欄位改名：`unit_cash_amount` → `coupon_min_order_amount`、`unit_point_amount` → `coupon_redeem_points`、`unit_discount_amount` → `coupon_discount_amount`、`max_redeem_count` → `max_redemptions_per_order`；rotations 的 `description` 改回 `display_coupon_min_order_amount` / `display_coupon_redeem_points` |
 | 2026-06-15 | `member_brand_change_logs` 改為 request 粒度（一筆一次操作）；移除 `brand_id FK`；新增 `type`、`added_brand_ids`、`removed_brand_ids`（diff 於寫入時計算） |
 | 2026-06-15 | `campaigns` 新增 `type`（`auto`\|`manual`）與 `rotation_id FK`；移除 `start_at`/`end_at`（active 判斷改由 rotation 繼承）；ERD 新增 `rotations \|\|--o\{ campaigns` 關聯；約束說明更新 active 判斷規則與唯一性約束 |
-| 2026-06-15 | `coupons` 移除 `issued_at`（與 `created_at` 重複）；移除 `order_coupon_items` 表（快照改於發券時存入 `coupons`）；移除獨立的 `member_auto_redeem_settings` 表（`auto_redeem_enabled` 併入 `members`）；全文 `occurred_at` 統一改為 `created_at`；約束區段 PK 命名去除 table prefix，統一使用 `id`；`rotations` 的 `display_unit_cash_amount` / `display_unit_point_amount` 恢復（原曾改為 `description`，決議改回） |
+| 2026-06-15 | `coupons` 移除 `issued_at`（與 `created_at` 重複）；移除 `order_coupon_items` 表（快照改於發券時存入 `coupons`）；移除獨立的 `member_auto_redeem_settings` 表（`auto_redeem_enabled` 併入 `members`）；全文 `occurred_at` 統一改為 `created_at`；約束區段 PK 命名去除 table prefix，統一使用 `id`；`rotations` 的 `display_coupon_min_order_amount` / `display_coupon_redeem_points` 恢復（原曾改為 `description`，決議改回） |
 
 ---
 
@@ -116,8 +116,8 @@ erDiagram
         datetime start_time
         datetime end_time
         int max_selectable_brand_count
-        int display_unit_cash_amount "顯示用單位消費金額，供前端說明文字"
-        int display_unit_point_amount "顯示用單位兌換點數，供前端說明文字"
+        int display_coupon_min_order_amount "顯示用單位消費金額，供前端說明文字"
+        int display_coupon_redeem_points "顯示用單位兌換點數，供前端說明文字"
         datetime created_at
         datetime updated_at
     }
@@ -289,7 +289,7 @@ erDiagram
 - active rotation 以 `start_time <= now() <= end_time` 判斷
 - 系統同一時間只應有一個 active rotation
 - `max_selectable_brand_count`：此檔期用戶最多可選品牌數，取代原 `system_configs.brand_selection_limit`
-- `display_unit_cash_amount` / `display_unit_point_amount`：前端顯示用說明參數，由後台維護，供前端組合說明文字，不參與任何清算邏輯
+- `display_coupon_min_order_amount` / `display_coupon_redeem_points`：前端顯示用說明參數，由後台維護，供前端組合說明文字，不參與任何清算邏輯
 
 ### system_configs
 

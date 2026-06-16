@@ -91,7 +91,7 @@ permalink: /api-list/
 ### 系統環境參數說明
 - `coupon_valid_days` 為全域有效天數參數，供發券時計算 `coupon.expired_at`；不屬於 `campaign` 欄位。
 - `max_selectable_brand_count` 已移至 `rotations` 表，由各檔期自行定義，不再是全域 `system_configs` 參數。
-- `display_unit_cash_amount` / `display_unit_point_amount` 設置於 `rotations` 表，目前供前端呈現說明文字，不影響清算；未來後台有 campaign 建立介面時，將作為新建 campaign 的 default value。
+- `display_coupon_min_order_amount` / `display_coupon_redeem_points` 設置於 `rotations` 表，目前供前端呈現說明文字，不影響清算；未來後台有 campaign 建立介面時，將作為新建 campaign 的 default value。
 
 ### 訂單資料模型說明
 - DB layer 的訂單歷程表使用 `order_logs`
