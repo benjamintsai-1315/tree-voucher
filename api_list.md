@@ -57,7 +57,8 @@ permalink: /api-list/
 | API | Method | Endpoint | 用途 | 狀態 |
 | ---- | ---- | ---- | ---- | ---- |
 | `create_order` | `POST` | `/bank/create_order` | 信用卡授權後由發卡主機呼叫。神坊依 brand、用戶、刷卡金額執行清算，使用既有 coupon、扣點、即時發新 coupon，並保存卡號後四碼供後續前台查詢顯示。 | 已有 spec |
-| `finalize_order` | `POST` | `/bank/finalize_order` | 商戶請款完成或取消交易後由發卡主機非同步呼叫。請款成功時 coupon `processing -> completed`；取消時依是否已到期轉為 `available` 或 `expired`，點數不返還。 | 已有 spec |
+| `batch_finalize_orders` | `POST` | `/bank/batch_finalize_orders` | 商戶請款完成或取消交易後由發卡主機批次呼叫。以 CSV 檔案上傳多筆 `{order_id, action}`，神坊立即回 `202 Accepted`，實際處理以非同步方式執行。`request_id` 由發卡主機自行產生，相同 `request_id` 重送時回傳 `BATCH_REQUEST_ALREADY_EXISTS`。 | 已有 spec |
+| `get_finalize_batch_status` | `GET` | `/bank/get_finalize_batch_status` | 發卡主機以 `batch_request_id` 查詢批次 finalize 請求的整體狀態與各筆訂單的處理進度。 | 已有 spec |
 | `bank_get_order` | `GET` | `/bank/get_order` | 發卡主機依 `order_id` 查詢訂單狀態與折抵金額，僅回傳銀行端必要欄位。 | 已有 spec |
 
 ### 發卡主機端說明
@@ -80,7 +81,7 @@ permalink: /api-list/
 
 | API / Job | 觸發方 | 用途 | 狀態 |
 | ---- | ---- | ---- | ---- |
-| `issue_coupon` | Coupon service | 點數扣除後建立新 coupon，初始狀態為 `processing`。 | 需依架構確認 |
+| `issue_coupon` | Coupon service | 點數扣除後建立新 coupon，初始狀態為 `consumed`。 | 需依架構確認 |
 | `batch_create_brands` | Internal CLI | 以批次檔或設定檔一次建立多筆 brand 主資料，作為後台大量上架品牌的內部工具。 | CLI，不開發為 API |
 | `batch_update_brands` | Internal CLI | 以批次檔或設定檔一次更新多筆 brand 主資料，例如名稱、分類、logo、`treepoint_merchant_provider_key` 或啟用狀態。 | CLI，不開發為 API |
 | `batch_create_campaigns` | Internal CLI | 以批次檔或設定檔一次建立多筆 campaign 規則，供營運大量上架活動使用，欄位包含 `max_redemptions_per_order`。 | CLI，不開發為 API |
