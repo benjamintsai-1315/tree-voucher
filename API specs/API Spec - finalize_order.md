@@ -3,6 +3,8 @@ title: API Spec - finalize_order
 permalink: /api-specs/finalize-order/
 ---
 
+> **⚠️ Deprecated：** 此規格已由 [`batch_finalize_orders`](API%20Spec%20-%20batch_finalize_orders.md) 取代，請勿使用本文件。
+
 ## Changelog
 
 | Date | Summary |

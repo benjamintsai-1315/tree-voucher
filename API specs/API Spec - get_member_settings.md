@@ -70,15 +70,15 @@ Content-Type: `application/json`
 | --- | --- | --- |
 | member_id | UUID | 神坊用戶識別碼 |
 | auto_redeem_enabled | Boolean | 使用者自動兌換服務是否啟用；`false` 表示目前為暫停用券狀態 |
-| last_brand_selection_changed_at | Datetime | 該用戶設定狀態最近一次異動時間（UTC+8 ISO 8601）；若從未異動則為 `null` |
+| last_brand_selection_changed_at | Datetime | 該用戶最近一次品牌選擇異動時間（UTC+8 ISO 8601）；僅首次選牌或更換品牌時更新；若從未選牌則為 `null` |
 | selected_brand_ids | Array | 該用戶目前已選擇、且當前仍具備 active campaign 的品牌 `id` 清單 |
 
 ### 邏輯說明
 
 - 本 API 為「用戶進入系統」的觸發點之一，回傳前須先執行 **lazy cleanup**：若用戶現有 `member_selected_brands` 的 `rotation_id` 與當前 active rotation 不符，系統自動清除舊選擇並寫入 `system_clear_brands` log，再回傳清除後的最新狀態
 - `auto_redeem_enabled` 為使用者層級服務狀態；`PAUSE` 後為 `false`，`RESUME` 後為 `true`
-- `last_brand_selection_changed_at` 代表該用戶設定狀態最近一次異動時間，包含首次選牌、更換品牌的時間
-    - 若使用者從未發生任何設定異動，回傳 `last_brand_selection_changed_at: null`
+- `last_brand_selection_changed_at` 代表該用戶最近一次品牌選擇異動時間，僅在首次選牌、更換品牌時更新；`PAUSE`、`RESUME`、lazy cleanup 不影響此欄位
+    - 若使用者從未進行品牌選擇，回傳 `last_brand_selection_changed_at: null`
 - `selected_brand_ids` 僅回傳已選擇且當前仍具備 active auto campaign 的品牌 id，不回傳已無 active auto campaign 的品牌
 - `selected_brand_ids` 以 `id` 順序排列
 - 若使用者存在但尚未選擇任何品牌，回傳 `selected_brand_ids: []`，不報錯
