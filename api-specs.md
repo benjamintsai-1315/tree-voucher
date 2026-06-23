@@ -11,6 +11,8 @@ permalink: /api-specs/
 
 - [get_current_rotation]({{ '/api-specs/get-current-rotation/' | relative_url }})
 - [get_coupon_wallet]({{ '/api-specs/get-coupon-wallet/' | relative_url }})
+- [get_coupons]({{ '/api-specs/get-coupons/' | relative_url }})
+- [get_coupon_detail]({{ '/api-specs/get-coupon-detail/' | relative_url }})
 - [get_member_settings]({{ '/api-specs/get-member-settings/' | relative_url }})
 - [update_member_selected_brands]({{ '/api-specs/update-member-selected-brands/' | relative_url }})
 - [get_member_brand_change_logs]({{ '/api-specs/get-member-brand-change-logs/' | relative_url }})

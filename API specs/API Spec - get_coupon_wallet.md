@@ -7,27 +7,23 @@ permalink: /api-specs/get-coupon-wallet/
 
 | Date | Summary |
 | ---- | ------- |
-| 2026-06-16 | 欄位去除多餘 prefix：`coupon_id` → `id`；coupon 快照欄位 `coupon_min_order_amount/redeem_points/discount_amount` → `min_order_amount/redeem_points/discount_amount`；`PROCESSING/COMPLETED` status 值同步改為 `CONSUMED/SETTLED` |
-| 2026-06-16 | Coupon 狀態改名：`processing` → `consumed`、`completed` → `settled`；更新預設排序 bucket 說明 |
-| 2026-06-15 | 每張券新增 `campaign_type`（`auto`\|`manual`）與 `discount_rate` 計算欄位 |
-| 2026-06-12 | `user_id` → `member_id`；`USER_NOT_FOUND` → `MEMBER_NOT_FOUND` |
+| 2026-06-23 | 重新設計為品牌摘要 API；原券列表功能移至 `get_coupons` |
 
 # API: get_coupon_wallet
 
 ## 功能說明
-讓樹享券平台前台端以 API Key 依 `member_id` 查詢該用戶的券夾列表，支援依 `brand_id` 與單一 `status` 篩選，供前端呈現可用券、處理中券與歷史券狀態。
+查詢用戶券夾的品牌摘要。回傳該用戶在當前 rotation 曾選過的所有品牌，以及各品牌目前可用券（`AVAILABLE`）的張數，供前端呈現品牌卡片列表（券夾首頁）。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`
 - 邊界檢查：
   - API Key 須為樹享券平台前台端專屬授權，不接受其他呼叫方的 API Key
   - `member_id` 必須存在於神坊系統中
-  - `brand_id` 若有帶入，必須存在於神坊系統中
 
 ## 使用情境
-前台端帶入 `member_id` 查詢該用戶所有券狀態的券夾列表。若前端只想看特定品牌或特定券狀態，可搭配 `brand_id`、`status` 進行篩選。
+前台端帶入 `member_id`，取得用戶目前券夾的品牌卡片摘要。前端可由此進入各品牌的券列表（`get_coupons`）。
 
-若使用者目前沒有任何券，回傳 `coupons: []`，不視為錯誤。
+若使用者在當前 rotation 尚未選擇任何品牌，回傳 `brands: []`，不視為錯誤。
 
 # Request
 HTTP method: `GET`
@@ -46,53 +42,24 @@ Content-Type: `application/json`
 | 欄位 | 類型 | 必填 | 可空 | 預設值 | 限制條件 |
 | ---- | ---- | ---- | ---- | ------ | -------- |
 | member_id | string | TRUE | FALSE | ❎ | UUID |
-| page | integer | FALSE | FALSE | 1 | > 0 |
-| limit | integer | FALSE | FALSE | 20 | > 0 |
-| brand_id | string | FALSE | FALSE | ❎ | UUID |
-| status | string | FALSE | FALSE | ❎ | 僅接受 `AVAILABLE` \| `CONSUMED` \| `SETTLED` \| `EXPIRED` |
 
 # Response
 ## Sample（JSON）
 
 ```json
 {
-  "page": 1,
-  "limit": 20,
-  "total": 3,
-  "coupons": [
+  "brands": [
     {
-      "id": "CPN_001",
-      "status": "AVAILABLE",
       "brand_id": "BRAND_FAMILYMART",
       "brand_name": "全家便利商店",
       "brand_logo": "https://cdn.example.com/logos/familymart.png",
-      "campaign_id": "CPN_CAMP_001",
-      "campaign_name": "滿100折21",
-      "campaign_type": "auto",
-      "min_order_amount": 100,
-      "redeem_points": 20,
-      "discount_amount": 21,
-      "discount_rate": 1.05,
-      "max_redemptions_per_order": 3,
-      "expired_at": "2026-10-31T23:59:59.999+08:00",
-      "created_at": "2026-10-01T09:00:00+08:00"
+      "available_coupon_count": 3
     },
     {
-      "id": "CPN_002",
-      "status": "CONSUMED",
       "brand_id": "BRAND_711",
       "brand_name": "7-ELEVEN",
       "brand_logo": "https://cdn.example.com/logos/711.png",
-      "campaign_id": "CPN_CAMP_002",
-      "campaign_name": "滿150折30",
-      "campaign_type": "manual",
-      "min_order_amount": 150,
-      "redeem_points": 25,
-      "discount_amount": 30,
-      "discount_rate": 1.2,
-      "max_redemptions_per_order": 2,
-      "expired_at": "2026-11-30T23:59:59.999+08:00",
-      "created_at": "2026-10-03T10:30:00+08:00"
+      "available_coupon_count": 0
     }
   ]
 }
@@ -102,40 +69,22 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| page | Integer | 當前頁碼，從 1 開始 |
-| limit | Integer | 每頁筆數 |
-| total | Integer | 符合條件的總筆數 |
-| coupons | Array | 該用戶符合篩選條件的券夾列表 |
+| brands | Array | 用戶在當前 rotation 曾選過的品牌列表 |
 
-### coupons
+### brands
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| id | String | 券識別碼 |
-| status | String | 券狀態：`AVAILABLE` \| `CONSUMED` \| `SETTLED` \| `EXPIRED` |
-| brand_id | String | 對應 brand 識別碼 |
-| brand_name | String | 對應 brand 名稱 |
-| brand_logo | String | 對應 brand logo 圖片 URL |
-| campaign_id | String | 該券所屬 campaign 識別碼 |
-| campaign_name | String | 該券所屬 campaign 名稱 |
-| campaign_type | String | 該券所屬 campaign 類型：`auto`（系統自動兌換）\| `manual`（用戶手動兌換） |
-| min_order_amount | Integer | 該券對應的消費門檻金額（元） |
-| redeem_points | Integer | 該券建立時所對應的點數成本 |
-| discount_amount | Integer | 該券折抵金額（元） |
-| discount_rate | Float | 每點折抵金額比率，`round(discount_amount / redeem_points, 2)`，純計算欄位 |
-| max_redemptions_per_order | Integer | 該券所屬 campaign 定義的單筆交易 active campaign 券使用張數上限 |
-| expired_at | String | 該券固定到期時間（UTC+8 ISO 8601，毫秒精度） |
-| created_at | String | 該券建立時間（UTC+8 ISO 8601） |
+| brand_id | String | 品牌識別碼 |
+| brand_name | String | 品牌名稱 |
+| brand_logo | String | 品牌 logo 圖片 URL |
+| available_coupon_count | Integer | 該品牌目前狀態為 `AVAILABLE` 的券張數 |
 
 ### 邏輯說明
-- 預設回傳該用戶所有券狀態，不只 `available` / `consumed`
-- 若帶 `status`，僅回傳該單一狀態的券
-- 若帶 `brand_id`，僅回傳該品牌底下的券
-- 預設排序先依狀態 bucket：`AVAILABLE` → `CONSUMED` → `SETTLED` → `EXPIRED`
-- 同一狀態 bucket 內依 `expired_at ASC`、`created_at ASC`、`id ASC` 排序
-- 無任何券時，回傳 `coupons: []`，不報錯
-- 本 API 不回傳訂單關聯欄位，例如 `order_id`
+- 回傳用戶在**當前 rotation** 曾選過的所有品牌，包含 `available_coupon_count = 0` 的品牌（券已全部用完或尚未發券）
+- `available_coupon_count` 只聚合 `status = AVAILABLE` 的券張數
+- 若用戶在當前 rotation 尚未選擇任何品牌，回傳 `brands: []`，不報錯
+- 排序依 `brand_name ASC`
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 1. `member_id` 不存在：`MEMBER_NOT_FOUND`
-2. `brand_id` 不存在：`BRAND_NOT_FOUND`
