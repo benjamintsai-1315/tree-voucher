@@ -220,17 +220,6 @@ erDiagram
 - 主鍵：`id`
 - 作為品牌設定、券、訂單與異動紀錄的關聯主體
 
-### member_authorization_logs
-
-- 主鍵：`id`
-- 外鍵：`member_id -> members.id`
-- 每次授權動作寫入一筆，不更新、不刪除，保留完整歷史
-- `action` enum：
-  - `AUTHORIZE`
-  - `DEAUTHORIZE`
-- `terms_version`：本次動作對應的條款版本
-- `created_at`：動作發生時間（UTC+8）
-
 ### brands
 
 - 主鍵：`id`
@@ -257,7 +246,7 @@ erDiagram
   - `brand_id -> brands.id`
   - `rotation_id -> rotations.id`
 - 建議唯一約束：`(member_id, brand_id)`
-- `rotation_key` 於用戶選擇品牌時寫入當下 active rotation，用於 lazy cleanup 判斷是否屬於舊檔期
+- `rotation_id` 於用戶選擇品牌時寫入當下 active rotation 的 id，用於 lazy cleanup 判斷是否屬於舊檔期
 - 表示用戶目前保留的已選品牌集合
 
 ### member_brand_change_logs

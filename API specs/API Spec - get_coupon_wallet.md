@@ -7,6 +7,7 @@ permalink: /api-specs/get-coupon-wallet/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-06-16 | 欄位去除多餘 prefix：`coupon_id` → `id`；coupon 快照欄位 `coupon_min_order_amount/redeem_points/discount_amount` → `min_order_amount/redeem_points/discount_amount`；`PROCESSING/COMPLETED` status 值同步改為 `CONSUMED/SETTLED` |
 | 2026-06-16 | Coupon 狀態改名：`processing` → `consumed`、`completed` → `settled`；更新預設排序 bucket 說明 |
 | 2026-06-15 | 每張券新增 `campaign_type`（`auto`\|`manual`）與 `discount_rate` 計算欄位 |
 | 2026-06-12 | `user_id` → `member_id`；`USER_NOT_FOUND` → `MEMBER_NOT_FOUND` |
@@ -48,7 +49,7 @@ Content-Type: `application/json`
 | page | integer | FALSE | FALSE | 1 | > 0 |
 | limit | integer | FALSE | FALSE | 20 | > 0 |
 | brand_id | string | FALSE | FALSE | ❎ | UUID |
-| status | string | FALSE | FALSE | ❎ | 僅接受 `AVAILABLE` \| `PROCESSING` \| `COMPLETED` \| `EXPIRED` |
+| status | string | FALSE | FALSE | ❎ | 僅接受 `AVAILABLE` \| `CONSUMED` \| `SETTLED` \| `EXPIRED` |
 
 # Response
 ## Sample（JSON）
@@ -60,7 +61,7 @@ Content-Type: `application/json`
   "total": 3,
   "coupons": [
     {
-      "coupon_id": "CPN_001",
+      "id": "CPN_001",
       "status": "AVAILABLE",
       "brand_id": "BRAND_FAMILYMART",
       "brand_name": "全家便利商店",
@@ -68,26 +69,26 @@ Content-Type: `application/json`
       "campaign_id": "CPN_CAMP_001",
       "campaign_name": "滿100折21",
       "campaign_type": "auto",
-      "coupon_min_order_amount": 100,
-      "coupon_redeem_points": 20,
-      "coupon_discount_amount": 21,
+      "min_order_amount": 100,
+      "redeem_points": 20,
+      "discount_amount": 21,
       "discount_rate": 1.05,
       "max_redemptions_per_order": 3,
       "expired_at": "2026-10-31T23:59:59.999+08:00",
       "created_at": "2026-10-01T09:00:00+08:00"
     },
     {
-      "coupon_id": "CPN_002",
-      "status": "PROCESSING",
+      "id": "CPN_002",
+      "status": "CONSUMED",
       "brand_id": "BRAND_711",
       "brand_name": "7-ELEVEN",
       "brand_logo": "https://cdn.example.com/logos/711.png",
       "campaign_id": "CPN_CAMP_002",
       "campaign_name": "滿150折30",
       "campaign_type": "manual",
-      "coupon_min_order_amount": 150,
-      "coupon_redeem_points": 25,
-      "coupon_discount_amount": 30,
+      "min_order_amount": 150,
+      "redeem_points": 25,
+      "discount_amount": 30,
       "discount_rate": 1.2,
       "max_redemptions_per_order": 2,
       "expired_at": "2026-11-30T23:59:59.999+08:00",
@@ -110,18 +111,18 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| coupon_id | String | 券識別碼 |
-| status | String | 券狀態：`AVAILABLE` \| `PROCESSING` \| `COMPLETED` \| `EXPIRED` |
+| id | String | 券識別碼 |
+| status | String | 券狀態：`AVAILABLE` \| `CONSUMED` \| `SETTLED` \| `EXPIRED` |
 | brand_id | String | 對應 brand 識別碼 |
 | brand_name | String | 對應 brand 名稱 |
 | brand_logo | String | 對應 brand logo 圖片 URL |
 | campaign_id | String | 該券所屬 campaign 識別碼 |
 | campaign_name | String | 該券所屬 campaign 名稱 |
 | campaign_type | String | 該券所屬 campaign 類型：`auto`（系統自動兌換）\| `manual`（用戶手動兌換） |
-| coupon_min_order_amount | Integer | 該券對應的消費門檻金額（元） |
-| coupon_redeem_points | Integer | 該券建立時所對應的點數成本 |
-| coupon_discount_amount | Integer | 該券折抵金額（元） |
-| discount_rate | Float | 每點折抵金額比率，`round(coupon_discount_amount / coupon_redeem_points, 2)`，純計算欄位 |
+| min_order_amount | Integer | 該券對應的消費門檻金額（元） |
+| redeem_points | Integer | 該券建立時所對應的點數成本 |
+| discount_amount | Integer | 該券折抵金額（元） |
+| discount_rate | Float | 每點折抵金額比率，`round(discount_amount / redeem_points, 2)`，純計算欄位 |
 | max_redemptions_per_order | Integer | 該券所屬 campaign 定義的單筆交易 active campaign 券使用張數上限 |
 | expired_at | String | 該券固定到期時間（UTC+8 ISO 8601，毫秒精度） |
 | created_at | String | 該券建立時間（UTC+8 ISO 8601） |
@@ -131,7 +132,7 @@ Content-Type: `application/json`
 - 若帶 `status`，僅回傳該單一狀態的券
 - 若帶 `brand_id`，僅回傳該品牌底下的券
 - 預設排序先依狀態 bucket：`AVAILABLE` → `CONSUMED` → `SETTLED` → `EXPIRED`
-- 同一狀態 bucket 內依 `expired_at ASC`、`created_at ASC`、`coupon_id ASC` 排序
+- 同一狀態 bucket 內依 `expired_at ASC`、`created_at ASC`、`id ASC` 排序
 - 無任何券時，回傳 `coupons: []`，不報錯
 - 本 API 不回傳訂單關聯欄位，例如 `order_id`
 

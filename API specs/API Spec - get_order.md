@@ -7,6 +7,7 @@ permalink: /api-specs/get-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-06-16 | `coupons_used[]` 欄位去除多餘 prefix：`coupon_id` → `id`；`coupon_min_order_amount/redeem_points/discount_amount` → `min_order_amount/redeem_points/discount_amount` |
 | 2026-06-15 | `coupons_used[]` 新增 `discount_rate` 計算欄位 |
 | 2026-06-15 | 拆分為前台端（`/coupon/get_order`）與發卡主機端（`/bank/get_order`）兩支獨立 API；前台端加入 `member_id` 參數防呆，回傳完整訂單與事件歷程；發卡主機端請見 [API Spec - bank_get_order](API Spec - bank_get_order.md) |
 | 2026-06-15 | 路徑依呼叫端拆分（原共用同一份 spec） |
@@ -62,21 +63,21 @@ Content-Type: `application/json`
   "finalized_at": "2026-10-03T10:00:00+08:00",
   "coupons_used": [
     {
-      "coupon_id": "CPN_001",
+      "id": "CPN_001",
       "campaign_id": "old_campaign",
-      "coupon_min_order_amount": 400,
-      "coupon_redeem_points": 100,
-      "coupon_discount_amount": 120,
+      "min_order_amount": 400,
+      "redeem_points": 100,
+      "discount_amount": 120,
       "discount_rate": 1.2,
       "expired_at": "2026-10-31T23:59:59.999+08:00",
       "type": "EXISTING"
     },
     {
-      "coupon_id": "CPN_002",
+      "id": "CPN_002",
       "campaign_id": "new_campaign",
-      "coupon_min_order_amount": 100,
-      "coupon_redeem_points": 20,
-      "coupon_discount_amount": 21,
+      "min_order_amount": 100,
+      "redeem_points": 20,
+      "discount_amount": 21,
       "discount_rate": 1.05,
       "expired_at": "2026-11-30T23:59:59.999+08:00",
       "type": "NEWLY_ISSUED"
@@ -117,12 +118,12 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| coupon_id | String | 券識別碼 |
+| id | String | 券識別碼 |
 | campaign_id | String | 該券所屬 campaign 識別碼 |
-| coupon_min_order_amount | Integer | 該券對應的消費門檻金額（元） |
-| coupon_redeem_points | Integer | 該券建立時所對應的點數成本 |
-| coupon_discount_amount | Integer | 該券的折抵金額（元） |
-| discount_rate | Float | 每點折抵金額比率，`round(coupon_discount_amount / coupon_redeem_points, 2)`，純計算欄位 |
+| min_order_amount | Integer | 該券對應的消費門檻金額（元） |
+| redeem_points | Integer | 該券建立時所對應的點數成本 |
+| discount_amount | Integer | 該券的折抵金額（元） |
+| discount_rate | Float | 每點折抵金額比率，`round(discount_amount / redeem_points, 2)`，純計算欄位 |
 | expired_at | String | 該券固定到期時間（UTC+8 ISO 8601，毫秒精度） |
 | type | String | `EXISTING`：原券夾既有券；`NEWLY_ISSUED`：本次即時兌換產生 |
 
@@ -134,7 +135,7 @@ Content-Type: `application/json`
 | created_at | String | 事件發生時間（UTC+8 ISO 8601） |
 
 ### 邏輯說明
-- `discount_amount` = Σ `coupons_used[].coupon_discount_amount`
+- `discount_amount` = Σ `coupons_used[].discount_amount`
 - `coupons_used[]` 對應 DB layer 的 `order_coupon_logs`
 - `actions` 對應 DB layer 的 `order_logs`
 - `actions` 最少一筆（`CREATED`），finalize_order 執行後新增第二筆（`COMPLETED` 或 `CANCELLED`）

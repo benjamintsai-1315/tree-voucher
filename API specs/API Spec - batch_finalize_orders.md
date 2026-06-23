@@ -9,13 +9,14 @@ permalink: /api-specs/batch-finalize-orders/
 | ---- | ------- |
 | 2026-06-16 | 由 `finalize_order` 更名為 `batch_finalize_orders`；輸入改為 CSV 檔案上傳（`multipart/form-data`）；冪等設計改為相同 `request_id` 直接回 `BATCH_REQUEST_ALREADY_EXISTS` |
 | 2026-06-16 | Coupon 狀態改名：`processing` → `consumed`、`completed` → `settled` |
-| 2026-06-16 | 改為批次接收、非同步處理；response 改為 `202 Accepted` |
+| 2026-06-16 | 改為批次接收、非同步處理；response 改為 `202 Accepted`（後改為 `200 OK`） |
+| 2026-06-22 | Response HTTP status 改為 `200 OK` |
 | 2026-06-15 | Endpoint 改為 `/bank/finalize_order`（原 `/coupon/finalize_order`），依呼叫端分類路徑 |
 
 # API: batch_finalize_orders
 
 ## 功能說明
-讓發卡主機在商戶請款完成或申請退刷後，以 CSV 檔案批次上傳訂單結案通知。神坊收到請求後立即回應 `202 Accepted`，實際狀態轉換以非同步方式執行。發卡主機可透過 `get_finalize_batch_status` 查詢各筆訂單的處理進度。
+讓發卡主機在商戶請款完成或申請退刷後，以 CSV 檔案批次上傳訂單結案通知。神坊收到請求後立即回應 `200 OK`，實際狀態轉換以非同步方式執行。發卡主機可透過 `get_finalize_batch_status` 查詢各筆訂單的處理進度。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{issuer_api_key}}`
@@ -73,7 +74,7 @@ ORD_20261001_00002,CANCELLED
 > **備注**：若發卡主機端有無法製檔的情境，可另行討論改以 `order_id` 陣列（JSON）方式上傳，規格待確認後另補。
 
 # Response
-HTTP Status: `202 Accepted`
+HTTP Status: `200 OK`
 
 ## Response Sample（JSON）
 
@@ -94,7 +95,7 @@ HTTP Status: `202 Accepted`
 | submitted_at | Datetime | 批次接收時間（UTC+8 ISO 8601） |
 
 ### 邏輯說明
-- 神坊收到請求後，建立 `finalize_batch_requests` 記錄，並逐筆建立 `finalize_batch_items`（初始狀態 `PENDING`），立即回傳 `202`
+- 神坊收到請求後，建立 `finalize_batch_requests` 記錄，並逐筆建立 `finalize_batch_items`（初始狀態 `PENDING`），立即回傳 `200`
 - 非同步 worker 處理各筆 item；每筆沿用原本的狀態轉換邏輯：
   - `action = COMPLETED`：所有對應券 `consumed → settled`，觸發代償流程
   - `action = CANCELLED`：`consumed` 券依是否到期轉為 `available` 或 `expired`，點數不返還

@@ -35,7 +35,7 @@ Coupon 本質作為本體，不採取「刷卡代金」概念作為本體
 每一 brand 底下同一時間只會有一個「自動兌換」的 campaign
 - 當用戶有同意「在此品牌刷卡時，自動以點數根據當前 campaign 兌換券」時
 - 在對應品牌刷卡發生時，清算可折抵多少刷卡額
-- campaign 是否為 active，依當前時間是否落在其 `start_at` 與 `end_at` 之間判斷
+- campaign 是否為 active，依其 `rotation_id` 對應的 rotation 是否為當前 active rotation（`start_time <= now() <= end_time`）判斷
 
 ## 計算邏輯與概念
 1. 已存在的 coupon 採 first-in-first-out -> 先到期先用
@@ -120,9 +120,8 @@ Response discount_amount = 141
 用戶選擇偏好 brand（特店） 例如：全家 / 7-11 or 康是美 / 屈臣氏 or 大全聯 / 頂好...etc
 需檢查下述邏輯：
 1. 用戶是否已完成點數授權，且神坊系統可取得或驗證該授權結果
-2. 用戶是否可以更換（商務規定上每月一次，應設定為環境參數）
-3. 用戶選擇的品牌數量（商務規定上每人最多 3 個，應設定為環境參數）
-4. 選擇的品牌是否有 active campaign 可選
+2. 用戶選擇的品牌數量（不超過當前 active rotation 的 `max_selectable_brand_count`）
+3. 選擇的品牌是否有 active campaign 可選
 
 此流程由樹享券平台前台端串接使用者設定 API。
 
@@ -149,23 +148,22 @@ Response discount_amount = 141
 調閱用戶過往 1 年內的異動紀錄，包含異動時間與異動行為（首次啟用、暫停用券、重啟用券、更換品牌）
 其中更換品牌需要包含「更換前有哪些」vs「更換後是哪些」
 
-底層資料模型採 `brand_change_logs` 單表事件模型：
-- 同一 `request_id` 代表同一次異動批次
-- 初次選牌時可在同批寫入多筆 `INITIAL_SELECTION`
-- 一般品牌更換時可在同批寫入多筆 `ADD_BRAND` / `REMOVE_BRAND`
-- `PAUSE` / `RESUME` 為單筆事件，且 `brand_id = null`
-- 系統季度批次清空時，寫入單筆 `SYSTEM_CLEAR_BRANDS`
+底層資料模型採 `member_brand_change_logs` request 粒度事件模型：
+- 每次操作寫入一筆紀錄，`request_id` 唯一標識同一次操作
+- `type` enum：`initial_selection`（首次選牌）、`change_brand`（品牌更換）、`pause`、`resume`、`system_clear_brands`
+- `change_brand` 時，`added_brand_ids` / `removed_brand_ids` 於寫入時預先計算存入
+- `PAUSE` / `RESUME` 不關聯特定品牌
 
 此流程由樹享券平台前台端串接異動紀錄 API。
 
-## Flow 4-1: 季度批次清空已選品牌
-初期活動設計可能會在每一季度開始前，由系統全量清空用戶所選品牌。
+## Flow 4-1: 換檔後 Lazy Cleanup 自動清空已選品牌
+系統採用「用戶進入時觸發」的 lazy cleanup 機制，在用戶呼叫相關 API 時自動清除舊檔期選擇，不需批次排程。
 
 規則如下：
-1. 清空所有目標用戶的 selected brands
-2. `auto_redeem_enabled` 保留原值，不強制改為 `false`
-3. 為每位受影響用戶寫入 `SYSTEM_CLEAR_BRANDS`
-4. 該事件時間會成為 `get_member_selected_brands.last_changed_at`
+1. 觸發點：`get_member_settings`、`update_member_selected_brands`、`create_order`
+2. 比對 `member_selected_brands.rotation_id` 與當前 active rotation 的 `id`，不符則視為舊檔期
+3. 刪除舊檔期選擇，寫入一筆 `system_clear_brands` 事件，`created_at` 設為舊 rotation 的 `end_time`
+4. `auto_redeem_enabled` 保留原值不異動
 
 ## Flow 5: 券夾
 調閱用戶券夾列表，預設回全部券狀態，並可依品牌或券狀態篩選。
@@ -193,4 +191,4 @@ create_order 時，發卡主機需額外帶入用戶本次刷卡卡號後四碼�
 
 訂單底層資料模型包含：
 - `order_logs`：保存訂單建立與最終化歷程
-- `order_coupon_items`：保存訂單用券明細快照
+- `order_coupon_logs`：保存訂單用券明細（type: issued, consumed, expired, updated）
