@@ -47,8 +47,8 @@
 
 **折抵券狀態機**
 ```
-AVAILABLE → PROCESSING → COMPLETED
-                       → AVAILABLE / EXPIRED (訂單取消時)
+AVAILABLE → CONSUMED → SETTLED
+                     → AVAILABLE / EXPIRED (訂單取消時)
 ```
 
 **點數扣除不退款原則**
@@ -65,8 +65,8 @@ AVAILABLE → PROCESSING → COMPLETED
 | `get_current_rotation` | GET | 取得當前檔期設定及有效活動品牌列表 |
 | `member_authorization` | POST | 會員授權點數使用（雙重授權機制） |
 | `get_member_settings` | GET | 取得會員完整設定狀態（品牌選擇、自動兌換啟用狀態，觸發懶惰清除） |
-| `update_member_selected_brands` | POST | 更新品牌選擇 / 暫停、恢復自動折抵 |
-| `get_member_brand_change_logs` | GET | 查詢品牌異動紀錄（一年內） |
+| `update_member_settings` | PATCH | 更新品牌選擇 / 暫停、恢復自動折抵 |
+| `get_member_settings_change_logs` | GET | 查詢設定異動紀錄（一年內） |
 | `get_coupon_wallet` | GET | 查詢折抵券錢包 |
 | `get_member_orders` | GET | 查詢消費折抵紀錄 |
 | `get_order` | GET | 查詢單筆訂單詳情 |
@@ -76,7 +76,8 @@ AVAILABLE → PROCESSING → COMPLETED
 | API | Method | 說明 |
 |-----|--------|------|
 | `create_order` | POST | 建立折抵訂單（卡片授權後呼叫） |
-| `finalize_order` | POST | 完成或取消訂單（結帳後呼叫） |
+| `batch_finalize_orders` | POST | 批次完成或取消訂單（非同步，202 回應） |
+| `get_finalize_batch_status` | GET | 查詢批次 finalize 執行進度 |
 | `bank_get_order` | GET | 查詢訂單狀態與折抵金額（僅回傳銀行端必要欄位） |
 
 ---
@@ -93,7 +94,7 @@ AVAILABLE → PROCESSING → COMPLETED
 | `coupons` | 折抵券（含狀態、金額、到期日、campaign 規則快照） |
 | `orders` | 折抵訂單 |
 | `order_coupon_logs` | 訂單與折抵券的關聯日誌 |
-| `member_brand_change_logs` | 品牌異動事件日誌 |
+| `member_settings_change_logs` | 設定異動事件日誌 |
 | `member_authorization_logs` | 授權操作稽核紀錄 |
 
 完整 ER Diagram 請見 [database-schema.md](database-schema.md)。
