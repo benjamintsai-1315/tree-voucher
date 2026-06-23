@@ -67,7 +67,9 @@ AVAILABLE → CONSUMED → SETTLED
 | `get_member_settings` | GET | 取得會員完整設定狀態（品牌選擇、自動兌換啟用狀態，觸發懶惰清除） |
 | `update_member_settings` | PATCH | 更新品牌選擇 / 暫停、恢復自動折抵 |
 | `get_member_settings_change_logs` | GET | 查詢設定異動紀錄（一年內） |
-| `get_coupon_wallet` | GET | 查詢折抵券錢包 |
+| `get_coupon_wallet` | GET | 查詢券夾品牌摘要（各品牌可用券張數） |
+| `get_coupons` | GET | 查詢特定品牌下的券列表（支援狀態篩選） |
+| `get_coupon_detail` | GET | 查詢單張券詳情（狀態、效期、兌換點數） |
 | `get_member_orders` | GET | 查詢消費折抵紀錄 |
 | `get_order` | GET | 查詢單筆訂單詳情 |
 

@@ -7,19 +7,20 @@ permalink: /api-specs/get-finalize-batch-status/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-06-23 | `items` 改名為 `orders`；`orders` 欄位說明獨立為子表格；移除 `order_` prefix |
 | 2026-06-16 | 新增 API，供發卡主機查詢批次 finalize 請求的執行進度 |
 
 # API: get_finalize_batch_status
 
 ## 功能說明
-發卡主機呼叫 `finalize_order` 後取得 `batch_request_id`，可透過此 API 查詢各筆訂單的非同步處理進度。
+發卡主機呼叫 `finalize_order` 後取得 `request_id`，可透過此 API 查詢各筆訂單的非同步處理進度。
 
 
 ## 權限需求
 - 認證：Authorization: ApiKey {{發卡主機_api_key}}
 - 邊界檢查：
   - 此 API Key 須為發卡主機專屬授權
-  - `batch_request_id` 必須存在於神坊系統中
+  - `request_id` 必須存在於神坊系統中
 
 
 # Request
@@ -36,7 +37,7 @@ Endpoint: `/bank/get_finalize_batch_status`
 
 | 欄位 | 類型 | 必填 | 說明 |
 | ---- | ---- | ---- | ---- |
-| batch_request_id | string | TRUE | 批次請求識別碼（由發卡主機提供） |
+| request_id | string | TRUE | 批次請求識別碼（由發卡主機提供） |
 
 
 # Response
@@ -44,7 +45,7 @@ Endpoint: `/bank/get_finalize_batch_status`
 
 ```json
 {
-  "batch_request_id": "BREQ_20261003_00001",
+  "request_id": "BREQ_20261003_00001",
   "status": "PROCESSING",
   "submitted_at": "2026-10-03T10:00:00+08:00",
   "completed_at": null,
@@ -52,16 +53,16 @@ Endpoint: `/bank/get_finalize_batch_status`
   "pending_count": 1,
   "success_count": 1,
   "failed_count": 0,
-  "items": [
+  "orders": [
     {
-      "order_id": "ORD_20261001_00001",
+      "id": "ORD_20261001_00001",
       "action": "COMPLETED",
       "status": "SUCCESS",
       "finalized_at": "2026-10-03T10:00:05+08:00",
       "error_code": null
     },
     {
-      "order_id": "ORD_20261001_00002",
+      "id": "ORD_20261001_00002",
       "action": "CANCELLED",
       "status": "PENDING",
       "finalized_at": null,
@@ -75,7 +76,7 @@ Endpoint: `/bank/get_finalize_batch_status`
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| batch_request_id | String | 批次識別碼 |
+| request_id | String | 批次識別碼 |
 | status | String | 批次整體狀態，見下表 |
 | submitted_at | Datetime | 批次接收時間（UTC+8 ISO 8601） |
 | completed_at | Datetime \| null | 所有 item 處理完成時間（UTC+8 ISO 8601）；尚未完成時為 `null` |
@@ -83,12 +84,17 @@ Endpoint: `/bank/get_finalize_batch_status`
 | pending_count | Integer | 尚未處理的筆數 |
 | success_count | Integer | 成功處理的筆數 |
 | failed_count | Integer | 處理失敗的筆數 |
-| items | Array | 各筆訂單的處理明細 |
-| items[].order_id | String | 訂單識別碼 |
-| items[].action | String | `COMPLETED` \| `CANCELLED` |
-| items[].status | String | 單筆處理狀態，見下表 |
-| items[].finalized_at | Datetime \| null | 單筆處理成功時間（UTC+8 ISO 8601）；尚未完成或失敗時為 `null` |
-| items[].error_code | String \| null | 失敗原因代碼；成功或待處理時為 `null` |
+| orders | Array | 各筆訂單的處理明細 |
+
+### orders
+
+| 欄位 | 類型 | 說明 |
+| ---- | ---- | ---- |
+| id | String | 訂單識別碼 |
+| action | String | `COMPLETED` \| `CANCELLED` |
+| status | String | 單筆處理狀態，見下表 |
+| finalized_at | Datetime \| null | 單筆處理成功時間（UTC+8 ISO 8601）；尚未完成或失敗時為 `null` |
+| error_code | String \| null | 失敗原因代碼；成功或待處理時為 `null` |
 
 ### Batch Status Enum
 

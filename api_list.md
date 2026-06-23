@@ -32,7 +32,9 @@ permalink: /api-list/
 | `get_member_settings` | `GET` | `/coupon/get_member_settings` | 取得使用者目前的完整設定狀態，包含 `auto_redeem_enabled`、`max_selectable_brand_count`、`last_changed_at`，以及目前已選擇、且當前仍具備 active campaign 的品牌。 | 已有 spec |
 | `update_member_settings` | `PATCH` | `/coupon/update_member_settings` | 對標 `get_member_settings`，統一處理使用者設定異動，包含首次選品牌、更換品牌、暫停用券、重啟用券。成功後回傳與 `get_member_settings` 格式一致的最新狀態。 | 已有 spec |
 | `get_member_brand_change_logs` | `GET` | `/coupon/get_member_brand_change_logs` | 查詢使用者過去 1 年內的品牌選擇與自動兌換異動紀錄。 | 已有 spec |
-| `get_coupon_wallet` | `GET` | `/coupon/get_coupon_wallet` | 查詢使用者券夾列表，預設回全部券狀態，並支援 `brand_id`、`status` 篩選。 | 已有 spec |
+| `get_coupon_wallet` | `GET` | `/coupon/get_coupon_wallet` | 查詢使用者券夾品牌摘要，回傳當前 rotation 曾選過的所有品牌及各品牌可用券張數（`AVAILABLE` count）。 | 已有 spec |
+| `get_coupons` | `GET` | `/coupon/get_coupons` | 查詢使用者券列表，預設回全部券狀態，並支援 `brand_id`、`status` 篩選。（原 `get_coupon_wallet`） | 已有 spec |
+| `get_coupon_detail` | `GET` | `/coupon/get_coupon_detail` | 查詢單張券詳情，包含狀態、效期、折抵規則及兌換時所花費的點數。 | 已有 spec |
 | `get_member_orders` | `GET` | `/coupon/get_member_orders` | 查詢使用者歷史折抵訂單列表，供用戶瀏覽折抵紀錄。 | 已有 spec |
 | `get_order` | `GET` | `/coupon/get_order` | 查詢單筆訂單完整資訊，包含折抵明細與事件歷程。需帶 `member_id` 防呆。 | 已有 spec |
 | `preview_discount` | `POST` | `/coupon/preview_discount` | 在未建立訂單前，試算指定品牌與刷卡金額可能折抵多少。若前端不需要即時試算，可不做。 | 可選 |
