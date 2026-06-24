@@ -194,7 +194,7 @@ erDiagram
     }
 
     finalize_batch_requests {
-        string(64) id PK "由發卡主機提供的 batch_request_id"
+        string(64) id PK "由發卡主機提供的 request_id"
         integer total_count
         string(16) status "PENDING, PROCESSING, COMPLETED"
         datetime submitted_at "批次接收時間（UTC+8）"
@@ -205,7 +205,7 @@ erDiagram
 
     finalize_batch_items {
         string(26) id PK
-        string(64) batch_request_id FK
+        string(64) request_id FK
         string(64) order_id FK
         string(16) action "COMPLETED, CANCELLED"
         string(16) status "PENDING, SUCCESS, FAILED"
@@ -321,7 +321,7 @@ erDiagram
 
 ### finalize_batch_requests
 
-- 主鍵：`id`（即發卡主機提供的 `batch_request_id`，最多 64 字）
+- 主鍵：`id`（即發卡主機提供的 `request_id`，最多 64 字）
 - `status` enum：
   - `PENDING`：批次建立，尚未處理任何 item
   - `PROCESSING`：至少一筆 item 已處理
@@ -332,7 +332,7 @@ erDiagram
 
 - 主鍵：`id`（ULID）
 - 外鍵：
-  - `batch_request_id -> finalize_batch_requests.id`
+  - `request_id -> finalize_batch_requests.id`
   - `order_id -> orders.order_id`
 - `action` enum：`COMPLETED`、`CANCELLED`
 - `status` enum：

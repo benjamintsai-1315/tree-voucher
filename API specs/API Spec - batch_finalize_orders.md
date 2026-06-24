@@ -7,7 +7,7 @@ permalink: /api-specs/batch-finalize-orders/
 
 | Date | Summary |
 | ---- | ------- |
-| 2026-06-24 | 改為 JSON body（`application/json`）；`request_id` 改名為 `batch_request_id`；新增單批次上限 1000 筆（超過回 `BATCH_SIZE_EXCEEDED`）；移除 CSV 上傳設計；建議銀行端每批 500–1000 筆分批打入 |
+| 2026-06-24 | 改為 JSON body（`application/json`）；`request_id` 改名為 `request_id`；新增單批次上限 1000 筆（超過回 `BATCH_SIZE_EXCEEDED`）；移除 CSV 上傳設計；建議銀行端每批 500–1000 筆分批打入 |
 | 2026-06-22 | Response HTTP status 改為 `200 OK` |
 | 2026-06-16 | 由 `finalize_order` 更名為 `batch_finalize_orders`；輸入改為 CSV 檔案上傳（`multipart/form-data`）；冪等設計改為相同 `request_id` 直接回 `BATCH_REQUEST_ALREADY_EXISTS` |
 | 2026-06-16 | Coupon 狀態改名：`processing` → `consumed`、`completed` → `settled` |
@@ -37,12 +37,12 @@ permalink: /api-specs/batch-finalize-orders/
 - 點數不返還；退回的券成為後續可用的舊券
 
 ### 冪等設計
-- `batch_request_id` 由發卡主機自行產生並帶入，用於識別批次請求
-- 若相同 `batch_request_id` 再次呼叫，神坊直接回傳原批次接收資訊，不重複建立或重跑
+- `request_id` 由發卡主機自行產生並帶入，用於識別批次請求
+- 若相同 `request_id` 再次呼叫，神坊直接回傳原批次接收資訊，不重複建立或重跑
 
 ### 分批建議
 - 單次請求上限為 **1000 筆**，超過回 `BATCH_SIZE_EXCEEDED`
-- 建議發卡主機資訊系統將當日訂單每 **500–1000 筆切一批**，各自帶不同 `batch_request_id` 連續打入
+- 建議發卡主機資訊系統將當日訂單每 **500–1000 筆切一批**，各自帶不同 `request_id` 連續打入
 - 每批收到 `200 OK` 即可繼續下一批，不需等待非同步處理完成
 
 # Request
@@ -61,7 +61,7 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 必填 | 說明 |
 | ---- | ---- | ---- | ---- |
-| batch_request_id | string | TRUE | 最多 64 字；由發卡主機自行產生，用於冪等識別；建議格式：`BATCH_YYYYMMDD_序號` |
+| request_id | string | TRUE | 最多 64 字；由發卡主機自行產生，用於冪等識別；建議格式：`BATCH_YYYYMMDD_序號` |
 | orders | array | TRUE | 訂單列表，最多 1000 筆 |
 
 ### orders 陣列欄位
@@ -75,7 +75,7 @@ Content-Type: `application/json`
 
 ```json
 {
-  "batch_request_id": "BATCH_20261003_001",
+  "request_id": "BATCH_20261003_001",
   "orders": [
     { "order_id": "ORD_20261001_00001", "action": "COMPLETED" },
     { "order_id": "ORD_20261001_00002", "action": "CANCELLED" }
@@ -90,7 +90,7 @@ HTTP Status: `200 OK`
 
 ```json
 {
-  "batch_request_id": "BATCH_20261003_001",
+  "request_id": "BATCH_20261003_001",
   "accepted_count": 2,
   "submitted_at": "2026-10-03T10:00:00+08:00"
 }
@@ -100,7 +100,7 @@ HTTP Status: `200 OK`
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| batch_request_id | String | 發卡主機提供的批次識別碼，原樣回傳 |
+| request_id | String | 發卡主機提供的批次識別碼，原樣回傳 |
 | accepted_count | Integer | 本批次接收的訂單筆數 |
 | submitted_at | Datetime | 批次接收時間（UTC+8 ISO 8601） |
 
@@ -112,8 +112,8 @@ HTTP Status: `200 OK`
 - 單筆驗證失敗（`ORDER_NOT_FOUND`、`ORDER_ALREADY_FINALIZED`）不中斷整批次，錯誤記錄於該 item 的 `error_code`
 
 ## 400 錯誤回傳（request-level）
-1. `batch_request_id` 未提供：`BATCH_REQUEST_ID_REQUIRED`
+1. `request_id` 未提供：`BATCH_REQUEST_ID_REQUIRED`
 2. `orders` 未提供或為空陣列：`ORDERS_REQUIRED`
 3. `orders` 超過 1000 筆：`BATCH_SIZE_EXCEEDED`
 4. `orders` 內任一筆 `action` 值不合法：`INVALID_ACTION`
-5. 相同 `batch_request_id` 已存在：`BATCH_REQUEST_ALREADY_EXISTS`
+5. 相同 `request_id` 已存在：`BATCH_REQUEST_ALREADY_EXISTS`
