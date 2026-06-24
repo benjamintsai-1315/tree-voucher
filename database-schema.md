@@ -38,7 +38,6 @@ erDiagram
     members {
         string member_id PK
         string auth_status
-        string auth_terms_version
         datetime auth_updated_at
         datetime created_at
         datetime updated_at
@@ -48,7 +47,6 @@ erDiagram
         string log_id PK
         string member_id FK
         string action
-        string terms_version
         datetime occurred_at
         datetime created_at
     }
@@ -174,7 +172,6 @@ erDiagram
   - `AUTHORIZED`
   - `DEAUTHORIZED`
   - `null`（用戶建立後尚未完成任何授權動作）
-- `auth_terms_version`：最新一次授權動作對應的條款版本
 - `auth_updated_at`：最新一次授權狀態變更時間
 - `create_order` 與 `update_member_selected_brands` 應以 `auth_status = AUTHORIZED` 作為前置檢查
 
@@ -186,7 +183,6 @@ erDiagram
 - `action` enum：
   - `AUTHORIZE`
   - `DEAUTHORIZE`
-- `terms_version`：本次動作對應的條款版本
 - `occurred_at`：動作發生時間（UTC+8）
 
 ### brands
