@@ -8,6 +8,7 @@ permalink: /api-specs/get-member-settings/
 | Date | Summary |
 | --- | --- |
 | 2026-06-12 | 由 `get_user_selected_brands` 更名；`user_selected_brands` → `member_selected_brands`；`USER_NOT_FOUND` → `MEMBER_NOT_FOUND`；endpoint 改為 `/coupon/get_member_selected_brands` |
+| 2026-06-24 | `selected_brand_ids` 篩選條件明確為具備 active `auto` campaign 的品牌（手動換券不影響品牌選擇狀態） |
 | 2026-06-15 | `active_campaign` 新增 `discount_rate` 計算欄位；此 API 僅回傳 `type = auto` 的 campaign |
 | 2026-06-16 | 由 `get_member_selected_brands` 更名為 `get_member_settings`；endpoint 改為 `/coupon/get_member_settings`，涵蓋暫停／啟用狀態 |
 | 2026-06-16 | 簡化 response：移除完整品牌物件，改為只回傳 `selected_brand_ids`（仍有 active auto campaign 的已選品牌 id 清單）；移除 `brands[]` 子表格與舊版邏輯說明 |
