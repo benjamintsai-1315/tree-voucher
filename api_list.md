@@ -28,7 +28,8 @@ permalink: /api-list/
 | API | Method | Endpoint | 用途 | 狀態 |
 | ---- | ---- | ---- | ---- | ---- |
 | `get_current_rotation` | `GET` | `/coupon/get_current_rotation` | 取得當前 active rotation 的設定（活動期間、品牌選擇上限、顯示用說明參數），及本檔期所有具備 active campaign 的品牌清單與 campaign 規則。 | 已有 spec |
-| `member_authorization` | `POST` | `/coupon/member_authorization` | 用戶在 CR 前台發起授權或解除授權。樹享券平台收到請求後主動呼叫點數系統 API；兩邊皆成功後更新授權狀態並寫入異動 log。 | 已有 spec |
+| `member_authorize` | `POST` | `/coupon/member_authorize` | 用戶在 CR 前台同意啟用樹享券服務。神坊呼叫點數系統 API，成功後更新授權狀態並寫入 log。 | 已有 spec |
+| `member_unauthorize` | `POST` | `/coupon/member_unauthorize` | 用戶在 CR 前台主動解除服務。神坊更新授權狀態並寫入 log；現有 coupon 保留但不可用。 | 已有 spec |
 | `get_member_settings` | `GET` | `/coupon/get_member_settings` | 取得使用者目前的完整設定狀態，包含 `auto_redeem_enabled`、`max_selectable_brand_count`、`last_changed_at`，以及目前已選擇、且當前仍具備 active campaign 的品牌。 | 已有 spec |
 | `update_member_settings` | `PATCH` | `/coupon/update_member_settings` | 對標 `get_member_settings`，統一處理使用者設定異動，包含首次選品牌、更換品牌、暫停用券、重啟用券。成功後回傳與 `get_member_settings` 格式一致的最新狀態。 | 已有 spec |
 | `get_member_brand_change_logs` | `GET` | `/coupon/get_member_brand_change_logs` | 查詢使用者過去 1 年內的品牌選擇與自動兌換異動紀錄。 | 已有 spec |
@@ -72,6 +73,7 @@ permalink: /api-list/
 
 | API | Method | Endpoint | 用途 | 狀態 |
 | ---- | ---- | ---- | ---- | ---- |
+| `get_member_authorization_logs` | `GET` | `/coupon/admin/get_member_authorization_logs` | 客服查詢指定用戶的授權異動歷史紀錄。 | 第二階段，out of scope |
 | `get_brands` | `GET` | `/admin/get_brands` | 後台查詢合作品牌清單，包含啟用狀態、分類、logo、`treepoint_merchant_provider_key`、建立與更新時間。 | 第二階段，out of scope |
 | `create_brand` | `POST` | `/admin/create_brand` | 建立合作品牌，需包含 `treepoint_merchant_provider_key`。 | 第二階段，out of scope |
 | `update_brand` | `PATCH` | `/admin/update_brand` | 更新合作品牌基本資料、`treepoint_merchant_provider_key` 或啟用狀態。 | 第二階段，out of scope |

@@ -10,6 +10,7 @@ permalink: /database-schema/
 | Date | Summary |
 | ---- | ------- |
 | 2026-06-24 | `campaigns` 移除 `rotation_id FK`；新增 `rotation_campaigns` 中間表（`rotation_id`、`campaign_id`），支援 campaign 掛載多個 rotation 及上架時機控制；ERD 關聯同步更新；active 判斷改為透過 `rotation_campaigns` join |
+| 2026-06-24 | `members` 補上 `auth_status`、`auth_updated_at`；新增 `member_authorization_logs` 表；移除 `terms_version` 概念（不做版本區分） |
 | 2026-06-24 | `coupons` 新增 `rotation_id FK`（發券時快照，供統計用）；ERD 新增 `rotations \|\|--o\{ coupons` 關聯；`campaigns` 約束補充 `type` 不可變規則 |
 | 2026-06-16 | Coupon 狀態改名：`processing` → `consumed`、`completed` → `settled`；ERD 與 constraints 同步更新 |
 | 2026-06-16 | 新增 `finalize_batch_requests` 與 `finalize_batch_items` 表，支援批次非同步 finalize_order 流程 |
@@ -40,6 +41,7 @@ erDiagram
     %% --- 會員條款相關 ---
     terms_agreements ||--o{ member_terms_agreement_logs : logs
     members ||--o{ member_terms_agreement_logs : has
+    members ||--o{ member_authorization_logs : has
 
     %% --- 特店相關 ---
     brands ||--o{ campaigns : has
@@ -80,8 +82,17 @@ erDiagram
         string(36) id PK
         boolean terms_agreed "僅存目前狀態，版本與異動看 log"
         boolean auto_redeem_enabled
+        string(16) auth_status "AUTHORIZED, DEAUTHORIZED, null=未授權"
+        datetime auth_updated_at "授權狀態最後變更時間，nullable"
         datetime created_at
         datetime updated_at
+    }
+
+    member_authorization_logs {
+        string(26) id PK
+        string(36) member_id FK
+        string(16) action "AUTHORIZE, DEAUTHORIZE"
+        datetime created_at
     }
 
     terms_agreements {
@@ -232,6 +243,16 @@ erDiagram
 
 - 主鍵：`id`
 - 作為品牌設定、券、訂單與異動紀錄的關聯主體
+- `auth_status` enum：`AUTHORIZED`、`DEAUTHORIZED`；未授權時為 `null`
+- `auth_updated_at`：授權狀態最後變更時間，未曾授權時為 `null`
+
+### member_authorization_logs
+
+- 主鍵：`id`
+- 外鍵：`member_id -> members.id`
+- `action` enum：`AUTHORIZE`、`DEAUTHORIZE`
+- 每次呼叫 `member_authorize` / `member_unauthorize` 成功後寫入一筆；冪等呼叫不重複寫入
+- 完整授權歷史保存於此表，未來透過 `/coupon/admin/get_member_authorization_logs` 供客服查詢
 
 ### brands
 
