@@ -18,7 +18,8 @@ permalink: /api-specs/
 - [get_member_brand_change_logs]({{ '/api-specs/get-member-brand-change-logs/' | relative_url }})
 - [get_member_orders]({{ '/api-specs/get-member-orders/' | relative_url }})
 - [get_order]({{ '/api-specs/get-order/' | relative_url }})
-- [member_authorization]({{ '/api-specs/member-authorization/' | relative_url }})
+- [member_authorize]({{ '/api-specs/member-authorize/' | relative_url }})
+- [member_unauthorize]({{ '/api-specs/member-unauthorize/' | relative_url }})
 
 ## 發卡主機端
 
