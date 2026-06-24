@@ -7,6 +7,7 @@ permalink: /api-specs/get-member-settings-change-logs/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-06-24 | `data.before_brands` / `after_brands` 改為物件陣列（含 `id` 與即時比對的 `name`），取代原純 id 陣列 |
 | 2026-06-24 | `limit` 上限改為 20 筆；移除 `initial_selection` type（一律寫為 `change_brand`）；各 brand array 統一改為 `data` dict（`before_brand_ids` / `after_brand_ids`）；`pause`/`resume` 不回傳 `data` |
 | 2026-06-22 | 由 `get_member_brand_change_logs` 更名；endpoint 改為 `/coupon/get_member_settings_change_logs`；品牌陣列展開品牌資訊 |
 | 2026-06-15 | 回傳結構改為 request 粒度；`occurred_at` → `created_at` |
@@ -59,16 +60,22 @@ Content-Type: `application/json`
     {
       "type": "system_clear_brands",
       "data": {
-        "before_brand_ids": ["BRAND_FAMILYMART"],
-        "after_brand_ids": []
+        "before_brands": [
+          { "id": "BRAND_FAMILYMART", "name": "全家便利商店" }
+        ],
+        "after_brands": []
       },
       "created_at": "2027-01-01T00:00:00+08:00"
     },
     {
       "type": "change_brand",
       "data": {
-        "before_brand_ids": ["BRAND_FAMILYMART"],
-        "after_brand_ids": ["BRAND_COSMED"]
+        "before_brands": [
+          { "id": "BRAND_FAMILYMART", "name": "全家便利商店" }
+        ],
+        "after_brands": [
+          { "id": "BRAND_COSMED", "name": "康是美" }
+        ]
       },
       "created_at": "2026-10-20T11:00:00+08:00"
     },
@@ -79,8 +86,10 @@ Content-Type: `application/json`
     {
       "type": "change_brand",
       "data": {
-        "before_brand_ids": [],
-        "after_brand_ids": ["BRAND_FAMILYMART"]
+        "before_brands": [],
+        "after_brands": [
+          { "id": "BRAND_FAMILYMART", "name": "全家便利商店" }
+        ]
       },
       "created_at": "2026-10-01T09:00:00+08:00"
     }
@@ -109,14 +118,22 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| before_brand_ids | Array | 異動前的品牌 ID 清單；首次選牌時為 `[]` |
-| after_brand_ids | Array | 異動後的品牌 ID 清單；系統清空時為 `[]` |
+| before_brands | Array | 異動前的品牌清單；首次選牌時為 `[]` |
+| after_brands | Array | 異動後的品牌清單；系統清空時為 `[]` |
+
+### brand 子物件（`before_brands` / `after_brands` 內每項）
+
+| 欄位 | 類型 | 說明 |
+| ---- | ---- | ---- |
+| id | String | 品牌識別碼 |
+| name | String | 品牌名稱，由 DB 快照（`before_brand_names` / `after_brand_names`）讀取後，再即時比對 `brands.name` 補上最新名稱；若品牌已刪除則沿用快照名稱 |
 
 ### 邏輯說明
 - 依 `created_at` 由新到舊排序，僅回傳過去 1 年內紀錄
 - `initial_selection`（首次選牌）與 `change_brand`（更換品牌）統一以 `change_brand` 回傳；首次選牌時 `before_brand_ids = []`
 - `pause` / `resume`：服務暫停／重啟，回傳 type 但省略 `data`
-- `system_clear_brands`：系統 lazy cleanup 清空舊檔期，`before_brand_ids` 為被清空的品牌、`after_brand_ids` 為 `[]`；`created_at` 為舊 rotation 的 `end_time`
+- `system_clear_brands`：系統 lazy cleanup 清空舊檔期，`before_brands` 為被清空的品牌、`after_brands` 為 `[]`；`created_at` 為舊 rotation 的 `end_time`
+- `name` 欄位：優先取 `brands` 表最新名稱；若品牌已不存在於 `brands` 表，則 fallback 至 DB 快照名稱，確保已失效品牌仍可正常顯示
 - 無任何異動紀錄時，回傳 `items: []`，不報錯
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
