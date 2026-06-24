@@ -155,7 +155,7 @@ Content-Type: `application/json`
 ### 邏輯說明
 - 回傳當前 active rotation 下所有具備至少一個 active campaign 的品牌
 - campaign 的 active 判斷：`rotation_campaigns` 中是否存在 `rotation_id = 當前 active rotation` 且 `campaign_id = 該 campaign` 的記錄
-- 每個 brand 的 `campaigns` 陣列包含 `auto` 與 `manual` 兩種類型；同一 brand 同一時間最多一個 `type = auto` 的 active campaign
+- 每個 brand 的 `campaigns` 陣列包含 `auto` 與 `manual` 兩種類型；同一 brand 同一時間最多一個 `type = auto` 的 active campaign；`type = manual` 無此限制
 - 前端依 `type` 篩選所需呈現的 campaign：自動兌換頁面取 `type = auto`，手動換券頁面取 `type = manual`
 - `discount_rate` 為 server 端計算後附帶回傳，不存於 DB
 - 排列順序以 `category` 分組後，組內依 `name` 字母順序排列

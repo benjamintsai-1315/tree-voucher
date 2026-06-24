@@ -250,7 +250,7 @@ erDiagram
 - campaign 的 active 判斷：`rotation_campaigns` 中是否存在對應當前 active rotation 的記錄
 - 未掛載任何 rotation 的 campaign 不生效，但仍可存在於 DB（作為備料）
 - `coupon_min_order_amount`、`coupon_redeem_points`、`coupon_discount_amount`、`max_redemptions_per_order` 皆應大於 0
-- 同一 `brand` 同一時間只允許一個 `type = auto` 的 active campaign
+- 同一 `brand` 同一時間只允許一個 `type = auto` 的 active campaign；`type = manual` 無此限制，可同時有多個 active
 - `type` 一經建立不得更改；變更 `type` 會破壞上述唯一性約束，且影響已發券的歷史語意
 
 ### rotation_campaigns
@@ -329,7 +329,7 @@ erDiagram
 
 - 主鍵：`id`
 - `start_time` / `end_time` 均為 UTC+8 時間戳記
-- active rotation 以 `start_time <= now() <= end_time` 判斷
+- active rotation 以 `start_time <= now() < end_time` 判斷
 - 系統同一時間只應有一個 active rotation
 - `max_selectable_brand_count`：此檔期用戶最多可選品牌數，取代原 `system_configs.brand_selection_limit`
 - `description`：前端顯示用說明參數，固定以 JSON 字串寫入，格式為 `{"order_amount": N, "point_amount": N}`，由後台維護，前端自行 parse 組合說明文字，不參與任何清算邏輯
