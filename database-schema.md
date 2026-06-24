@@ -9,6 +9,7 @@ permalink: /database-schema/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-06-24 | `campaigns` 移除 `rotation_id FK`；新增 `rotation_campaigns` 中間表（`rotation_id`、`campaign_id`），支援 campaign 掛載多個 rotation 及上架時機控制；ERD 關聯同步更新；active 判斷改為透過 `rotation_campaigns` join |
 | 2026-06-24 | `coupons` 新增 `rotation_id FK`（發券時快照，供統計用）；ERD 新增 `rotations \|\|--o\{ coupons` 關聯；`campaigns` 約束補充 `type` 不可變規則 |
 | 2026-06-16 | Coupon 狀態改名：`processing` → `consumed`、`completed` → `settled`；ERD 與 constraints 同步更新 |
 | 2026-06-16 | 新增 `finalize_batch_requests` 與 `finalize_batch_items` 表，支援批次非同步 finalize_order 流程 |
@@ -25,7 +26,8 @@ permalink: /database-schema/
 設計原則：
 
 - `coupon_wallet` 是查詢視角，不是獨立資料表。
-- campaign 的 active 狀態由其 `rotation_id` 所對應的 rotation 是否為當前 active rotation 推導，不另存布林欄位。
+- campaign 的 active 狀態由 `rotation_campaigns` 是否存在對應當前 active rotation 的記錄推導，不另存布林欄位。
+- campaign 與 rotation 為多對多關係，透過 `rotation_campaigns` 中間表管理；campaign 未掛載任何 rotation 時不生效。
 - 點數餘額、扣點流水屬外部點數系統，本系統不另外設計點數帳務表。
 - 授權狀態以 `members` 主表欄位記錄當前狀態，完整異動歷史由 `member_authorization_logs` 保存。
 - API layer 可沿用 `events`、`coupons_used` 等回傳欄位；DB layer 對應名詞統一使用 `order_logs`、`order_coupon_logs`。
@@ -41,9 +43,11 @@ erDiagram
 
     %% --- 特店相關 ---
     brands ||--o{ campaigns : has
-    rotations ||--o{ campaigns : scopes
     campaigns ||--o{ coupons : issues
     members ||--o{ coupons : owns
+
+    rotations ||--o{ rotation_campaigns : contains
+    campaigns ||--o{ rotation_campaigns : "assigned_to"
 
     rotations ||--o{ rotation_brands : contains
     brands ||--o{ rotation_brands : "included_in"
@@ -108,7 +112,6 @@ erDiagram
     campaigns {
         string(26) id PK
         string(64) brand_id FK
-        string(26) rotation_id FK
         string(16) type "auto, manual"
         string(32) name
         string(64) description "預開欄位"
@@ -118,6 +121,13 @@ erDiagram
         int max_redemptions_per_order
         datetime created_at
         datetime updated_at
+    }
+
+    rotation_campaigns {
+        string(26) id PK
+        string(26) rotation_id FK
+        string(26) campaign_id FK
+        datetime created_at
     }
 
     rotations {
@@ -233,14 +243,25 @@ erDiagram
 - 主鍵：`id`
 - 外鍵：
   - `brand_id -> brands.id`
-  - `rotation_id -> rotations.id`（兩種 type 皆必填）
 - `type` enum：`auto`、`manual`
-  - `auto`：系統自動兌換型，依附於 rotation；刷卡時自動觸發
-  - `manual`：用戶手動兌換型，同樣依附於 rotation，但兌換行為由用戶發起
-- campaign 的 active 判斷改為其 `rotation_id` 對應的 rotation 是否為當前 active rotation（`start_time <= now() <= end_time`）
+  - `auto`：系統自動兌換型；刷卡時自動觸發
+  - `manual`：用戶手動兌換型；兌換行為由用戶發起
+- campaign 本身不掛 rotation；透過 `rotation_campaigns` 中間表與 rotation 建立關聯
+- campaign 的 active 判斷：`rotation_campaigns` 中是否存在對應當前 active rotation 的記錄
+- 未掛載任何 rotation 的 campaign 不生效，但仍可存在於 DB（作為備料）
 - `coupon_min_order_amount`、`coupon_redeem_points`、`coupon_discount_amount`、`max_redemptions_per_order` 皆應大於 0
 - 同一 `brand` 同一時間只允許一個 `type = auto` 的 active campaign
 - `type` 一經建立不得更改；變更 `type` 會破壞上述唯一性約束，且影響已發券的歷史語意
+
+### rotation_campaigns
+
+- 主鍵：`id`
+- 外鍵：
+  - `rotation_id -> rotations.id`
+  - `campaign_id -> campaigns.id`
+- 唯一約束：`(rotation_id, campaign_id)`，同一 campaign 不可重複掛同一 rotation
+- 寫入此表即代表該 campaign 上架至該 rotation；刪除此記錄即代表下架
+- CLI `add-campaign-into-rotation` 對應寫入此表
 
 ### member_selected_brands
 

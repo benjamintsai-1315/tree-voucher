@@ -7,6 +7,7 @@ permalink: /api-specs/get-current-rotation/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-06-24 | 邏輯說明更新：active campaign 判斷改為透過 `rotation_campaigns` join，而非 `campaigns.rotation_id` 直接比對 |
 | 2026-06-24 | `active_campaign`（單一物件）改為 `campaigns`（陣列）；新增 `type` 欄位（`auto`\|`manual`）；回傳該品牌所有 active campaign，前端依 `type` 自行篩選顯示 |
 | 2026-06-16 | `display_coupon_min_order_amount` / `display_coupon_redeem_points` 合併為 `description`（JSON 字串，格式 `{"order_amount": N, "point_amount": N}`），由前端自行 parse 呈現 |
 | 2026-06-16 | 欄位命名去除 prefix（`brand_id` → `id`、`brand_name` → `name` 等）；`description` 改回 `display_coupon_min_order_amount` / `display_coupon_redeem_points`；`rotation_id` → `id`；active_campaign 新增 `created_at`；`discount_rate` 說明改為四捨五入至小數點第二位 |
@@ -153,7 +154,7 @@ Content-Type: `application/json`
 
 ### 邏輯說明
 - 回傳當前 active rotation 下所有具備至少一個 active campaign 的品牌
-- campaign 的 active 判斷由其 `rotation_id` 對應的 rotation 是否為當前 active rotation 推導，campaign 本身不另設 `start/end` 時間
+- campaign 的 active 判斷：`rotation_campaigns` 中是否存在 `rotation_id = 當前 active rotation` 且 `campaign_id = 該 campaign` 的記錄
 - 每個 brand 的 `campaigns` 陣列包含 `auto` 與 `manual` 兩種類型；同一 brand 同一時間最多一個 `type = auto` 的 active campaign
 - 前端依 `type` 篩選所需呈現的 campaign：自動兌換頁面取 `type = auto`，手動換券頁面取 `type = manual`
 - `discount_rate` 為 server 端計算後附帶回傳，不存於 DB
