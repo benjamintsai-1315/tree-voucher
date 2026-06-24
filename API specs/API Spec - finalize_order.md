@@ -10,7 +10,7 @@ permalink: /api-specs/finalize-order/
 | Date | Summary |
 | ---- | ------- |
 | 2026-06-16 | Coupon 狀態改名：`processing` → `consumed`、`completed` → `settled` |
-| 2026-06-16 | 改為批次接收（`orders` 陣列）、非同步處理；response 改回 `202 Accepted` 並回傳 `batch_request_id`；移除原單筆同步回傳欄位 |
+| 2026-06-16 | 改為批次接收（`orders` 陣列）、非同步處理；response 改回 `202 Accepted` 並回傳 `request_id`；移除原單筆同步回傳欄位 |
 | 2026-06-15 | Endpoint 改為 `/bank/finalize_order`（原 `/coupon/finalize_order`），依呼叫端分類路徑 |
 
 # API: finalize_order
@@ -37,8 +37,8 @@ permalink: /api-specs/finalize-order/
 - 點數不返還；退回的券成為後續可用的舊券
 
 ### 冪等設計
-- `batch_request_id` 由發卡主機自行產生並帶入，用於識別批次請求
-- 若相同 `batch_request_id` 再次呼叫，神坊直接回傳該批次的接收資訊，不重複建立
+- `request_id` 由發卡主機自行產生並帶入，用於識別批次請求
+- 若相同 `request_id` 再次呼叫，神坊直接回傳該批次的接收資訊，不重複建立
 - 此設計讓發卡主機在首次呼叫未收到回應時，可重送請求並確認是否已被接收
 
 
@@ -58,7 +58,7 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 必填 | 可空 | 預設值 | 限制條件 |
 | ---- | ---- | ---- | ---- | ------ | -------- |
-| batch_request_id | string | TRUE | FALSE | ❎ | 最多 64 字；由發卡主機自行產生，用於冪等識別 |
+| request_id | string | TRUE | FALSE | ❎ | 最多 64 字；由發卡主機自行產生，用於冪等識別 |
 | orders | array | TRUE | FALSE | ❎ | 至少 1 筆，最多 100 筆 |
 | orders[].order_id | string | TRUE | FALSE | ❎ | 最多 64 字 |
 | orders[].action | string | TRUE | FALSE | ❎ | 僅接受 `COMPLETED` \| `CANCELLED` |
@@ -67,7 +67,7 @@ Content-Type: `application/json`
 
 ```json
 {
-  "batch_request_id": "BREQ_20261003_00001",
+  "request_id": "BREQ_20261003_00001",
   "orders": [
     { "order_id": "ORD_20261001_00001", "action": "COMPLETED" },
     { "order_id": "ORD_20261001_00002", "action": "CANCELLED" }
@@ -82,7 +82,7 @@ HTTP Status: `202 Accepted`
 
 ```json
 {
-  "batch_request_id": "BREQ_20261003_00001",
+  "request_id": "BREQ_20261003_00001",
   "accepted_count": 2,
   "submitted_at": "2026-10-03T10:00:00+08:00"
 }
@@ -92,9 +92,9 @@ HTTP Status: `202 Accepted`
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| batch_request_id | String | 發卡主機提供的批次識別碼，原樣回傳 |
+| request_id | String | 發卡主機提供的批次識別碼，原樣回傳 |
 | accepted_count | Integer | 本批次接收的訂單筆數 |
-| submitted_at | Datetime | 批次接收時間（UTC+8 ISO 8601）；若為重送相同 `batch_request_id`，回傳原始接收時間 |
+| submitted_at | Datetime | 批次接收時間（UTC+8 ISO 8601）；若為重送相同 `request_id`，回傳原始接收時間 |
 
 ### 邏輯說明
 - 神坊收到請求後，建立（或查找）`finalize_batch_requests` 記錄，並逐筆建立 `finalize_batch_items`（初始狀態 `PENDING`），立即回傳 `202`
@@ -102,9 +102,9 @@ HTTP Status: `202 Accepted`
   - `action = COMPLETED`：所有對應券 `consumed → settled`，觸發代償流程
   - `action = CANCELLED`：`consumed` 券依是否到期轉為 `available` 或 `expired`，點數不返還
 - 單筆驗證失敗（`ORDER_NOT_FOUND`、`ORDER_ALREADY_FINALIZED`）不中斷整批次，錯誤記錄於該 item 的 `error_code`
-- 重送相同 `batch_request_id`：直接回傳原批次接收資訊，不重複建立或重跑
+- 重送相同 `request_id`：直接回傳原批次接收資訊，不重複建立或重跑
 
 ## 400 錯誤回傳（request-level）
 1. `orders` 為空陣列：`ORDERS_REQUIRED`
 2. `orders` 超過 100 筆：`TOO_MANY_ORDERS`
-3. `batch_request_id` 未提供：`BATCH_REQUEST_ID_REQUIRED`
+3. `request_id` 未提供：`BATCH_REQUEST_ID_REQUIRED`
