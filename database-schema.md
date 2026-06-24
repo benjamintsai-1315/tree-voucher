@@ -9,6 +9,7 @@ permalink: /database-schema/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-06-24 | `coupons` 新增 `rotation_id FK`（發券時快照，供統計用）；ERD 新增 `rotations \|\|--o\{ coupons` 關聯；`campaigns` 約束補充 `type` 不可變規則 |
 | 2026-06-16 | Coupon 狀態改名：`processing` → `consumed`、`completed` → `settled`；ERD 與 constraints 同步更新 |
 | 2026-06-16 | 新增 `finalize_batch_requests` 與 `finalize_batch_items` 表，支援批次非同步 finalize_order 流程 |
 | 2026-06-16 | `rotations` 的 `display_coupon_min_order_amount` / `display_coupon_redeem_points` 合併為 `description`（string，JSON 格式 `{"order_amount": N, "point_amount": N}`） |
@@ -48,6 +49,7 @@ erDiagram
     brands ||--o{ rotation_brands : "included_in"
 
     %% --- 會員與特店相關 ---
+    rotations ||--o{ coupons : "issued_under"
     rotations ||--o{ member_selected_brands : scopes
     members ||--o{ member_selected_brands : selects
     brands ||--o{ member_selected_brands : selected_by
@@ -159,6 +161,7 @@ erDiagram
         string(26) id PK
         string(36) member_id FK
         string(26) campaign_id FK
+        string(26) rotation_id FK "snapshot at issue time, for reporting"
         string(16) type "from_campaign, from_member"
         string(16) status "available, consumed, settled, expired" "consumed=交易授權中; settled=請款完成"
         int coupon_min_order_amount "snapshot"
@@ -237,6 +240,7 @@ erDiagram
 - campaign 的 active 判斷改為其 `rotation_id` 對應的 rotation 是否為當前 active rotation（`start_time <= now() <= end_time`）
 - `coupon_min_order_amount`、`coupon_redeem_points`、`coupon_discount_amount`、`max_redemptions_per_order` 皆應大於 0
 - 同一 `brand` 同一時間只允許一個 `type = auto` 的 active campaign
+- `type` 一經建立不得更改；變更 `type` 會破壞上述唯一性約束，且影響已發券的歷史語意
 
 ### member_selected_brands
 
@@ -268,6 +272,7 @@ erDiagram
 - 外鍵：
   - `member_id -> members.id`
   - `campaign_id -> campaigns.id`
+  - `rotation_id -> rotations.id`（發券時寫入當下 active rotation 的 id，唯讀快照，供跨檔期統計使用）
 - `status` enum：
   - `AVAILABLE`
   - `CONSUMED`（交易授權中，等待商戶請款）
