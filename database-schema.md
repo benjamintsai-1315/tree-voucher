@@ -10,6 +10,7 @@ permalink: /database-schema/
 | Date | Summary |
 | ---- | ------- |
 | 2026-06-24 | `campaigns` 移除 `rotation_id FK`；新增 `rotation_campaigns` 中間表（`rotation_id`、`campaign_id`），支援 campaign 掛載多個 rotation 及上架時機控制；ERD 關聯同步更新；active 判斷改為透過 `rotation_campaigns` join |
+| 2026-06-24 | `member_brand_change_logs` 重新設計：移除 `request_id`、`rotation_id`、`type`、`added_brand_ids`、`removed_brand_ids`；新增 `before_brand_names`、`after_brand_names`（JSON 快照）與 `action`（`selected`\|`removed`）；`initial_selection` 統一以 `selected` 儲存 |
 | 2026-06-24 | `members` 補上 `auth_status`、`auth_updated_at`；新增 `member_authorization_logs` 表；移除 `terms_version` 概念（不做版本區分） |
 | 2026-06-24 | `coupons` 新增 `rotation_id FK`（發券時快照，供統計用）；ERD 新增 `rotations \|\|--o\{ coupons` 關聯；`campaigns` 約束補充 `type` 不可變規則 |
 | 2026-06-16 | Coupon 狀態改名：`processing` → `consumed`、`completed` → `settled`；ERD 與 constraints 同步更新 |
@@ -61,8 +62,6 @@ erDiagram
     brands ||--o{ member_selected_brands : selected_by
 
     members ||--o{ member_brand_change_logs : creates
-    rotations ||--o{ member_brand_change_logs : scopes
-    brands ||--o{ member_brand_change_logs : targets
 
     %% --- 訂單系統相關 ---
     members ||--o{ orders : places
@@ -169,12 +168,10 @@ erDiagram
 
     member_brand_change_logs {
         string(26) id PK
-        string(36) request_id "unique per operation"
         string(36) member_id FK
-        string(26) rotation_id FK
-        string(32) type "initial_selection, change_brand, pause, resume, system_clear_brands"
-        json added_brand_ids "change_brand 時必填，其餘為 null"
-        json removed_brand_ids "change_brand 時必填，其餘為 null"
+        json before_brand_names "異動前品牌快照 [{id, name}]，首次選牌時為 []"
+        json after_brand_names "異動後品牌快照 [{id, name}]，系統清空時為 []"
+        string(16) action "selected, removed"
         datetime created_at
     }
 
@@ -299,14 +296,11 @@ erDiagram
 
 - 主鍵：`id`
 - 外鍵：`member_id -> members.id`
-- 一筆紀錄 = 一次完整操作（一個 `request_id`），不再以個別品牌事件展開
-- `type` enum：
-  - `initial_selection`：首次選牌
-  - `change_brand`：品牌更換；`added_brand_ids` / `removed_brand_ids` 於寫入時預先計算並存入
-  - `pause`：暫停自動兌換服務
-  - `resume`：重啟自動兌換服務
-  - `system_clear_brands`：系統 lazy cleanup 清空舊檔期選擇；`created_at` 設為舊 rotation 的 `end_time`
-- `added_brand_ids` / `removed_brand_ids`：僅 `change_brand` 時必填，其餘為 null
+- `action` enum：
+  - `selected`：用戶主動選牌或換牌（含首次選牌）；`before_brand_names` 為選牌前快照，首次選牌時為 `[]`
+  - `removed`：系統 lazy cleanup 清空舊檔期選擇；`after_brand_names` 為 `[]`；`created_at` 設為舊 rotation 的 `end_time`
+- `before_brand_names` / `after_brand_names`：JSON 陣列，格式為 `[{"id": "...", "name": "..."}]`，寫入時快照，供日後顯示已失效品牌名稱
+- pause / resume 事件不記錄於此表，由 `members.auth_status` 或其他 log 管理
 
 ### coupons
 
