@@ -172,7 +172,7 @@ erDiagram
         string(26) id PK
         string(36) member_id FK
         string(32) type "change_selected_brands | system_clear_brands | disable_auto_redeem | enable_auto_redeem"
-        json data nullable "品牌異動快照；type=change_selected_brands/system_clear_brands 時有值，disable/enable_auto_redeem 為 null"
+        json data nullable "品牌快照 {before_brands:[{id,name}], after_brands:[{id,name}]}；disable/enable_auto_redeem 為 null"
         datetime created_at
     }
 
@@ -298,11 +298,11 @@ erDiagram
 - 主鍵：`id`
 - 外鍵：`member_id -> members.id`
 - `type` enum：`change_selected_brands` | `system_clear_brands` | `disable_auto_redeem` | `enable_auto_redeem`
-- `data`：nullable JSON 欄位
-  - `type = change_selected_brands`（用戶主動選牌或換牌，含首次選牌）：格式 `{"add_brands": [{"id": "...", "name": "..."}], "remove_brands": [{"id": "...", "name": "..."}]}`；首次選牌時 `remove_brands = []`
-  - `type = system_clear_brands`（系統 lazy cleanup 清空舊檔期）：`{"add_brands": [], "remove_brands": [被清空品牌快照]}`；`created_at` 設為舊 rotation 的 `end_time`
+- `data`：nullable JSON 欄位，儲存**快照**（非 diff）
+  - `type = change_selected_brands`（用戶主動選牌或換牌，含首次選牌）：格式 `{"before_brands": [{"id": "...", "name": "..."}], "after_brands": [{"id": "...", "name": "..."}]}`；首次選牌時 `before_brands = []`
+  - `type = system_clear_brands`（系統 lazy cleanup 清空舊檔期）：`{"before_brands": [被清空品牌快照], "after_brands": []}`；`created_at` 設為舊 rotation 的 `end_time`
   - `type = disable_auto_redeem` / `enable_auto_redeem`（暫停／啟用自動兌換）：`data = null`
-- 品牌名稱（`name`）於寫入時快照，供日後顯示已失效品牌名稱
+- 品牌名稱（`name`）於寫入時快照，供日後顯示已失效品牌名稱；`before_brands` / `after_brands` 即為 API 直接回傳欄位，不需 API layer 重建
 - `members.auto_redeem_enabled` 記錄當前狀態；`member_brand_change_logs` 記錄完整異動歷程（含 pause/resume）
 
 ### coupons
@@ -383,5 +383,5 @@ erDiagram
 ## 備註
 
 - `coupon_wallet` 對應的是 `coupons` 的查詢投影，可依 `member_id`、`brand_id`、`status` 組合查詢，不需獨立建表。
-- `get_member_settings_change_logs` API 依 `member_brand_change_logs.type` 決定回傳格式：品牌類型（`change_selected_brands`、`system_clear_brands`）從 `data.add_brands` / `data.remove_brands` 推導出 `before_brands` / `after_brands`；pause/resume 類型（`disable_auto_redeem`、`enable_auto_redeem`）的 `data` 為 null，API 直接回傳 `data: null`。
+- `get_member_settings_change_logs` API 直接回傳 `member_brand_change_logs.data` 的 `before_brands` / `after_brands`，不需 API layer 重建；pause/resume 類型（`disable_auto_redeem`、`enable_auto_redeem`）的 `data` 為 null，API 直接回傳 `data: null`。
 - `get_order` API 的 `events` 對應 `order_logs`；`coupons_used` 對應 `order_coupon_logs`。
