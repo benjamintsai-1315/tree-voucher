@@ -10,7 +10,8 @@ permalink: /database-schema/
 | Date | Summary |
 | ---- | ------- |
 | 2026-06-24 | `campaigns` 移除 `rotation_id FK`；新增 `rotation_campaigns` 中間表（`rotation_id`、`campaign_id`），支援 campaign 掛載多個 rotation 及上架時機控制；ERD 關聯同步更新；active 判斷改為透過 `rotation_campaigns` join |
-| 2026-06-25 | `member_brand_change_logs` 再次重設計：欄位簡化為 `id`、`member_id`、`created_at`、`data`（JSON），移除 `before_brand_names`、`after_brand_names`、`action`；`data` 格式改為 `{"add_brands": [{id, name}], "remove_brands": [{id, name}]}`，pause/resume 事件不寫入此表 |
+| 2026-06-25 | `member_brand_change_logs` 補回 `type` 欄位（`change_selected_brands` \| `system_clear_brands` \| `disable_auto_redeem` \| `enable_auto_redeem`）；`data` 改為 nullable（pause/resume 類型寫入 `data: null`）；品牌異動類型仍使用 `{"add_brands": [{id, name}], "remove_brands": [{id, name}]}` 格式 |
+| 2026-06-25 | ~~`member_brand_change_logs` 再次重設計：欄位簡化為 `id`、`member_id`、`created_at`、`data`（JSON），移除 `before_brand_names`、`after_brand_names`、`action`；`data` 格式改為 `{"add_brands": [{id, name}], "remove_brands": [{id, name}]}`，pause/resume 事件不寫入此表~~（已於同日再次修訂） |
 | 2026-06-24 | `member_brand_change_logs` 重新設計：移除 `request_id`、`rotation_id`、`type`、`added_brand_ids`、`removed_brand_ids`；新增 `before_brand_names`、`after_brand_names`（JSON 快照）與 `action`（`selected`\|`removed`）；`initial_selection` 統一以 `selected` 儲存 |
 | 2026-06-24 | `members` 補上 `auth_status`、`auth_updated_at`；新增 `member_authorization_logs` 表；移除 `terms_version` 概念（不做版本區分） |
 | 2026-06-24 | `coupons` 新增 `rotation_id FK`（發券時快照，供統計用）；ERD 新增 `rotations \|\|--o\{ coupons` 關聯；`campaigns` 約束補充 `type` 不可變規則 |
@@ -170,7 +171,8 @@ erDiagram
     member_brand_change_logs {
         string(26) id PK
         string(36) member_id FK
-        json data "品牌異動快照 {add_brands: [{id,name}], remove_brands: [{id,name}]}"
+        string(32) type "change_selected_brands | system_clear_brands | disable_auto_redeem | enable_auto_redeem"
+        json data nullable "品牌異動快照；type=change_selected_brands/system_clear_brands 時有值，disable/enable_auto_redeem 為 null"
         datetime created_at
     }
 
@@ -295,11 +297,13 @@ erDiagram
 
 - 主鍵：`id`
 - 外鍵：`member_id -> members.id`
-- `data`：JSON 欄位，格式為 `{"add_brands": [{"id": "...", "name": "..."}], "remove_brands": [{"id": "...", "name": "..."}]}`
-  - 用戶主動選牌或換牌（含首次選牌）：`add_brands` 為新增品牌、`remove_brands` 為移除品牌；首次選牌時 `remove_brands = []`
-  - 系統 lazy cleanup 清空舊檔期：`add_brands = []`、`remove_brands` 為被清空品牌；`created_at` 設為舊 rotation 的 `end_time`
+- `type` enum：`change_selected_brands` | `system_clear_brands` | `disable_auto_redeem` | `enable_auto_redeem`
+- `data`：nullable JSON 欄位
+  - `type = change_selected_brands`（用戶主動選牌或換牌，含首次選牌）：格式 `{"add_brands": [{"id": "...", "name": "..."}], "remove_brands": [{"id": "...", "name": "..."}]}`；首次選牌時 `remove_brands = []`
+  - `type = system_clear_brands`（系統 lazy cleanup 清空舊檔期）：`{"add_brands": [], "remove_brands": [被清空品牌快照]}`；`created_at` 設為舊 rotation 的 `end_time`
+  - `type = disable_auto_redeem` / `enable_auto_redeem`（暫停／啟用自動兌換）：`data = null`
 - 品牌名稱（`name`）於寫入時快照，供日後顯示已失效品牌名稱
-- pause / resume 事件不記錄於此表，由 `members.auto_redeem_enabled` 欄位記錄當前狀態
+- `members.auto_redeem_enabled` 記錄當前狀態；`member_brand_change_logs` 記錄完整異動歷程（含 pause/resume）
 
 ### coupons
 
@@ -379,5 +383,5 @@ erDiagram
 ## 備註
 
 - `coupon_wallet` 對應的是 `coupons` 的查詢投影，可依 `member_id`、`brand_id`、`status` 組合查詢，不需獨立建表。
-- `get_member_settings_change_logs` API 品牌變更紀錄直接從 `member_brand_change_logs.data` 的 `add_brands` / `remove_brands` 讀取；`before_brands` / `after_brands` 由 API layer 計算（`before_brands` = 前一筆的 `after_brands`，或直接從 `data` 推導）。
+- `get_member_settings_change_logs` API 依 `member_brand_change_logs.type` 決定回傳格式：品牌類型（`change_selected_brands`、`system_clear_brands`）從 `data.add_brands` / `data.remove_brands` 推導出 `before_brands` / `after_brands`；pause/resume 類型（`disable_auto_redeem`、`enable_auto_redeem`）的 `data` 為 null，API 直接回傳 `data: null`。
 - `get_order` API 的 `events` 對應 `order_logs`；`coupons_used` 對應 `order_coupon_logs`。
