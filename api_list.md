@@ -31,9 +31,10 @@ permalink: /api-list/
 | `member_authorize` | `POST` | `/coupon/member_authorize` | 用戶在 CR 前台同意啟用樹享券服務。神坊呼叫點數系統 API，成功後更新授權狀態並寫入 log。 | 已有 spec |
 | `member_unauthorize` | `POST` | `/coupon/member_unauthorize` | 用戶在 CR 前台主動解除服務。神坊更新授權狀態並寫入 log；現有 coupon 保留但不可用。 | 已有 spec |
 | `get_member_settings` | `GET` | `/coupon/get_member_settings` | 取得使用者目前的完整設定狀態，包含 `auto_redeem_enabled`、`max_selectable_brand_count`、`last_changed_at`，以及目前已選擇、且當前仍具備 active campaign 的品牌。 | 已有 spec |
-| `update_member_selected_brands` | `PATCH` | `/coupon/update_member_selected_brands` | 更新會員的已選品牌清單，以完整 `brand_ids` 取代既有選擇，後端計算 diff 並寫入異動紀錄。 | 已有 spec |
-| `update_member_auto_redeem_settings` | `PATCH` | `/coupon/update_member_auto_redeem_settings` | 切換會員的自動兌換服務狀態（暫停／啟用）。冪等操作，狀態未變時直接回 200。 | 已有 spec |
-| `get_member_settings_change_logs` | `GET` | `/coupon/get_member_settings_change_logs` | 查詢使用者過去 1 年內的品牌選擇與自動兌換異動紀錄（`change_brand`、`pause`、`resume`、`system_clear_brands`）。 | 已有 spec |
+| `update_member_selected_brands` | `POST` | `/coupon/update_member_selected_brands` | 更新該會員的已選品牌清單。以 `brand_ids` 作為更新後完整結果，後端自行計算 diff 並寫入異動紀錄。 | 已有 spec |
+| `update_member_auto_redeem_settings` | `POST` | `/coupon/update_member_auto_redeem_settings` | 切換該會員的自動兌換服務狀態（暫停／啟用）。`auto_redeem_enabled: boolean`。 | 已有 spec |
+| ~~`update_member_settings`~~ | ~~`PATCH`~~ | ~~`/coupon/update_member_settings`~~ | ~~[DEPRECATED] 已拆分為 `update_member_selected_brands` 與 `update_member_auto_redeem_settings`~~ | ~~已有 spec~~ |
+| `get_member_settings_change_logs` | `GET` | `/coupon/get_member_settings_change_logs` | 查詢使用者過去 1 年內的品牌選擇與自動兌換異動紀錄（`change_selected_brands`、`disable_auto_redeem`、`enable_auto_redeem`、`system_clear_brands`）。 | 已有 spec |
 | `get_coupon_wallet` | `GET` | `/coupon/get_coupon_wallet` | 查詢使用者券夾品牌摘要，回傳當前 rotation 曾選過的所有品牌及各品牌可用券張數（`AVAILABLE` count）。 | 已有 spec |
 | `get_coupons` | `GET` | `/coupon/get_coupons` | 查詢使用者券列表，預設回全部券狀態，並支援 `brand_id`、`status` 篩選。（原 `get_coupon_wallet`） | 已有 spec |
 | `get_coupon_detail` | `GET` | `/coupon/get_coupon_detail` | 查詢單張券詳情，包含狀態、效期、折抵規則及兌換時所花費的點數。 | 已有 spec |

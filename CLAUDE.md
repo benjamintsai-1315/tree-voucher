@@ -73,7 +73,9 @@
 **API spec 存放位置**：`docs/api/API Spec - [api_name].md`
 
 **前台 `/coupon/...`（已有 spec）**：
-`get_current_rotation`、`member_authorize`、`member_unauthorize`、`get_member_settings`、`update_member_settings`、`get_member_brand_change_logs`、`get_coupon_wallet`、`get_coupons`、`get_coupon_detail`、`get_member_orders`、`get_order`
+`get_current_rotation`、`member_authorize`、`member_unauthorize`、`get_member_settings`、`update_member_selected_brands`、`update_member_auto_redeem_settings`、`get_member_settings_change_logs`、`get_coupon_wallet`、`get_coupons`、`get_coupon_detail`、`get_member_orders`、`get_order`
+
+> ⚠️ `update_member_settings` 已於 2026-06-25 拆分為上述兩支，不再使用
 
 **發卡主機 `/bank/...`（已有 spec）**：
 `create_order`、`batch_finalize_orders`、`get_finalize_batch_status`、`bank_get_order`
