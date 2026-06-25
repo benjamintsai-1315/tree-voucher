@@ -31,8 +31,9 @@ permalink: /api-list/
 | `member_authorize` | `POST` | `/coupon/member_authorize` | 用戶在 CR 前台同意啟用樹享券服務。神坊呼叫點數系統 API，成功後更新授權狀態並寫入 log。 | 已有 spec |
 | `member_unauthorize` | `POST` | `/coupon/member_unauthorize` | 用戶在 CR 前台主動解除服務。神坊更新授權狀態並寫入 log；現有 coupon 保留但不可用。 | 已有 spec |
 | `get_member_settings` | `GET` | `/coupon/get_member_settings` | 取得使用者目前的完整設定狀態，包含 `auto_redeem_enabled`、`max_selectable_brand_count`、`last_changed_at`，以及目前已選擇、且當前仍具備 active campaign 的品牌。 | 已有 spec |
-| `update_member_settings` | `PATCH` | `/coupon/update_member_settings` | 對標 `get_member_settings`，統一處理使用者設定異動，包含首次選品牌、更換品牌、暫停用券、重啟用券。成功後回傳與 `get_member_settings` 格式一致的最新狀態。 | 已有 spec |
-| `get_member_brand_change_logs` | `GET` | `/coupon/get_member_brand_change_logs` | 查詢使用者過去 1 年內的品牌選擇與自動兌換異動紀錄。 | 已有 spec |
+| `update_member_selected_brands` | `PATCH` | `/coupon/update_member_selected_brands` | 更新會員的已選品牌清單，以完整 `brand_ids` 取代既有選擇，後端計算 diff 並寫入異動紀錄。 | 已有 spec |
+| `update_member_auto_redeem_settings` | `PATCH` | `/coupon/update_member_auto_redeem_settings` | 切換會員的自動兌換服務狀態（暫停／啟用）。冪等操作，狀態未變時直接回 200。 | 已有 spec |
+| `get_member_settings_change_logs` | `GET` | `/coupon/get_member_settings_change_logs` | 查詢使用者過去 1 年內的品牌選擇與自動兌換異動紀錄（`change_brand`、`pause`、`resume`、`system_clear_brands`）。 | 已有 spec |
 | `get_coupon_wallet` | `GET` | `/coupon/get_coupon_wallet` | 查詢使用者券夾品牌摘要，回傳當前 rotation 曾選過的所有品牌及各品牌可用券張數（`AVAILABLE` count）。 | 已有 spec |
 | `get_coupons` | `GET` | `/coupon/get_coupons` | 查詢使用者券列表，預設回全部券狀態，並支援 `brand_id`、`status` 篩選。（原 `get_coupon_wallet`） | 已有 spec |
 | `get_coupon_detail` | `GET` | `/coupon/get_coupon_detail` | 查詢單張券詳情，包含狀態、效期、折抵規則及兌換時所花費的點數。 | 已有 spec |
@@ -40,20 +41,6 @@ permalink: /api-list/
 | `get_order` | `GET` | `/coupon/get_order` | 查詢單筆訂單完整資訊，包含折抵明細與事件歷程。需帶 `member_id` 防呆。 | 已有 spec |
 | `preview_discount` | `POST` | `/coupon/preview_discount` | 在未建立訂單前，試算指定品牌與刷卡金額可能折抵多少。若前端不需要即時試算，可不做。 | 可選 |
 
-### `update_member_selected_brands` action 建議
-
-| action | 用途 | 主要參數 | 商務規則 |
-| ---- | ---- | ---- | ---- |
-| `SELECT_BRANDS` | 首次選擇或更換自動兌換品牌 | `member_id`, `after_brand_ids` | 需檢查每人最多選擇品牌數（取自 active rotation）、品牌是否有 active campaign。 |
-| `PAUSE` | 暫停自動用券 | `member_id` | 暫停後使用者已選品牌可保留，但刷卡時不觸發自動兌換。 |
-| `RESUME` | 重啟自動用券 | `member_id` | 重啟時需確認使用者仍有已選品牌，且至少一個品牌仍有 active campaign。 |
-
-底層異動紀錄模型說明：
-
-- DB layer 以 `member_brand_change_logs` 寫入事件，每次操作寫入一筆（request 粒度）
-- `type` 對應操作類型：`initial_selection` / `change_brand` / `pause` / `resume` / `system_clear_brands`
-- `change_brand` 時，於寫入時預先計算 diff，存入 `added_brand_ids` / `removed_brand_ids`
-- 系統 lazy cleanup 清空舊檔期選擇時，寫入一筆 `system_clear_brands`，`created_at` 設為舊 rotation 的 `end_time`
 
 ## 發卡主機端 / 銀行信用卡系統
 
