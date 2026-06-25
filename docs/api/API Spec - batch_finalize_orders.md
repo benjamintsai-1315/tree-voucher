@@ -7,6 +7,7 @@ permalink: /api-specs/batch-finalize-orders/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-06-25 | `BATCH_SIZE_EXCEEDED`、`INVALID_ACTION` 改為 422（語意驗證錯誤，與格式錯誤的 400 區分） |
 | 2026-06-25 | Response 改為 `200 OK` no body — `accepted_count` 無附加資訊（發卡主機自知筆數）；`submitted_at` 可由 `get_finalize_batch_status` 查詢；`request_id` 由發卡主機自行編列，回傳無意義 |
 | 2026-06-24 | 改為 JSON body（`application/json`）；`request_id` 改名為 `request_id`；新增單批次上限 1000 筆（超過回 `BATCH_SIZE_EXCEEDED`）；移除 CSV 上傳設計；建議銀行端每批 500–1000 筆分批打入 |
 | 2026-06-22 | Response HTTP status 改為 `200 OK` |
@@ -98,6 +99,8 @@ Body: 無
 ## 400 錯誤回傳（request-level）
 1. `request_id` 未提供：`BATCH_REQUEST_ID_REQUIRED`
 2. `orders` 未提供或為空陣列：`ORDERS_REQUIRED`
-3. `orders` 超過 1000 筆：`BATCH_SIZE_EXCEEDED`
-4. `orders` 內任一筆 `action` 值不合法：`INVALID_ACTION`
-5. 相同 `request_id` 已存在：`BATCH_REQUEST_ALREADY_EXISTS`
+3. 相同 `request_id` 已存在：`BATCH_REQUEST_ALREADY_EXISTS`
+
+## 422 錯誤回傳（語意驗證）
+1. `orders` 超過 1000 筆：`BATCH_SIZE_EXCEEDED`
+2. `orders` 內任一筆 `action` 值不合法：`INVALID_ACTION`
