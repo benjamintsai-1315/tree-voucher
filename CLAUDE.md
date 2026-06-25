@@ -80,6 +80,15 @@
 
 **Scope 外（本次不做）**：對帳 API、後台 CRUD API（第二階段）
 
+### Asana 工單位置
+
+所有 tree-voucher 2.0 ticket 掛在以下 Epic 底下：
+- **Project ID**：`1210249403386665`
+- **Epic Task ID**：`1215416108595901`
+- **Epic URL**：https://app.asana.com/1/1203639205197867/project/1210249403386665/task/1215416108595901
+
+查詢或建立 ticket 時，asana-pm / asana-status 應以此 Epic 為起點。
+
 ---
 
 ## 核心行為原則
