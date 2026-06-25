@@ -63,9 +63,11 @@ AVAILABLE → CONSUMED → SETTLED
 | API | Method | 說明 |
 |-----|--------|------|
 | `get_current_rotation` | GET | 取得當前檔期設定及有效活動品牌列表 |
-| `member_authorization` | POST | 會員授權點數使用（雙重授權機制） |
+| `member_authorize` | POST | 會員同意啟用樹享券服務，更新授權狀態並寫入 log |
+| `member_unauthorize` | POST | 會員主動解除服務，更新授權狀態並寫入 log |
 | `get_member_settings` | GET | 取得會員完整設定狀態（品牌選擇、自動兌換啟用狀態，觸發懶惰清除） |
-| `update_member_settings` | PATCH | 更新品牌選擇 / 暫停、恢復自動折抵 |
+| `update_member_selected_brands` | POST | 更新已選品牌清單（以完整清單覆蓋，後端計算 diff） |
+| `update_member_auto_redeem_settings` | POST | 切換自動兌換服務狀態（暫停／啟用） |
 | `get_member_settings_change_logs` | GET | 查詢設定異動紀錄（一年內） |
 | `get_coupon_wallet` | GET | 查詢券夾品牌摘要（各品牌可用券張數） |
 | `get_coupons` | GET | 查詢特定品牌下的券列表（支援狀態篩選） |
