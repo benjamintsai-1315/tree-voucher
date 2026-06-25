@@ -8,6 +8,7 @@ permalink: /api-specs/create-order/
 | Date | Summary |
 | ---- | ------- |
 | 2026-06-25 | 新增 `merchant_name` request 欄位（必填）；快照保存於 `orders` 表，供前台訂單列表顯示門市名稱 |
+| 2026-06-25 | 放寬邊界檢查：`brand_id` 不再要求必須具備 active campaign；無 active campaign 時仍可使用既有 `available` 舊券；移除 `BRAND_HAS_NO_ACTIVE_CAMPAIGN` 錯誤碼 |
 | 2026-06-16 | Coupon 狀態改名：`processing` → `consumed`、`completed` → `settled` |
 | 2026-06-15 | Endpoint 改為 `/bank/create_order`（原 `/coupon/create_order`），依呼叫端分類路徑 |
 | 2026-06-12 | `user_selected_brands` → `member_selected_brands`；`USER_NOT_FOUND` → `MEMBER_NOT_FOUND` |
@@ -24,7 +25,7 @@ permalink: /api-specs/create-order/
   - 此 API Key 須為發卡主機專屬授權
   - `member_id` 必須存在於神坊系統中
   - `order_id` 在神坊系統中必須唯一，重複傳入同一 `order_id` 將回傳錯誤
-  - `brand_id` 必須存在且目前具備 active campaign
+  - `brand_id` 必須存在於神坊系統中
 
 ## 使用情境
 發卡主機於用戶刷卡授權成功後，同步呼叫此 API。神坊以 request 提供的 `brand_id` 作為唯一品牌來源，先取用既有 `available coupon`，再依 active campaign、剩餘點數與該 campaign 的 `max_redemptions_per_order` 決定是否即時發新券；執行扣點時，系統應依 `brand` 讀取其 `treepoint_merchant_provider_key`，作為點數帳務通路識別。
@@ -73,7 +74,8 @@ Content-Type: `application/json`
 
 ### 邏輯說明
 - 本 API 為「用戶進入系統」的觸發點之一，執行清算前須先進行 **lazy cleanup**：若 `member_id` 在 `member_selected_brands` 中的記錄 `rotation_key` 與當前 active rotation 不符，系統自動清除舊選擇，並為每個被清除品牌寫入 `SYSTEM_CLEAR_BRANDS` 事件（`occurred_at` = 舊 rotation 的 `end_time`）；清除後若本 `brand_id` 不再在用戶已選清單中，則回傳 `AUTO_REDEEM_NOT_ENABLED_FOR_BRAND`
-- campaign 的 active 判斷改為確認其 `rotation_id` 對應的 rotation 是否為當前 active rotation（不再以 `campaign.start_at`/`end_at` 判斷）；active campaign 必須為 `type = auto`
+- campaign 的 active 判斷：`rotation_campaigns` 中是否存在對應當前 active rotation 的記錄；active campaign 必須為 `type = auto`
+- 即使該 brand 當前無 active campaign，只要用戶有 `available` 的舊券，仍應執行清算並使用舊券；無 active campaign 時僅跳過新券發行步驟，不視為錯誤
 - `discount_amount` = Σ（本次所有 processing coupon 的 `coupon_discount_amount`）
 - 既有券只掃描 `status = available` 且尚未過期的 coupons，排序規則為 `expired_at ASC`、`created_at ASC`、`coupon_id ASC`
 - 掃描過程中，若單張券 `coupon_min_order_amount` 大於當下剩餘消費額，則跳過該券，繼續檢查下一張
@@ -98,5 +100,4 @@ Content-Type: `application/json`
 2. `brand_id` 不存在：`BRAND_NOT_FOUND`
 3. `order_id` 已存在：`ORDER_ALREADY_EXISTS`
 4. 使用者未啟用該品牌自動兌換：`AUTO_REDEEM_NOT_ENABLED_FOR_BRAND`
-5. 用戶無 `available coupon` 且點數為 0：`NO_AVAILABLE_COUPON_AND_POINT`
-6. 該品牌目前無 active campaign：`BRAND_HAS_NO_ACTIVE_CAMPAIGN`
+5. 用戶無 `available coupon` 且點數為 0（或無 active campaign 可發新券）：`NO_AVAILABLE_COUPON_AND_POINT`
