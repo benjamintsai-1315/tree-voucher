@@ -7,6 +7,7 @@ permalink: /api-specs/create-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-06-25 | 新增 `merchant_name` request 欄位（必填）；快照保存於 `orders` 表，供前台訂單列表顯示門市名稱 |
 | 2026-06-16 | Coupon 狀態改名：`processing` → `consumed`、`completed` → `settled` |
 | 2026-06-15 | Endpoint 改為 `/bank/create_order`（原 `/coupon/create_order`），依呼叫端分類路徑 |
 | 2026-06-12 | `user_selected_brands` → `member_selected_brands`；`USER_NOT_FOUND` → `MEMBER_NOT_FOUND` |
@@ -53,6 +54,7 @@ Content-Type: `application/json`
 | brand_id | string | TRUE | FALSE | ❎ | 最多 64 字 |
 | cash_amount | integer | TRUE | FALSE | ❎ | > 0，單位為元 |
 | card_last_four_digits | string | TRUE | FALSE | ❎ | 固定 4 字；僅接受 `0-9` |
+| merchant_name | string | TRUE | FALSE | ❎ | 最多 64 字；刷卡當下的門市名稱（如「全家南京西路店」），由發卡主機提供，神坊原樣保存為快照，供前台訂單列表顯示 |
 
 # Response
 ## Sample（JSON）
@@ -85,7 +87,7 @@ Content-Type: `application/json`
 - 建單成功後，訂單進入 `PROCESSING` 狀態，等待後續 `finalize_order`
 - 若用戶在該 `brand` 下無任何 `available coupon`，且點數餘額也為 0，則本次清算直接失敗並回 `NO_AVAILABLE_COUPON_AND_POINT`
 - 執行扣點時，系統應依 `brand.treepoint_merchant_provider_key` 進行點數帳務歸屬
-- `card_last_four_digits` 為顯示用途欄位，由發卡主機於建單時提供，神坊原樣保存於訂單資料，供後續訂單查詢 API 回傳
+- `card_last_four_digits`、`merchant_name` 均為顯示用途欄位，由發卡主機於建單時提供，神坊原樣保存於訂單資料（快照），供後續訂單查詢 API 回傳；不參與任何清算邏輯
 - `create_order` response 僅回傳 `discount_amount`；若需訂單狀態、用券明細、事件歷程與卡號後四碼，應另呼叫 `get_order`
 - 新券建立時，`expired_at = (issued_at 所在 UTC+8 日期 + coupon_valid_days) 的 23:59:59.999`
 - 同一 `order_id` 只允許成功建立一次；任何再次收到的 `create_order` 請求皆回 `ORDER_ALREADY_EXIST`

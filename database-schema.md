@@ -10,6 +10,7 @@ permalink: /database-schema/
 | Date | Summary |
 | ---- | ------- |
 | 2026-06-24 | `campaigns` 移除 `rotation_id FK`；新增 `rotation_campaigns` 中間表（`rotation_id`、`campaign_id`），支援 campaign 掛載多個 rotation 及上架時機控制；ERD 關聯同步更新；active 判斷改為透過 `rotation_campaigns` join |
+| 2026-06-25 | `orders` 新增 `merchant_name` 欄位（刷卡門市名稱快照，由發卡主機提供） |
 | 2026-06-25 | `member_brand_change_logs` 補回 `type` 欄位（`change_selected_brands` \| `system_clear_brands` \| `disable_auto_redeem` \| `enable_auto_redeem`）；`data` 改為 nullable（pause/resume 類型寫入 `data: null`）；品牌異動類型仍使用 `{"add_brands": [{id, name}], "remove_brands": [{id, name}]}` 格式 |
 | 2026-06-25 | ~~`member_brand_change_logs` 再次重設計：欄位簡化為 `id`、`member_id`、`created_at`、`data`（JSON），移除 `before_brand_names`、`after_brand_names`、`action`；`data` 格式改為 `{"add_brands": [{id, name}], "remove_brands": [{id, name}]}`，pause/resume 事件不寫入此表~~（已於同日再次修訂） |
 | 2026-06-24 | `member_brand_change_logs` 重新設計：移除 `request_id`、`rotation_id`、`type`、`added_brand_ids`、`removed_brand_ids`；新增 `before_brand_names`、`after_brand_names`（JSON 快照）與 `action`（`selected`\|`removed`）；`initial_selection` 統一以 `selected` 儲存 |
@@ -197,7 +198,8 @@ erDiagram
         string(64) brand_id FK
         int order_amount
         int discount_amount
-        string card_last_four_digits
+        string(4) card_last_four_digits
+        string(64) merchant_name "刷卡門市名稱快照，由發卡主機提供，供前台訂單列表顯示"
         string(16) order_status
         datetime finalized_at
         datetime created_at
