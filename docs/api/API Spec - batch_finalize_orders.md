@@ -7,6 +7,7 @@ permalink: /api-specs/batch-finalize-orders/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-06-25 | Response 改為 `200 OK` no body — `accepted_count` 無附加資訊（發卡主機自知筆數）；`submitted_at` 可由 `get_finalize_batch_status` 查詢；`request_id` 由發卡主機自行編列，回傳無意義 |
 | 2026-06-24 | 改為 JSON body（`application/json`）；`request_id` 改名為 `request_id`；新增單批次上限 1000 筆（超過回 `BATCH_SIZE_EXCEEDED`）；移除 CSV 上傳設計；建議銀行端每批 500–1000 筆分批打入 |
 | 2026-06-22 | Response HTTP status 改為 `200 OK` |
 | 2026-06-16 | 由 `finalize_order` 更名為 `batch_finalize_orders`；輸入改為 CSV 檔案上傳（`multipart/form-data`）；冪等設計改為相同 `request_id` 直接回 `BATCH_REQUEST_ALREADY_EXISTS` |
@@ -85,24 +86,7 @@ Content-Type: `application/json`
 
 # Response
 HTTP Status: `200 OK`
-
-## Response Sample（JSON）
-
-```json
-{
-  "request_id": "BATCH_20261003_001",
-  "accepted_count": 2,
-  "submitted_at": "2026-10-03T10:00:00+08:00"
-}
-```
-
-## Response Items
-
-| 欄位 | 類型 | 說明 |
-| ---- | ---- | ---- |
-| request_id | String | 發卡主機提供的批次識別碼，原樣回傳 |
-| accepted_count | Integer | 本批次接收的訂單筆數 |
-| submitted_at | Datetime | 批次接收時間（UTC+8 ISO 8601） |
+Body: 無
 
 ### 邏輯說明
 - 神坊收到請求後，建立 `finalize_batch_requests` 記錄，並逐筆建立 `finalize_batch_items`（初始狀態 `PENDING`），立即回傳 `200`
