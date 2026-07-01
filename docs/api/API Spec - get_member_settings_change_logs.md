@@ -7,6 +7,7 @@ permalink: /api-specs/get-member-settings-change-logs/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-01 | brand 子物件 `id` 範例值改為 ULID 格式 |
 | 2026-06-25 | type enum 全面改名：`change_brand` → `change_selected_brands`、`pause` → `disable_auto_redeem`、`resume` → `enable_auto_redeem`；移除 `initial_selection`（首次選牌統一歸類為 `change_selected_brands`）；response 結構改為統一 `data.before_brands` / `data.after_brands`；移除 `request_id`；`limit` 上限改為 20 |
 | 2026-06-24 | `limit` 上限改為 20 筆；各 brand array 統一改為 data dict |
 | 2026-06-22 | 由 `get_member_brand_change_logs` 更名；endpoint 改為 `/coupon/get_member_settings_change_logs` |
@@ -60,7 +61,7 @@ Content-Type: `application/json`
       "type": "system_clear_brands",
       "data": {
         "before_brands": [
-          { "id": "BRAND_FAMILYMART", "name": "全家便利商店" }
+          { "id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK", "name": "全家便利商店" }
         ],
         "after_brands": []
       },
@@ -71,7 +72,7 @@ Content-Type: `application/json`
       "data": {
         "before_brands": [],
         "after_brands": [
-          { "id": "BRAND_FAMILYMART", "name": "全家便利商店" }
+          { "id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK", "name": "全家便利商店" }
         ]
       },
       "created_at": "2026-10-20T11:00:00+08:00"
@@ -85,10 +86,10 @@ Content-Type: `application/json`
       "type": "change_selected_brands",
       "data": {
         "before_brands": [
-          { "id": "BRAND_FAMILYMART", "name": "全家便利商店" }
+          { "id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK", "name": "全家便利商店" }
         ],
         "after_brands": [
-          { "id": "BRAND_COSMED", "name": "康是美" }
+          { "id": "01HZYBXE2W1P6W8Y1A3B5D7EJN", "name": "康是美" }
         ]
       },
       "created_at": "2026-10-01T09:00:00+08:00"
@@ -125,7 +126,7 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| id | String | 品牌 ID |
+| id | String | 品牌 ID（ULID） |
 | name | String | 品牌名稱（反查當下 brand_name，可能為已失效品牌） |
 
 ## 邏輯說明
