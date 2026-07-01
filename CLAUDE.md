@@ -58,6 +58,8 @@
 
 **Member 授權狀態 enum**：
 `AUTHORIZED`、`DEAUTHORIZED`；未授權時為 `null`（不是 `UNAUTHORIZED`）
+- 此為 `members.auth_status` 資料庫欄位與內部 log（`member_authorization_logs`）使用的 enum，維持不變
+- API 層（`activate_member`/`deactivate_member`）對外回傳 `status: ACTIVE`/`INACTIVE`，由 API 負責與上述 DB enum 互相轉換
 
 ### 合作方與角色
 
@@ -73,7 +75,7 @@
 **API spec 存放位置**：`docs/api/API Spec - [api_name].md`
 
 **前台 `/coupon/...`（已有 spec）**：
-`get_current_rotation`、`member_authorize`、`member_unauthorize`、`get_member_settings`、`update_member_selected_brands`、`update_member_auto_redeem_settings`、`get_member_settings_change_logs`、`get_coupon_wallet`、`get_coupons`、`get_coupon_detail`、`get_member_orders`、`get_order`
+`get_current_rotation`、`activate_member`、`deactivate_member`、`get_member_settings`、`update_member_selected_brands`、`update_member_auto_redeem_settings`、`get_member_settings_change_logs`、`get_coupon_wallet`、`get_coupons`、`get_coupon_detail`、`get_member_orders`、`get_order`
 
 > ⚠️ `update_member_settings` 已於 2026-06-25 拆分為上述兩支，不再使用
 
