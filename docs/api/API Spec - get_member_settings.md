@@ -58,7 +58,7 @@ Content-Type: `application/json`
 
 ```json
 {  
-		"member_id": "USR_000123",  
+		"member_id": "17e26fe8-2bf4-4fbc-996f-f17b90fac683",  
 		"auto_redeem_enabled": true,  
 		"last_brand_selection_changed_at": "2026-10-15T20:30:00+08:00",  
 		"selected_brand_ids": ["brand_01", "brand_02"]
