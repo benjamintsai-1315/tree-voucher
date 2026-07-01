@@ -9,6 +9,7 @@ permalink: /database-schema/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-01 | `brands.id` 型別由 `string(64)` 改為 `string(26)` 並定義為 ULID（與 `campaigns.id`、`rotations.id` 一致）；同步更新所有 `brand_id` FK 欄位（`campaigns`、`rotation_brands`、`member_selected_brands`、`orders`）寬度為 `string(26)` |
 | 2026-06-24 | `campaigns` 移除 `rotation_id FK`；新增 `rotation_campaigns` 中間表（`rotation_id`、`campaign_id`），支援 campaign 掛載多個 rotation 及上架時機控制；ERD 關聯同步更新；active 判斷改為透過 `rotation_campaigns` join |
 | 2026-06-25 | `orders` 新增 `merchant_name` 欄位（刷卡門市名稱快照，由發卡主機提供） |
 | 2026-06-25 | `member_brand_change_logs` 補回 `type` 欄位（`change_selected_brands` \| `system_clear_brands` \| `disable_auto_redeem` \| `enable_auto_redeem`）；`data` 改為 nullable（pause/resume 類型寫入 `data: null`）；品牌異動類型仍使用 `{"add_brands": [{id, name}], "remove_brands": [{id, name}]}` 格式 |
@@ -113,7 +114,7 @@ erDiagram
     }
 
     brands {
-        string(64) id PK
+        string(26) id PK "ULID"
         string(32) name
         string(256) logo "URL"
         string(32) category "品牌分類：便利商店、藥妝..."
@@ -123,8 +124,8 @@ erDiagram
     }
 
     campaigns {
-        string(26) id PK
-        string(64) brand_id FK
+        string(26) id PK "ULID"
+        string(26) brand_id FK
         string(16) type "auto, manual"
         string(32) name
         string(64) description "預開欄位"
@@ -144,7 +145,7 @@ erDiagram
     }
 
     rotations {
-        string(26) id PK
+        string(26) id PK "ULID"
         datetime start_time
         datetime end_time
         int max_selectable_brand_count
@@ -156,14 +157,14 @@ erDiagram
     rotation_brands {
         string(26) id PK
         string(26) rotation_id FK
-        string(64) brand_id FK
+        string(26) brand_id FK
         datetime created_at
     }
 
     member_selected_brands {
         string(26) id PK
         string(36) member_id FK
-        string(64) brand_id FK
+        string(26) brand_id FK
         string(26) rotation_id FK
         datetime created_at "即 selected_at"
         datetime updated_at
@@ -195,7 +196,7 @@ erDiagram
     orders {
         string(64) order_id PK
         string(36) member_id FK
-        string(64) brand_id FK
+        string(26) brand_id FK
         int order_amount
         int discount_amount
         string(4) card_last_four_digits
@@ -256,12 +257,12 @@ erDiagram
 
 ### brands
 
-- 主鍵：`id`
+- 主鍵：`id`（ULID）
 - `treepoint_merchant_provider_key` 必填，不可為 `null`
 
 ### campaigns
 
-- 主鍵：`id`
+- 主鍵：`id`（ULID）
 - 外鍵：
   - `brand_id -> brands.id`
 - `type` enum：`auto`、`manual`
@@ -347,7 +348,7 @@ erDiagram
 
 ### rotations
 
-- 主鍵：`id`
+- 主鍵：`id`（ULID）
 - `start_time` / `end_time` 均為 UTC+8 時間戳記
 - active rotation 以 `start_time <= now() < end_time` 判斷
 - 系統同一時間只應有一個 active rotation
