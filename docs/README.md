@@ -24,8 +24,8 @@
 | API | 檔案 |
 |---|---|
 | `get_current_rotation` | `docs/api/API Spec - get_current_rotation.md` |
-| `member_authorize` | `docs/api/API Spec - member_authorize.md` |
-| `member_unauthorize` | `docs/api/API Spec - member_unauthorize.md` |
+| `activate_member` | `docs/api/API Spec - activate_member.md` |
+| `deactivate_member` | `docs/api/API Spec - deactivate_member.md` |
 | `get_member_settings` | `docs/api/API Spec - get_member_settings.md` |
 | `update_member_settings` | `docs/api/API Spec - update_member_settings.md` |
 | `get_member_brand_change_logs` | `docs/api/API Spec - get_member_settings_change_logs.md` |
