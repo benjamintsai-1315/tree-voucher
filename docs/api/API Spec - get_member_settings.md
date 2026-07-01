@@ -7,6 +7,7 @@ permalink: /api-specs/get-member-settings/
 
 | Date | Summary |
 | --- | --- |
+| 2026-07-01 | `selected_brand_ids` 範例值改為 ULID 格式 |
 | 2026-06-12 | 由 `get_user_selected_brands` 更名；`user_selected_brands` → `member_selected_brands`；`USER_NOT_FOUND` → `MEMBER_NOT_FOUND`；endpoint 改為 `/coupon/get_member_selected_brands` |
 | 2026-06-24 | `selected_brand_ids` 篩選條件明確為具備 active `auto` campaign 的品牌（手動換券不影響品牌選擇狀態） |
 | 2026-06-15 | `active_campaign` 新增 `discount_rate` 計算欄位；此 API 僅回傳 `type = auto` 的 campaign |
@@ -61,7 +62,7 @@ Content-Type: `application/json`
 		"member_id": "17e26fe8-2bf4-4fbc-996f-f17b90fac683",  
 		"auto_redeem_enabled": true,  
 		"last_brand_selection_changed_at": "2026-10-15T20:30:00+08:00",  
-		"selected_brand_ids": ["brand_01", "brand_02"]
+		"selected_brand_ids": ["01HZY9VC0T9M4T6W8Y1Z3B5CGK", "01HZYAWD1V0N5V7X9Z2A4C6DHM"]
 }
 ```
 
@@ -72,7 +73,7 @@ Content-Type: `application/json`
 | member_id | UUID | 神坊用戶識別碼 |
 | auto_redeem_enabled | Boolean | 使用者自動兌換服務是否啟用；`false` 表示目前為暫停用券狀態 |
 | last_brand_selection_changed_at | Datetime | 該用戶最近一次品牌選擇異動時間（UTC+8 ISO 8601）；僅首次選牌或更換品牌時更新；若從未選牌則為 `null` |
-| selected_brand_ids | Array | 該用戶目前已選擇、且當前仍具備 active campaign 的品牌 `id` 清單 |
+| selected_brand_ids | Array | 該用戶目前已選擇、且當前仍具備 active campaign 的品牌 `id`（ULID）清單 |
 
 ### 邏輯說明
 
