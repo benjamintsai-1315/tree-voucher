@@ -7,6 +7,7 @@ permalink: /api-specs/get-coupon-detail/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-01 | `brand_id`/`campaign_id` 範例值改為 ULID 格式，並於 response items 補上 ULID 型別註記 |
 | 2026-06-23 | 初版 |
 
 # API: get_coupon_detail
@@ -50,10 +51,10 @@ Content-Type: `application/json`
 {
   "id": "CPN_001",
   "status": "AVAILABLE",
-  "brand_id": "BRAND_FAMILYMART",
+  "brand_id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK",
   "brand_name": "全家便利商店",
   "brand_logo": "https://cdn.example.com/logos/familymart.png",
-  "campaign_id": "CPN_CAMP_001",
+  "campaign_id": "01HZY5Q8WP5G7N9R2T4V6X8ZBD",
   "campaign_name": "滿100折21",
   "campaign_type": "auto",
   "min_order_amount": 100,
@@ -72,10 +73,10 @@ Content-Type: `application/json`
 | ---- | ---- | ---- |
 | id | String | 券識別碼 |
 | status | String | 券狀態：`AVAILABLE` \| `CONSUMED` \| `SETTLED` \| `EXPIRED` |
-| brand_id | String | 對應 brand 識別碼 |
+| brand_id | String | 對應 brand 識別碼（ULID） |
 | brand_name | String | 對應 brand 名稱 |
 | brand_logo | String | 對應 brand logo 圖片 URL |
-| campaign_id | String | 該券所屬 campaign 識別碼 |
+| campaign_id | String | 該券所屬 campaign 識別碼（ULID） |
 | campaign_name | String | 該券所屬 campaign 名稱 |
 | campaign_type | String | 該券所屬 campaign 類型：`auto`（系統自動兌換）\| `manual`（用戶手動兌換） |
 | min_order_amount | Integer | 該券對應的消費門檻金額（元） |
