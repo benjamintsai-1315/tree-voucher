@@ -19,8 +19,8 @@ permalink: /api-specs/
 - [get_member_settings_change_logs]({{ '/api-specs/get-member-settings-change-logs/' | relative_url }})
 - [get_member_orders]({{ '/api-specs/get-member-orders/' | relative_url }})
 - [get_order]({{ '/api-specs/get-order/' | relative_url }})
-- [member_authorize]({{ '/api-specs/member-authorize/' | relative_url }})
-- [member_unauthorize]({{ '/api-specs/member-unauthorize/' | relative_url }})
+- [activate_member]({{ '/api-specs/activate-member/' | relative_url }})
+- [deactivate_member]({{ '/api-specs/deactivate-member/' | relative_url }})
 
 ## 發卡主機端
 
