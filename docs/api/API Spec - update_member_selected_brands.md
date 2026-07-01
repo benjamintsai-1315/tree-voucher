@@ -7,6 +7,7 @@ permalink: /api-specs/update-member-selected-brands/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-01 | `brand_ids` 範例值改為 ULID 格式，並補上 ULID 型別註記 |
 | 2026-06-25 | 由 `update_member_settings`（action=SELECT_BRANDS）調整為獨立 endpoint；payload 改為 `brand_ids` 完整清單；response 改為 200 OK 無 body |
 | 2026-06-24 | `PAUSE` / `RESUME` 冪等說明（已移至 update_member_auto_redeem_settings） |
 | 2026-06-18 | 移除 `RESUME` 的 `NO_ACTIVE_SELECTED_BRANDS` 限制；品牌相關錯誤僅適用於品牌選擇操作 |
@@ -41,14 +42,14 @@ Content-Type: `application/json`
 | 欄位 | 類型 | 必填 | 說明 |
 | ---- | ---- | ---- | ---- |
 | member_id | string | TRUE | UUID |
-| brand_ids | array | TRUE | 更新後的完整品牌 ID 清單；可為空陣列（代表清空全部已選品牌） |
+| brand_ids | array | TRUE | 更新後的完整品牌 ID（ULID）清單；可為空陣列（代表清空全部已選品牌） |
 
 ## Request Sample
 
 ```json
 {
   "member_id": "17e26fe8-2bf4-4fbc-996f-f17b90fac683",
-  "brand_ids": ["BRAND_711", "BRAND_COSMED"]
+  "brand_ids": ["01HZYAWD1V0N5V7X9Z2A4C6DHM", "01HZYBXE2W1P6W8Y1A3B5D7EJN"]
 }
 ```
 
