@@ -7,6 +7,7 @@ permalink: /api-specs/get-coupons/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-01 | `brand_id` 限制由 UUID 改為 ULID；`brand_id`/`campaign_id` 範例值改為 ULID 格式 |
 | 2026-06-23 | 由 `get_coupon_wallet` 改名為 `get_coupons`；端點更新為 `/coupon/get_coupons` |
 | 2026-06-16 | 欄位去除多餘 prefix：`coupon_id` → `id`；coupon 快照欄位 `coupon_min_order_amount/redeem_points/discount_amount` → `min_order_amount/redeem_points/discount_amount`；`PROCESSING/COMPLETED` status 值同步改為 `CONSUMED/SETTLED` |
 | 2026-06-16 | Coupon 狀態改名：`processing` → `consumed`、`completed` → `settled`；更新預設排序 bucket 說明 |
@@ -49,7 +50,7 @@ Content-Type: `application/json`
 | member_id | string | TRUE | FALSE | ❎ | UUID |
 | page | integer | FALSE | FALSE | 1 | > 0 |
 | limit | integer | FALSE | FALSE | 20 | > 0 |
-| brand_id | string | FALSE | FALSE | ❎ | UUID |
+| brand_id | string | FALSE | FALSE | ❎ | ULID |
 | status | string | FALSE | FALSE | ❎ | 僅接受 `AVAILABLE` \| `CONSUMED` \| `SETTLED` \| `EXPIRED` |
 
 # Response
@@ -64,10 +65,10 @@ Content-Type: `application/json`
     {
       "id": "CPN_001",
       "status": "AVAILABLE",
-      "brand_id": "BRAND_FAMILYMART",
+      "brand_id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK",
       "brand_name": "全家便利商店",
       "brand_logo": "https://cdn.example.com/logos/familymart.png",
-      "campaign_id": "CPN_CAMP_001",
+      "campaign_id": "01HZY5Q8WP5G7N9R2T4V6X8ZBD",
       "campaign_name": "滿100折21",
       "campaign_type": "auto",
       "min_order_amount": 100,
@@ -81,10 +82,10 @@ Content-Type: `application/json`
     {
       "id": "CPN_002",
       "status": "CONSUMED",
-      "brand_id": "BRAND_FAMILYMART",
+      "brand_id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK",
       "brand_name": "全家便利商店",
       "brand_logo": "https://cdn.example.com/logos/familymart.png",
-      "campaign_id": "CPN_CAMP_001",
+      "campaign_id": "01HZY5Q8WP5G7N9R2T4V6X8ZBD",
       "campaign_name": "滿100折21",
       "campaign_type": "auto",
       "min_order_amount": 100,
@@ -114,10 +115,10 @@ Content-Type: `application/json`
 | ---- | ---- | ---- |
 | id | String | 券識別碼 |
 | status | String | 券狀態：`AVAILABLE` \| `CONSUMED` \| `SETTLED` \| `EXPIRED` |
-| brand_id | String | 對應 brand 識別碼 |
+| brand_id | String | 對應 brand 識別碼（ULID） |
 | brand_name | String | 對應 brand 名稱 |
 | brand_logo | String | 對應 brand logo 圖片 URL |
-| campaign_id | String | 該券所屬 campaign 識別碼 |
+| campaign_id | String | 該券所屬 campaign 識別碼（ULID） |
 | campaign_name | String | 該券所屬 campaign 名稱 |
 | campaign_type | String | 該券所屬 campaign 類型：`auto`（系統自動兌換）\| `manual`（用戶手動兌換） |
 | min_order_amount | Integer | 該券對應的消費門檻金額（元） |
