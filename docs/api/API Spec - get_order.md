@@ -8,6 +8,7 @@ permalink: /api-specs/get-order/
 | Date | Summary |
 | ---- | ------- |
 | 2026-06-16 | `coupons_used[]` 欄位去除多餘 prefix：`coupon_id` → `id`；`coupon_min_order_amount/redeem_points/discount_amount` → `min_order_amount/redeem_points/discount_amount` |
+| 2026-07-01 | `brand_id`/`campaign_id` 範例值改為 ULID 格式，並於 response items 補上 ULID 型別註記 |
 | 2026-06-15 | `coupons_used[]` 新增 `discount_rate` 計算欄位 |
 | 2026-06-15 | 拆分為前台端（`/coupon/get_order`）與發卡主機端（`/bank/get_order`）兩支獨立 API；前台端加入 `member_id` 參數防呆，回傳完整訂單與事件歷程；發卡主機端請見 [API Spec - bank_get_order](API Spec - bank_get_order.md) |
 | 2026-06-15 | 路徑依呼叫端拆分（原共用同一份 spec） |
@@ -54,7 +55,7 @@ Content-Type: `application/json`
 {
   "order_id": "ORD_20261001_00001",
   "member_id": "17e26fe8-2bf4-4fbc-996f-f17b90fac683",
-  "brand_id": "BRAND_FAMILYMART",
+  "brand_id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK",
   "brand_name": "全家便利商店",
   "cash_amount": 620,
   "card_last_four_digits": "1234",
@@ -64,7 +65,7 @@ Content-Type: `application/json`
   "coupons_used": [
     {
       "id": "CPN_001",
-      "campaign_id": "old_campaign",
+      "campaign_id": "01HZY7SAYR7J2R4T6W8X1Z3AEH",
       "min_order_amount": 400,
       "redeem_points": 100,
       "discount_amount": 120,
@@ -74,7 +75,7 @@ Content-Type: `application/json`
     },
     {
       "id": "CPN_002",
-      "campaign_id": "new_campaign",
+      "campaign_id": "01HZY8TBZS8K3S5V7X9Y2A4BFJ",
       "min_order_amount": 100,
       "redeem_points": 20,
       "discount_amount": 21,
@@ -103,7 +104,7 @@ Content-Type: `application/json`
 | ---- | ---- | ---- |
 | order_id | String | 訂單識別碼 |
 | member_id | String | 神坊會員識別碼 |
-| brand_id | String | 對應 brand 識別碼 |
+| brand_id | String | 對應 brand 識別碼（ULID） |
 | brand_name | String | 對應 brand 名稱 |
 | cash_amount | Integer | 本次刷卡金額（元） |
 | card_last_four_digits | String | 該筆刷卡卡號後四碼，固定 4 碼數字字串 |
@@ -119,7 +120,7 @@ Content-Type: `application/json`
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | id | String | 券識別碼 |
-| campaign_id | String | 該券所屬 campaign 識別碼 |
+| campaign_id | String | 該券所屬 campaign 識別碼（ULID） |
 | min_order_amount | Integer | 該券對應的消費門檻金額（元） |
 | redeem_points | Integer | 該券建立時所對應的點數成本 |
 | discount_amount | Integer | 該券的折抵金額（元） |
