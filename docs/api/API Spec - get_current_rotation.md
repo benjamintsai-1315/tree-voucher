@@ -7,6 +7,7 @@ permalink: /api-specs/get-current-rotation/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-01 | `id`（rotation/brand/campaign）範例值統一改為 ULID 格式；response items 補上 ULID 型別註記 |
 | 2026-06-25 | `discount_rate` 類型改為 Decimal String；`max_redemptions_per_order` 補充「0 代表無上限」；`campaigns` 排序補充「依 campaign.id」；`coupon_redeem_points` 補充「>0」 |
 | 2026-06-24 | 邏輯說明更新：active campaign 判斷改為透過 `rotation_campaigns` join；`active_campaign`（單一物件）改為 `campaigns`（陣列）；新增 `type` 欄位（`auto`\|`manual`） |
 | 2026-06-16 | 欄位命名去除 prefix；`description` 改回 `display_coupon_min_order_amount` / `display_coupon_redeem_points`（後又改為 `description`）；`rotation_id` → `id`；`active_campaign` 新增 `created_at`；`discount_rate` 說明改為四捨五入至小數點第二位 |
@@ -46,20 +47,20 @@ Content-Type: `application/json`
 
 ```json
 {
-  "id": "rotation_ulid",
+  "id": "01HZY4K7VN3F4M6P8R2T5W9XQC",
   "start_time": "2026-01-01T00:00:00+08:00",
   "end_time": "2026-03-31T23:59:59+08:00",
   "description": "{\"order_amount\": 100, \"point_amount\": 20}",
   "max_selectable_brand_count": 3,
   "brands": [
     {
-      "id": "BRAND_FAMILYMART",
+      "id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK",
       "name": "全家便利商店",
       "logo": "https://cdn.example.com/logos/familymart.png",
       "category": "便利商店",
       "campaigns": [
         {
-          "id": "CPN_CAMP_001",
+          "id": "01HZY5Q8WP5G7N9R2T4V6X8ZBD",
           "type": "auto",
           "name": "滿100折21",
           "coupon_min_order_amount": 100,
@@ -71,7 +72,7 @@ Content-Type: `application/json`
           "updated_at": "2025-10-01T09:00:00+08:00"
         },
         {
-          "id": "CPN_CAMP_001M",
+          "id": "01HZY5Q8WP5G7N9R2T4V6X8ZBF",
           "type": "manual",
           "name": "手動換券活動",
           "coupon_min_order_amount": 100,
@@ -87,13 +88,13 @@ Content-Type: `application/json`
       "updated_at": "2025-10-01T09:00:00+08:00"
     },
     {
-      "id": "BRAND_711",
+      "id": "01HZYAWD1V0N5V7X9Z2A4C6DHM",
       "name": "7-ELEVEN",
       "logo": "https://cdn.example.com/logos/711.png",
       "category": "便利商店",
       "campaigns": [
         {
-          "id": "CPN_CAMP_002",
+          "id": "01HZY6R9XQ6H8P1S3V5W7Y9ZCG",
           "type": "auto",
           "name": "滿150折30",
           "coupon_min_order_amount": 150,
@@ -116,7 +117,7 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| id | String | 當前檔期識別碼 |
+| id | String | 當前檔期識別碼（ULID） |
 | start_time | String | 檔期開始時間（UTC+8 ISO 8601） |
 | end_time | String | 檔期結束時間（UTC+8 ISO 8601） |
 | description | String | 顯示用說明參數，JSON 字串格式：`{"order_amount": N, "point_amount": N}`，由前端自行 parse 呈現，不影響清算 |
@@ -127,7 +128,7 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| id | String | 品牌識別碼 |
+| id | String | 品牌識別碼（ULID） |
 | name | String | 品牌名稱 |
 | logo | String | 品牌 logo 圖片 URL |
 | category | String | 品牌分類（例：便利商店、藥妝、超市） |
@@ -139,7 +140,7 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| id | String | Campaign 識別碼 |
+| id | String | Campaign 識別碼（ULID） |
 | type | String | Campaign 類型：`auto`（系統自動兌換）\| `manual`（用戶手動兌換） |
 | name | String | Campaign 名稱 |
 | coupon_min_order_amount | Integer | 每消費滿 N 元可對應使用一張券 |
