@@ -41,6 +41,7 @@ permalink: /api-list/
 | `get_member_orders` | `GET` | `/coupon/get_member_orders` | 查詢使用者歷史折抵訂單列表，供用戶瀏覽折抵紀錄。 | 已有 spec |
 | `get_order` | `GET` | `/coupon/get_order` | 查詢單筆訂單完整資訊，包含折抵明細與事件歷程。需帶 `member_id` 防呆。 | 已有 spec |
 | `preview_discount` | `POST` | `/coupon/preview_discount` | 在未建立訂單前，試算指定品牌與刷卡金額可能折抵多少。若前端不需要即時試算，可不做。 | 可選 |
+| `redeem_manual_coupon`（暫定名） | `POST` | `/coupon/redeem_manual_coupon`（暫定） | 讓用戶對 `type=manual` 的 campaign 主動發起兌換，取得該 campaign 對應的 coupon。2026-07-01 調查發現：`get_current_rotation` 已回傳 `manual` campaign 規則供前端「手動換券頁面」顯示，但目前沒有任何 API 讓用戶實際執行兌換動作；兌換觸發方式、扣點時機等細節尚待確認。 | 需新增 spec |
 
 
 ## 發卡主機端 / 銀行信用卡系統
