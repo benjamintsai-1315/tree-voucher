@@ -53,7 +53,7 @@ Content-Type: `application/json`
 ```json
 {
   "order_id": "ORD_20261001_00001",
-  "member_id": "USR_000123",
+  "member_id": "17e26fe8-2bf4-4fbc-996f-f17b90fac683",
   "brand_id": "BRAND_FAMILYMART",
   "brand_name": "全家便利商店",
   "cash_amount": 620,
