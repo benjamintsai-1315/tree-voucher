@@ -7,6 +7,7 @@ permalink: /api-specs/create-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-01 | `brand_id` 限制改為 ULID |
 | 2026-06-25 | 新增 `merchant_name` request 欄位（必填）；快照保存於 `orders` 表，供前台訂單列表顯示門市名稱 |
 | 2026-06-25 | 放寬邊界檢查：`brand_id` 不再要求必須具備 active campaign；無 active campaign 時仍可使用既有 `available` 舊券；移除 `BRAND_HAS_NO_ACTIVE_CAMPAIGN` 錯誤碼 |
 | 2026-06-25 | `cash_amount` 改名為 `order_amount`；移除 lazy cleanup 說明（見 PRD）；邏輯說明改為既有券清算 / 新券發行兩段結構 |
@@ -52,7 +53,7 @@ Content-Type: `application/json`
 | ---- | ---- | ---- | ---- | ------ | -------- |
 | order_id | string | TRUE | FALSE | ❎ | 最多 64 字；僅限英數字與底線；全系統唯一 |
 | member_id | string | TRUE | FALSE | ❎ | UUID |
-| brand_id | string | TRUE | FALSE | ❎ | 最多 64 字 |
+| brand_id | string | TRUE | FALSE | ❎ | ULID |
 | order_amount | integer | TRUE | FALSE | ❎ | > 0，單位為元 |
 | card_last_four_digits | string | TRUE | FALSE | ❎ | 固定 4 字；僅接受 `0-9` |
 | merchant_name | string | TRUE | FALSE | ❎ | 最多 64 字；刷卡當下的門市名稱（如「全家南京西路店」） |
