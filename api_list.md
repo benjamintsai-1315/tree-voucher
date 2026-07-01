@@ -28,8 +28,8 @@ permalink: /api-list/
 | API | Method | Endpoint | 用途 | 狀態 |
 | ---- | ---- | ---- | ---- | ---- |
 | `get_current_rotation` | `GET` | `/coupon/get_current_rotation` | 取得當前 active rotation 的設定（活動期間、品牌選擇上限、顯示用說明參數），及本檔期所有具備 active campaign 的品牌清單與 campaign 規則。 | 已有 spec |
-| `member_authorize` | `POST` | `/coupon/member_authorize` | 用戶在 CR 前台同意啟用樹享券服務。神坊呼叫點數系統 API，成功後更新授權狀態並寫入 log。 | 已有 spec |
-| `member_unauthorize` | `POST` | `/coupon/member_unauthorize` | 用戶在 CR 前台主動解除服務。神坊更新授權狀態並寫入 log；現有 coupon 保留但不可用。 | 已有 spec |
+| `activate_member` | `POST` | `/coupon/activate_member` | 用戶在 CR 前台同意啟用樹享券服務。神坊呼叫點數系統 API，成功後更新授權狀態並寫入 log。（原 `member_authorize`） | 已有 spec |
+| `deactivate_member` | `POST` | `/coupon/deactivate_member` | 用戶在 CR 前台主動解除服務。神坊更新授權狀態並寫入 log；現有 coupon 保留但不可用。（原 `member_unauthorize`） | 已有 spec |
 | `get_member_settings` | `GET` | `/coupon/get_member_settings` | 取得使用者目前的完整設定狀態，包含 `auto_redeem_enabled`、`max_selectable_brand_count`、`last_changed_at`，以及目前已選擇、且當前仍具備 active campaign 的品牌。 | 已有 spec |
 | `update_member_selected_brands` | `POST` | `/coupon/update_member_selected_brands` | 更新該會員的已選品牌清單。以 `brand_ids` 作為更新後完整結果，後端自行計算 diff 並寫入異動紀錄。 | 已有 spec |
 | `update_member_auto_redeem_settings` | `POST` | `/coupon/update_member_auto_redeem_settings` | 切換該會員的自動兌換服務狀態（暫停／啟用）。`auto_redeem_enabled: boolean`。 | 已有 spec |
