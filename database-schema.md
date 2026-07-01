@@ -251,7 +251,7 @@ erDiagram
 - 主鍵：`id`
 - 外鍵：`member_id -> members.id`
 - `action` enum：`AUTHORIZE`、`DEAUTHORIZE`
-- 每次呼叫 `member_authorize` / `member_unauthorize` 成功後寫入一筆；冪等呼叫不重複寫入
+- 每次呼叫 `activate_member` / `deactivate_member`（原 `member_authorize` / `member_unauthorize`）成功後寫入一筆；冪等呼叫不重複寫入
 - 完整授權歷史保存於此表，未來透過 `/coupon/admin/get_member_authorization_logs` 供客服查詢
 
 ### brands
