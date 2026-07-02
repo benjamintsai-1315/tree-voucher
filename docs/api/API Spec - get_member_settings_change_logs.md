@@ -7,6 +7,9 @@ permalink: /api-specs/get-member-settings-change-logs/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
+| 2026-07-02 | 新增邊界檢查與 400 錯誤：會員須已啟用（`MEMBER_NOT_ACTIVATED`） |
+| 2026-07-02 | `items` 新增 `id`（log 唯一識別碼） |
 | 2026-07-01 | brand 子物件 `id` 範例值改為 ULID 格式 |
 | 2026-06-25 | type enum 全面改名：`change_brand` → `change_selected_brands`、`pause` → `disable_auto_redeem`、`resume` → `enable_auto_redeem`；移除 `initial_selection`（首次選牌統一歸類為 `change_selected_brands`）；response 結構改為統一 `data.before_brands` / `data.after_brands`；移除 `request_id`；`limit` 上限改為 20 |
 | 2026-06-24 | `limit` 上限改為 20 筆；各 brand array 統一改為 data dict |
@@ -24,7 +27,11 @@ permalink: /api-specs/get-member-settings-change-logs/
 - 邊界檢查：
   - API Key 須為樹享券平台前台端專屬授權，不接受其他呼叫方的 API Key
   - `member_id` 必須存在於神坊系統中
+  - 呼叫前會員必須已啟用（`members.is_activated = TRUE`）
   - 僅回傳過去 1 年內的異動紀錄
+  - 來源 IP 須在白名單內
+
+> **注意：** `API Key` 與來源 IP 白名單皆存於 AWS Parameter Store。
 
 ## 使用情境
 前台端帶入 `member_id` 查詢該會員過去 1 年內的設定異動紀錄，供會員回看曾經的品牌選擇變更與服務暫停／啟用歷程。
@@ -58,6 +65,7 @@ Content-Type: `application/json`
   "total": 4,
   "items": [
     {
+      "id": "01JZY4K7VN3F4M6P8R2T5W9XQA",
       "type": "system_clear_brands",
       "data": {
         "before_brands": [
@@ -68,6 +76,7 @@ Content-Type: `application/json`
       "created_at": "2027-01-01T00:00:00+08:00"
     },
     {
+      "id": "01JZY4K7VN3F4M6P8R2T5W9XQB",
       "type": "change_selected_brands",
       "data": {
         "before_brands": [],
@@ -78,11 +87,13 @@ Content-Type: `application/json`
       "created_at": "2026-10-20T11:00:00+08:00"
     },
     {
+      "id": "01JZY4K7VN3F4M6P8R2T5W9XQC",
       "type": "enable_auto_redeem",
       "data": null,
       "created_at": "2026-10-15T20:30:00+08:00"
     },
     {
+      "id": "01JZY4K7VN3F4M6P8R2T5W9XQD",
       "type": "change_selected_brands",
       "data": {
         "before_brands": [
@@ -111,6 +122,7 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
+| id | String | log 唯一識別碼（ULID） |
 | type | String | 操作類型：`change_selected_brands` \| `disable_auto_redeem` \| `enable_auto_redeem` \| `system_clear_brands` |
 | data | Object \| null | 品牌異動明細；`change_selected_brands` / `system_clear_brands` 回傳；`disable_auto_redeem` / `enable_auto_redeem` 為 `null` |
 | created_at | String | 操作發生時間（UTC+8 ISO 8601） |
@@ -139,3 +151,4 @@ Content-Type: `application/json`
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 1. `member_id` 不存在：`MEMBER_NOT_FOUND`
+2. 會員未啟用：`MEMBER_NOT_ACTIVATED`
