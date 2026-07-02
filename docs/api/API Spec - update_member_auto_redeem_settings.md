@@ -7,6 +7,8 @@ permalink: /api-specs/update-member-auto-redeem-settings/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
+| 2026-07-02 | 新增邊界檢查與 400 錯誤：會員須已啟用（`MEMBER_NOT_ACTIVATED`） |
 | 2026-06-25 | 從 `update_member_settings`（action=PAUSE/RESUME）拆分為獨立 endpoint；payload 改為 `auto_redeem_enabled: boolean`；response 改為 200 OK 無 body |
 | 2026-06-24 | `PAUSE` / `RESUME` 冪等說明：當前狀態已與目標一致時，直接回 200，不寫異動紀錄 |
 | 2026-06-18 | 移除 `RESUME` 的 `NO_ACTIVE_SELECTED_BRANDS` 限制：用戶券夾仍可能有可用券，不應阻擋操作 |
@@ -21,6 +23,10 @@ permalink: /api-specs/update-member-auto-redeem-settings/
 - 邊界檢查：
   - API Key 須為樹享券平台前台端專屬授權，不接受其他呼叫方的 API Key
   - `member_id` 必須存在於神坊系統中
+  - 呼叫前會員必須已啟用（`members.is_activated = TRUE`）
+  - 來源 IP 須在白名單內
+
+> **注意：** `API Key` 與來源 IP 白名單皆存於 AWS Parameter Store。
 
 # Request
 HTTP method: `POST`
@@ -61,3 +67,4 @@ HTTP Status: `200 OK`（無 body）
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 1. `member_id` 不存在：`MEMBER_NOT_FOUND`
+2. 會員未啟用：`MEMBER_NOT_ACTIVATED`
