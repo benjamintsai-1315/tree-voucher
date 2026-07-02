@@ -7,6 +7,7 @@ permalink: /api-specs/get-member-orders/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-02 | 排序改為 `transaction_time DESC`；新增 `transaction_time` response 欄位（發卡主機傳入的刷卡交易時間，供前端顯示用） |
 | 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
 | 2026-07-02 | 新增邊界檢查與 400 錯誤：會員須已啟用（`MEMBER_NOT_ACTIVATED`） |
 | 2026-07-02 | `brand` 欄位說明獨立為子表格；移除 `sort_by`/`sort_order` 參數，固定以 `created_at DESC` 排序 |
@@ -17,7 +18,7 @@ permalink: /api-specs/get-member-orders/
 # API: get_member_orders
 
 ## 功能說明
-讓樹享券平台前台端以 API Key 依 member_id 取得該會員的訂單列表，支援分頁，固定以 `created_at DESC` 排序，供會員瀏覽歷史折抵紀錄。
+讓樹享券平台前台端以 API Key 依 member_id 取得該會員的訂單列表，支援分頁，固定以 `transaction_time DESC` 排序，供會員瀏覽歷史折抵紀錄。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`
@@ -71,6 +72,7 @@ Content-Type: `application/json`
       "card_last_four_digits": "1234",
       "discount_amount": 141,
       "order_status": "COMPLETED",
+      "transaction_time": "2026-10-01T14:28:00+08:00",
       "finalized_at": "2026-10-03T10:00:00+08:00",
       "created_at": "2026-10-01T14:30:00+08:00"
     },
@@ -84,6 +86,7 @@ Content-Type: `application/json`
       "card_last_four_digits": "5678",
       "discount_amount": 21,
       "order_status": "PROCESSING",
+      "transaction_time": "2026-10-02T09:08:00+08:00",
       "finalized_at": null,
       "created_at": "2026-10-02T09:10:00+08:00"
     }
@@ -110,6 +113,7 @@ Content-Type: `application/json`
 | card_last_four_digits | String | 該筆刷卡卡號後四碼，固定 4 碼數字字串 |
 | discount_amount | Integer | 本次實際折抵總金額（元） |
 | order_status | String | 訂單當前狀態：`PROCESSING` \| `COMPLETED` \| `CANCELLED` |
+| transaction_time | String | 發卡主機傳入的刷卡交易時間（UTC+8 ISO 8601）；列表依此欄位排序（DESC） |
 | finalized_at | String \| null | 訂單最終化時間；`PROCESSING` 時為 `null` |
 | created_at | String | 訂單建立時間（UTC+8 ISO 8601） |
 
@@ -123,7 +127,7 @@ Content-Type: `application/json`
 ### 邏輯說明
 - 列表為摘要資訊，不含 `coupons_used` 明細與 `events` 歷程；完整資訊請呼叫 `get_order`
 - `items` 內的 `card_last_four_digits` 為建單時由發卡主機提供，供前台端在訂單列表顯示卡號辨識資訊
-- 固定以 `created_at DESC` 排序
+- 固定以 `transaction_time DESC` 排序
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 1. member_id 不存在：`MEMBER_NOT_FOUND`

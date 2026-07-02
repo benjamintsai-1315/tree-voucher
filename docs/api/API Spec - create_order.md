@@ -7,6 +7,7 @@ permalink: /api-specs/create-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-02 | 新增 `transaction_time` request 欄位（呈現用）；新增 `max_redemption_per_rotation` campaign 屬性與對應 quota 檢查；新增 rotation 邊界暫定說明 |
 | 2026-07-01 | `brand_id` 限制改為 ULID |
 | 2026-06-25 | 新增 `merchant_name` request 欄位（必填）；快照保存於 `orders` 表，供前台訂單列表顯示門市名稱 |
 | 2026-06-25 | 放寬邊界檢查：`brand_id` 不再要求必須具備 active campaign；無 active campaign 時仍可使用既有 `available` 舊券；移除 `BRAND_HAS_NO_ACTIVE_CAMPAIGN` 錯誤碼 |
@@ -57,6 +58,7 @@ Content-Type: `application/json`
 | order_amount | integer | TRUE | FALSE | ❎ | > 0，單位為元 |
 | card_last_four_digits | string | TRUE | FALSE | ❎ | 固定 4 字；僅接受 `0-9` |
 | merchant_name | string | TRUE | FALSE | ❎ | 最多 64 字；刷卡當下的門市名稱（如「全家南京西路店」） |
+| transaction_time | string | TRUE | FALSE | ❎ | 刷卡交易時間（UTC+8 ISO 8601）；呈現用途，不影響清算或券的時間計算 |
 
 # Response
 ## Sample（JSON）
@@ -87,17 +89,21 @@ Content-Type: `application/json`
 
 **新券發行與清算：**
 1. 計算剩餘消費額：`order_amount - Σ（已使用既有券的 coupon_min_order_amount）`
-2. 計算 active campaign quota：`remaining_active_campaign_quota = max_redemptions_per_order - active_campaign_coupon_used_count`；若 `<= 0` 或無 active campaign，跳過新券發行
-3. 本次可新發張數 = `min(剩餘消費額 // coupon_min_order_amount, point_balance // coupon_redeem_points, remaining_active_campaign_quota)`
-4. 執行扣點（依 `brand.treepoint_merchant_provider_key` 作帳務歸屬），並即時發對應張數新券，狀態為 `consumed`
-5. 新券建立時，`expired_at = (issued_at 所在 UTC+8 日期 + coupon_valid_days) 的 23:59:59.999`
+2. 計算 per-order quota：`remaining_per_order_quota = max_redemptions_per_order - active_campaign_coupon_used_count`；若 `<= 0` 或無 active campaign，跳過新券發行
+3. 計算 per-rotation quota：`remaining_per_rotation_quota = max_redemption_per_rotation - count(member_id, campaign_id, rotation_id 已發券數)`；若 `<= 0`，跳過新券發行
+4. 本次可新發張數 = `min(剩餘消費額 // coupon_min_order_amount, point_balance // coupon_redeem_points, remaining_per_order_quota, remaining_per_rotation_quota)`
+5. 執行扣點（依 `brand.treepoint_merchant_provider_key` 作帳務歸屬），並即時發對應張數新券，狀態為 `consumed`
+6. 新券建立時，`expired_at = (issued_at 所在 UTC+8 日期 + coupon_valid_days) 的 23:59:59.999`
 
 - `discount_amount` = Σ（本次所有 `consumed` coupon 的 `coupon_discount_amount`）
 - 僅在同一個 DB transaction 內完成扣點、發新券、既有券轉 `consumed`、建立 order 與建立 order event 後，才視為建單成功
   > 是否以同一 DB transaction 進行待討論
 - 建單成功後，訂單進入 `PROCESSING` 狀態，等待後續 `finalize_order`
 - 若用戶在該 brand 下無任何 `available coupon`，且點數餘額也為 0（或無 active campaign 可發新券），則本次清算直接失敗並回 `NO_AVAILABLE_COUPON_AND_POINT`
-- `card_last_four_digits`、`merchant_name` 均為顯示用途欄位，由發卡主機於建單時提供，神坊原樣保存於訂單資料（快照），供後續訂單查詢 API 回傳；不參與任何清算邏輯
+- `card_last_four_digits`、`merchant_name`、`transaction_time` 均為顯示用途欄位，由發卡主機於建單時提供，神坊原樣保存於訂單資料（快照），供後續訂單查詢 API 回傳；不參與任何清算邏輯
+- 券的 `issued_at` / `expired_at` 均以神坊**收到 request 的實際時間**為準，與 `transaction_time` 無關
+- **rotation 邊界暫定：** 若 `transaction_time` 早於 `rotation.end_at`（交易發生在舊檔期內），但神坊收到 request 時當下時間已超過 `rotation.end_at`，**暫定仍以收到 request 時間為準**執行清算（不回溯舊 rotation）
+- `max_redemption_per_rotation`：定義於 campaign 屬性；計數條件為同一 `member_id + campaign_id + rotation_id` 下曾發行（含 `consumed`、`settled`、`available`、`expired`）的 coupon 總數；涵蓋 auto 與 manual 兩種場景
 - `create_order` response 僅回傳 `discount_amount`；若需訂單狀態、用券明細、事件歷程與卡號後四碼，應另呼叫 `get_order`
 - 同一 `order_id` 只允許成功建立一次；任何再次收到的 `create_order` 請求皆回 `ORDER_ALREADY_EXIST`
 - 重複 `create_order` 不得再次扣點、發券、改券狀態或新增事件
