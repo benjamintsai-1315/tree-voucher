@@ -30,10 +30,10 @@
 | **brand** | 合作的品牌通路，也稱特店（如全家、7-11） |
 | **campaign** | 品牌底下的產券規則（折抵比率、兌換點數、最大使用張數） |
 | **coupon** | 基於 campaign 產出、所屬於用戶的 instance |
-| **rotation** | 檔期，定義活動期間與品牌選擇上限（`max_selectable_brand_count`） |
-| **rotation_campaigns** | campaign 掛載 rotation 的中間表；刪除此記錄 = campaign 下架 |
+| **rotation** | 檔期，定義活動期間與品牌選擇上限（`max_selectable_auto_brand_count`，僅計入具備 active `auto` campaign 之品牌） |
+| **brand_rotation_campaigns** | campaign 掛載 rotation 的中間表（原 `rotation_campaigns`，2026-07-02 更名）；刪除此記錄 = campaign 下架 |
 | **active rotation** | `start_time <= now() < end_time`（end_time **不含**邊界） |
-| **active campaign** | `rotation_campaigns` 中存在對應當前 active rotation 記錄的 campaign |
+| **active campaign** | `brand_rotation_campaigns` 中存在對應當前 active rotation 記錄的 campaign |
 
 ### 關鍵業務規則
 
@@ -52,14 +52,16 @@
 **Campaign 類型規則**：
 - `type = auto`：同一 brand 同一時間只允許一個 active；`type = manual`：無數量上限
 - `type` 一經建立不得更改
+- `get_current_rotation` 的 `brands` 清單僅回傳具備 active `auto` campaign 的品牌（純 `manual` campaign 品牌不列入，也不可被選入 `update_member_selected_brands` 的 `brand_ids`）；品牌一旦入選，其 `campaigns` 陣列仍回傳該品牌所有 active campaign（`auto` 與 `manual`），不受此篩選限制
 
 **Coupon 狀態 enum**（必須用這些，不得自造）：
 `AVAILABLE` → `CONSUMED`（授權中）→ `SETTLED`（請款完成）或 `EXPIRED`
 
-**Member 授權狀態 enum**：
-`AUTHORIZED`、`DEAUTHORIZED`；未授權時為 `null`（不是 `UNAUTHORIZED`）
-- 此為 `members.auth_status` 資料庫欄位與內部 log（`member_authorization_logs`）使用的 enum，維持不變
-- API 層（`activate_member`/`deactivate_member`）對外回傳 `status: ACTIVE`/`INACTIVE`，由 API 負責與上述 DB enum 互相轉換
+**Member 啟用狀態欄位**（2026-07-02 起：以「啟用」取代「授權」作為權威定義，`activate_member`/`deactivate_member` 取代舊有 `member_authorize`/`member_unauthorize`）：
+`members.is_activated`（Boolean）：`TRUE`（已啟用）／`FALSE`（未啟用或已停用）
+- 此為 `members.is_activated` 資料庫欄位與內部 log（`member_activation_logs`，action=`ACTIVATE`/`DEACTIVATE`）使用的欄位；舊版 `members.auth_status`（enum `AUTHORIZED`/`DEAUTHORIZED`/`null`）與 `member_authorization_logs` 已棄用，文件中不應再新增此用法
+- API 層（`activate_member`/`deactivate_member`）對外回傳 `status: ACTIVE`/`INACTIVE`，由 API 負責與上述 DB 欄位互相轉換
+- 各 API 邊界檢查一律使用「呼叫前會員必須已啟用（`members.is_activated = TRUE`）」與對應 400 錯誤 `MEMBER_NOT_ACTIVATED`（`get_order` 除外，因其設計為不透露訂單/會員狀態，一律回 `ORDER_NOT_FOUND`）
 
 ### 合作方與角色
 
@@ -83,6 +85,8 @@
 `create_order`、`batch_finalize_orders`、`get_finalize_batch_status`、`bank_get_order`
 
 **Scope 外（本次不做）**：對帳 API、後台 CRUD API（第二階段）
+
+**前台 API 安全機制**（2026-07-02 起）：所有 `/coupon/...` API 除 `API Key` 驗證外，另須通過來源 IP 白名單檢查；`API Key`、IP 白名單皆存於 AWS Parameter Store，不寫死於程式碼或設定檔。`/bank/...` API 不在此列，邊界檢查另行定義。
 
 ### Asana 工單位置
 
