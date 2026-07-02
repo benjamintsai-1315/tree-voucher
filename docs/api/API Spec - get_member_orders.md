@@ -7,6 +7,7 @@ permalink: /api-specs/get-member-orders/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-02 | `brand` 欄位說明獨立為子表格；移除 `sort_by`/`sort_order` 參數，固定以 `created_at DESC` 排序 |
 | 2026-07-02 | `brand_id`、`brand_name` 改為巢狀物件 `brand: { id, name }` |
 | 2026-07-01 | `brand_id` 範例值改為 ULID 格式 |
 | 2026-06-12 | 由 `get_user_orders` 更名；`user_id` → `member_id`；`USER_NOT_FOUND` → `MEMBER_NOT_FOUND`；endpoint 改為 `/coupon/get_member_orders` |
@@ -14,7 +15,7 @@ permalink: /api-specs/get-member-orders/
 # API: get_member_orders
 
 ## 功能說明
-讓樹享券平台前台端以 API Key 依 member_id 取得該會員的訂單列表，支援分頁與排序，供會員瀏覽歷史折抵紀錄。
+讓樹享券平台前台端以 API Key 依 member_id 取得該會員的訂單列表，支援分頁，固定以 `created_at DESC` 排序，供會員瀏覽歷史折抵紀錄。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`
@@ -44,8 +45,6 @@ Content-Type: `application/json`
 | member_id | string | TRUE | FALSE | ❎ | 最多 64 字 |
 | page | integer | FALSE | FALSE | 1 | > 0 |
 | limit | integer | FALSE | FALSE | 20 | > 0 |
-| sort_by | string | FALSE | FALSE | `created_at` | 僅接受 `created_at` \| `order_status` |
-| sort_order | string | FALSE | FALSE | `DESC` | 僅接受 `ASC` \| `DESC` |
 
 # Response
 ## Sample（JSON）
@@ -100,9 +99,7 @@ Content-Type: `application/json`
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | order_id | String | 訂單識別碼 |
-| brand | Object | 對應品牌資訊 |
-| brand.id | String | 品牌識別碼（ULID） |
-| brand.name | String | 品牌名稱 |
+| brand | Object | 對應品牌資訊，見下表 |
 | cash_amount | Integer | 本次刷卡金額（元） |
 | card_last_four_digits | String | 該筆刷卡卡號後四碼，固定 4 碼數字字串 |
 | discount_amount | Integer | 本次實際折抵總金額（元） |
@@ -110,11 +107,17 @@ Content-Type: `application/json`
 | finalized_at | String \| null | 訂單最終化時間；`PROCESSING` 時為 `null` |
 | created_at | String | 訂單建立時間（UTC+8 ISO 8601） |
 
+### brand
+
+| 欄位 | 類型 | 說明 |
+| ---- | ---- | ---- |
+| id | String | 品牌識別碼（ULID） |
+| name | String | 品牌名稱 |
+
 ### 邏輯說明
 - 列表為摘要資訊，不含 `coupons_used` 明細與 `events` 歷程；完整資訊請呼叫 `get_order`
 - `items` 內的 `card_last_four_digits` 為建單時由發卡主機提供，供前台端在訂單列表顯示卡號辨識資訊
-- `sort_by = created_at`：依訂單建立時間排序
-- `sort_by = order_status`：依狀態排序，順序為 `PROCESSING` → `COMPLETED` → `CANCELLED`
+- 固定以 `created_at DESC` 排序
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 1. member_id 不存在：`MEMBER_NOT_FOUND`

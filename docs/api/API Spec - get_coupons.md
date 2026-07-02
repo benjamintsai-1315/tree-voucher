@@ -7,6 +7,7 @@ permalink: /api-specs/get-coupons/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-02 | `status` 改為可複選（`status[]`，repeatable query param） |
 | 2026-07-02 | `brand_*` 欄位改為巢狀 `brand: {id, name, logo}`；`campaign_*` 欄位改為巢狀 `campaign: {id, name, type}` |
 | 2026-07-01 | `brand_id` 限制由 UUID 改為 ULID；`brand_id`/`campaign_id` 範例值改為 ULID 格式 |
 | 2026-06-23 | 由 `get_coupon_wallet` 改名為 `get_coupons`；端點更新為 `/coupon/get_coupons` |
@@ -52,7 +53,7 @@ Content-Type: `application/json`
 | page | integer | FALSE | FALSE | 1 | > 0 |
 | limit | integer | FALSE | FALSE | 20 | > 0 |
 | brand_id | string | FALSE | FALSE | ❎ | ULID |
-| status | string | FALSE | FALSE | ❎ | 僅接受 `AVAILABLE` \| `CONSUMED` \| `SETTLED` \| `EXPIRED` |
+| status[] | string | FALSE | FALSE | ❎ | 可重複帶入，每個值僅接受 `AVAILABLE` \| `CONSUMED` \| `SETTLED` \| `EXPIRED`；不帶表示回傳全部狀態 |
 
 # Response
 ## Sample（JSON）
@@ -152,7 +153,7 @@ Content-Type: `application/json`
 
 ### 邏輯說明
 - 預設回傳該用戶所有券狀態，不只 `AVAILABLE`
-- 若帶 `status`，僅回傳該單一狀態的券
+- 若帶 `status[]`，僅回傳指定狀態的券；可同時帶多個值（例如 `?status[]=AVAILABLE&status[]=CONSUMED`）
 - 若帶 `brand_id`，僅回傳該品牌底下的券
 - 預設排序先依狀態 bucket：`AVAILABLE` → `CONSUMED` → `SETTLED` → `EXPIRED`
 - 同一狀態 bucket 內依 `expired_at ASC`、`created_at ASC`、`id ASC` 排序
