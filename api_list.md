@@ -27,10 +27,10 @@ permalink: /api-list/
 
 | API | Method | Endpoint | 用途 | 狀態 |
 | ---- | ---- | ---- | ---- | ---- |
-| `get_current_rotation` | `GET` | `/coupon/get_current_rotation` | 取得當前 active rotation 的設定（活動期間、品牌選擇上限、顯示用說明參數），及本檔期所有具備 active campaign 的品牌清單與 campaign 規則。 | 已有 spec |
+| `get_current_rotation` | `GET` | `/coupon/get_current_rotation` | 取得當前 active rotation 的設定（活動期間、品牌選擇上限、顯示用說明參數），及本檔期所有具備 active `auto` campaign 的品牌清單與 campaign 規則。 | 已有 spec |
 | `activate_member` | `POST` | `/coupon/activate_member` | 用戶在 CR 前台同意啟用樹享券服務。神坊呼叫點數系統 API，成功後更新授權狀態並寫入 log。（原 `member_authorize`） | 已有 spec |
 | `deactivate_member` | `POST` | `/coupon/deactivate_member` | 用戶在 CR 前台主動解除服務。神坊更新授權狀態並寫入 log；現有 coupon 保留但不可用。（原 `member_unauthorize`） | 已有 spec |
-| `get_member_settings` | `GET` | `/coupon/get_member_settings` | 取得使用者目前的完整設定狀態，包含 `auto_redeem_enabled`、`max_selectable_brand_count`、`last_changed_at`，以及目前已選擇、且當前仍具備 active campaign 的品牌。 | 已有 spec |
+| `get_member_settings` | `GET` | `/coupon/get_member_settings` | 取得使用者目前的完整設定狀態，包含 `auto_redeem_enabled`、`max_selectable_auto_brand_count`、`last_changed_at`，以及目前已選擇、且當前仍具備 active `auto` campaign 的品牌。 | 已有 spec |
 | `update_member_selected_brands` | `POST` | `/coupon/update_member_selected_brands` | 更新該會員的已選品牌清單。以 `brand_ids` 作為更新後完整結果，後端自行計算 diff 並寫入異動紀錄。 | 已有 spec |
 | `update_member_auto_redeem_settings` | `POST` | `/coupon/update_member_auto_redeem_settings` | 切換該會員的自動兌換服務狀態（暫停／啟用）。`auto_redeem_enabled: boolean`。 | 已有 spec |
 | ~~`update_member_settings`~~ | ~~`PATCH`~~ | ~~`/coupon/update_member_settings`~~ | ~~[DEPRECATED] 已拆分為 `update_member_selected_brands` 與 `update_member_auto_redeem_settings`~~ | ~~已有 spec~~ |
@@ -84,7 +84,7 @@ permalink: /api-list/
 
 ### 系統環境參數說明
 - `coupon_valid_days` 為全域有效天數參數，供發券時計算 `coupon.expired_at`；不屬於 `campaign` 欄位。
-- `max_selectable_brand_count` 已移至 `rotations` 表，由各檔期自行定義，不再是全域 `system_configs` 參數。
+- `max_selectable_auto_brand_count`（原 `max_selectable_brand_count`）已移至 `rotations` 表，由各檔期自行定義，不再是全域 `system_configs` 參數。
 - `display_coupon_min_order_amount` / `display_coupon_redeem_points` 設置於 `rotations` 表，目前供前端呈現說明文字，不影響清算；未來後台有 campaign 建立介面時，將作為新建 campaign 的 default value。
 
 ### 訂單資料模型說明
