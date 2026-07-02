@@ -7,6 +7,12 @@ permalink: /api-specs/get-current-rotation/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-02 | `max_selectable_brand_count` 更名為 `max_selectable_auto_brand_count`，明確代表僅計入具備 active `auto` campaign 品牌的可選上限 |
+| 2026-07-02 | `brands` 篩選條件明確為具備 active `auto` campaign 的品牌（不含僅有 `manual` campaign 的品牌）；`campaigns` 陣列仍回傳該品牌所有 active campaign（`auto` 與 `manual`） |
+| 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
+| 2026-07-02 | campaign active 判斷改用 `brand_rotation_campaigns`（原 `rotation_campaigns`）；`discount_rate` 型別改為 Float（原 Decimal String） |
+| 2026-07-02 | 邏輯說明補充 `NO_ACTIVE_ROTATION` 與「有 rotation 但無符合品牌」情境的差異說明 |
+| 2026-07-02 | rotation 新增 `name` 欄位（檔期名稱） |
 | 2026-07-01 | `id`（rotation/brand/campaign）範例值統一改為 ULID 格式；response items 補上 ULID 型別註記 |
 | 2026-06-25 | `discount_rate` 類型改為 Decimal String；`max_redemptions_per_order` 補充「0 代表無上限」；`campaigns` 排序補充「依 campaign.id」；`coupon_redeem_points` 補充「>0」 |
 | 2026-06-24 | 邏輯說明更新：active campaign 判斷改為透過 `rotation_campaigns` join；`active_campaign`（單一物件）改為 `campaigns`（陣列）；新增 `type` 欄位（`auto`\|`manual`） |
@@ -16,12 +22,15 @@ permalink: /api-specs/get-current-rotation/
 # API: get_current_rotation
 
 ## 功能說明
-讓樹享券平台前台端取得目前 active rotation（輪播檔期）的設定資訊，以及本檔期所有具備 active campaign 的品牌清單與 campaign 規則，供前端顯示活動期間、品牌選擇上限、兌換條件說明及品牌一覽頁面。每個品牌回傳其所有 active campaign（`auto` 與 `manual`），前端依 `type` 篩選各頁面所需顯示的類型。
+讓樹享券平台前台端取得目前 active rotation（輪播檔期）的設定資訊，以及本檔期所有具備 active `auto` campaign 的品牌清單與 campaign 規則，供前端顯示活動期間、品牌選擇上限、兌換條件說明及品牌一覽頁面。每個品牌回傳其所有 active campaign（`auto` 與 `manual`），前端依 `type` 篩選各頁面所需顯示的類型。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`
 - 邊界檢查：
   - API Key 須為樹享券平台前台端專屬授權，不接受其他呼叫方的 API Key
+  - 來源 IP 須在白名單內
+
+> **注意：** `API Key` 與來源 IP 白名單皆存於 AWS Parameter Store。
 
 ## 使用情境
 前台端於頁面初始化時呼叫此 API，一次取得當前檔期基本設定（開始/結束時間、可選品牌數上限、顯示用說明參數）及可供用戶選擇的品牌完整清單。
@@ -48,10 +57,11 @@ Content-Type: `application/json`
 ```json
 {
   "id": "01HZY4K7VN3F4M6P8R2T5W9XQC",
+  "name": "2026 Q1 檔期",
   "start_time": "2026-01-01T00:00:00+08:00",
   "end_time": "2026-03-31T23:59:59+08:00",
   "description": "{\"order_amount\": 100, \"point_amount\": 20}",
-  "max_selectable_brand_count": 3,
+  "max_selectable_auto_brand_count": 3,
   "brands": [
     {
       "id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK",
@@ -66,7 +76,7 @@ Content-Type: `application/json`
           "coupon_min_order_amount": 100,
           "coupon_redeem_points": 20,
           "coupon_discount_amount": 21,
-          "discount_rate": "1.05",
+          "discount_rate": 1.05,
           "max_redemptions_per_order": 3,
           "created_at": "2025-09-01T00:00:00+08:00",
           "updated_at": "2025-10-01T09:00:00+08:00"
@@ -78,7 +88,7 @@ Content-Type: `application/json`
           "coupon_min_order_amount": 100,
           "coupon_redeem_points": 20,
           "coupon_discount_amount": 21,
-          "discount_rate": "1.05",
+          "discount_rate": 1.05,
           "max_redemptions_per_order": 3,
           "created_at": "2025-09-01T00:00:00+08:00",
           "updated_at": "2025-10-01T09:00:00+08:00"
@@ -100,7 +110,7 @@ Content-Type: `application/json`
           "coupon_min_order_amount": 150,
           "coupon_redeem_points": 25,
           "coupon_discount_amount": 30,
-          "discount_rate": "1.20",
+          "discount_rate": 1.2,
           "max_redemptions_per_order": 10,
           "created_at": "2025-10-01T00:00:00+08:00",
           "updated_at": "2025-10-01T09:00:00+08:00"
@@ -118,11 +128,12 @@ Content-Type: `application/json`
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | id | String | 當前檔期識別碼（ULID） |
+| name | String | 當前檔期名稱 |
 | start_time | String | 檔期開始時間（UTC+8 ISO 8601） |
 | end_time | String | 檔期結束時間（UTC+8 ISO 8601） |
 | description | String | 顯示用說明參數，JSON 字串格式：`{"order_amount": N, "point_amount": N}`，由前端自行 parse 呈現，不影響清算 |
-| max_selectable_brand_count | Integer | 本檔期用戶最多可選擇的品牌數量 |
-| brands | Array | 本檔期所有具備至少一個 active campaign 的品牌清單 |
+| max_selectable_auto_brand_count | Integer | 本檔期用戶最多可選擇的（具備 active `auto` campaign）品牌數量 |
+| brands | Array | 本檔期所有具備 active `auto` campaign 的品牌清單 |
 
 ### brands
 
@@ -146,20 +157,21 @@ Content-Type: `application/json`
 | coupon_min_order_amount | Integer | 每消費滿 N 元可對應使用一張券 |
 | coupon_redeem_points | Integer | 兌換一張券所需點數（>0） |
 | coupon_discount_amount | Integer | 一張券可折抵的金額（元） |
-| discount_rate | Decimal String | 每點折抵金額比率，`round(coupon_discount_amount / coupon_redeem_points, 2)`，四捨五入至小數點第二位，純計算欄位 |
+| discount_rate | Float | 每點折抵金額比率，`round(coupon_discount_amount / coupon_redeem_points, 2)`，四捨五入至小數點第二位，純計算欄位 |
 | max_redemptions_per_order | Integer | 單筆交易中，當前 active campaign 最多可使用幾張券；若為 0 則代表無上限 |
 | created_at | String | Campaign 建立時間（UTC+8 ISO 8601） |
 | updated_at | String | Campaign 最後更新時間（UTC+8 ISO 8601） |
 
 ## 邏輯說明
-- 回傳當前 active rotation 下所有具備至少一個 active campaign 的品牌
-- campaign 的 active 判斷：`rotation_campaigns` 中是否存在 `rotation_id = 當前 active rotation` 且 `campaign_id = 該 campaign` 的記錄
+- 回傳當前 active rotation 下所有具備 active `auto` campaign 的品牌；每個品牌的 `campaigns` 陣列仍包含其所有 active campaign（`auto` 與 `manual`），不受此篩選條件限制
+- campaign 的 active 判斷：`brand_rotation_campaigns` 中是否存在 `rotation_id = 當前 active rotation` 且 `campaign_id = 該 campaign` 的記錄
 - 每個 brand 的 `campaigns` 陣列包含 `auto` 與 `manual` 兩種類型；同一 brand 同一時間最多一個 `type = auto` 的 active campaign；`type = manual` 無此限制
 - 前端依 `type` 篩選所需呈現的 campaign：自動兌換頁面取 `type = auto`，手動換券頁面取 `type = manual`
 - `discount_rate` 為 server 端計算後附帶回傳，不存於 DB
 - brands 排序：以 `category` 分組後，組內依 `name` 字母順序排列
 - `campaigns` 排序：依 `campaign.id`
 - 無任何符合條件的品牌時，回傳 `brands: []`，不報錯
+- `NO_ACTIVE_ROTATION` 僅代表當前**完全無 active rotation**（不在任何 rotation 的時間區間內）；若 active rotation 存在但無符合條件的品牌，屬於「有 rotation 但無 brand」情境，回傳 `brands: []`，非錯誤，兩者不可混用
 
 # Error Handling
 
