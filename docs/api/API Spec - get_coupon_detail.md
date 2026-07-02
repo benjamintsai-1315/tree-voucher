@@ -7,6 +7,8 @@ permalink: /api-specs/get-coupon-detail/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
+| 2026-07-02 | 新增邊界檢查與 400 錯誤：會員須已啟用（`MEMBER_NOT_ACTIVATED`） |
 | 2026-07-02 | `brand_*` 欄位改為巢狀 `brand: {id, name, logo}`；`campaign_*` 欄位改為巢狀 `campaign: {id, name, type}` |
 | 2026-07-01 | `brand_id`/`campaign_id` 範例值改為 ULID 格式，並於 response items 補上 ULID 型別註記 |
 | 2026-06-23 | 初版 |
@@ -21,7 +23,11 @@ permalink: /api-specs/get-coupon-detail/
 - 邊界檢查：
   - API Key 須為樹享券平台前台端專屬授權，不接受其他呼叫方的 API Key
   - `member_id` 必須存在於神坊系統中
+  - 呼叫前會員必須已啟用（`members.is_activated = TRUE`）
   - `coupon_id` 必須存在且屬於該 `member_id`
+  - 來源 IP 須在白名單內
+
+> **注意：** `API Key` 與來源 IP 白名單皆存於 AWS Parameter Store。
 
 ## 使用情境
 前台端由券列表（`get_coupons`）點入單張券後，顯示該券的完整詳情。`redeem_points` 即為當初兌換此券所花費的點數（coupon 建立時的快照）。
@@ -111,4 +117,5 @@ Content-Type: `application/json`
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 1. `member_id` 不存在：`MEMBER_NOT_FOUND`
-2. `coupon_id` 不存在或不屬於該 `member_id`：`COUPON_NOT_FOUND`
+2. 會員未啟用：`MEMBER_NOT_ACTIVATED`
+3. `coupon_id` 不存在或不屬於該 `member_id`：`COUPON_NOT_FOUND`
