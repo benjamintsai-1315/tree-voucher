@@ -7,6 +7,9 @@ permalink: /api-specs/get-member-settings/
 
 | Date | Summary |
 | --- | --- |
+| 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
+| 2026-07-02 | 新增邊界檢查與 400 錯誤：會員須已啟用（`MEMBER_NOT_ACTIVATED`） |
+| 2026-07-02 | `selected_brand_ids` 欄位說明補上 `auto` 限定詞，與邏輯說明一致（僅回傳具備 active `auto` campaign 的品牌） |
 | 2026-07-01 | `selected_brand_ids` 範例值改為 ULID 格式 |
 | 2026-06-12 | 由 `get_user_selected_brands` 更名；`user_selected_brands` → `member_selected_brands`；`USER_NOT_FOUND` → `MEMBER_NOT_FOUND`；endpoint 改為 `/coupon/get_member_selected_brands` |
 | 2026-06-24 | `selected_brand_ids` 篩選條件明確為具備 active `auto` campaign 的品牌（手動換券不影響品牌選擇狀態） |
@@ -24,8 +27,12 @@ permalink: /api-specs/get-member-settings/
 - 邊界檢查：
     - API Key 須為樹享券平台前台端專屬授權，不接受其他呼叫方的 API Key
     - member_id 必須存在於小樹生活中
+    - 呼叫前會員必須已啟用（`members.is_activated = TRUE`）
+    - 來源 IP 須在白名單內
     - ~~該用戶所有已選品牌都必須存在且仍為有效 brand~~
     - ~~該用戶所有已選品牌都必須仍有 active campaign~~
+
+> **注意：** `API Key` 與來源 IP 白名單皆存於 AWS Parameter Store。
 
 ## 使用情境
 
@@ -73,7 +80,7 @@ Content-Type: `application/json`
 | member_id | UUID | 神坊用戶識別碼 |
 | auto_redeem_enabled | Boolean | 使用者自動兌換服務是否啟用；`false` 表示目前為暫停用券狀態 |
 | last_brand_selection_changed_at | Datetime | 該用戶最近一次品牌選擇異動時間（UTC+8 ISO 8601）；僅首次選牌或更換品牌時更新；若從未選牌則為 `null` |
-| selected_brand_ids | Array | 該用戶目前已選擇、且當前仍具備 active campaign 的品牌 `id`（ULID）清單 |
+| selected_brand_ids | Array | 該用戶目前已選擇、且當前仍具備 active `auto` campaign 的品牌 `id`（ULID）清單 |
 
 ### 邏輯說明
 
@@ -89,3 +96,4 @@ Content-Type: `application/json`
 ## 400 錯誤回傳（TYPE: MESSAGE）
 
 1. member_id 不存在：`MEMBER_NOT_FOUND`
+2. 會員未啟用：`MEMBER_NOT_ACTIVATED`
