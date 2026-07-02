@@ -9,6 +9,7 @@ permalink: /database-schema/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-02 | `rotations.max_selectable_brand_count` 更名為 `max_selectable_auto_brand_count`，明確代表僅計入具備 active `auto` campaign 之品牌 |
 | 2026-07-01 | `brands.id` 型別由 `string(64)` 改為 `string(26)` 並定義為 ULID（與 `campaigns.id`、`rotations.id` 一致）；同步更新所有 `brand_id` FK 欄位（`campaigns`、`rotation_brands`、`member_selected_brands`、`orders`）寬度為 `string(26)` |
 | 2026-06-24 | `campaigns` 移除 `rotation_id FK`；新增 `rotation_campaigns` 中間表（`rotation_id`、`campaign_id`），支援 campaign 掛載多個 rotation 及上架時機控制；ERD 關聯同步更新；active 判斷改為透過 `rotation_campaigns` join |
 | 2026-06-25 | `orders` 新增 `merchant_name` 欄位（刷卡門市名稱快照，由發卡主機提供） |
@@ -148,7 +149,7 @@ erDiagram
         string(26) id PK "ULID"
         datetime start_time
         datetime end_time
-        int max_selectable_brand_count
+        int max_selectable_auto_brand_count
         string description "顯示用說明參數，JSON 字串，格式固定為 {\"order_amount\": N, \"point_amount\": N}"
         datetime created_at
         datetime updated_at
@@ -352,7 +353,7 @@ erDiagram
 - `start_time` / `end_time` 均為 UTC+8 時間戳記
 - active rotation 以 `start_time <= now() < end_time` 判斷
 - 系統同一時間只應有一個 active rotation
-- `max_selectable_brand_count`：此檔期用戶最多可選品牌數，取代原 `system_configs.brand_selection_limit`
+- `max_selectable_auto_brand_count`：此檔期用戶最多可選品牌數（僅計入具備 active `auto` campaign 之品牌），取代原 `system_configs.brand_selection_limit`
 - `description`：前端顯示用說明參數，固定以 JSON 字串寫入，格式為 `{"order_amount": N, "point_amount": N}`，由後台維護，前端自行 parse 組合說明文字，不參與任何清算邏輯
 
 ### system_configs
