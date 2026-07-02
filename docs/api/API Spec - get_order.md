@@ -7,6 +7,7 @@ permalink: /api-specs/get-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
 | 2026-06-16 | `coupons_used[]` 欄位去除多餘 prefix：`coupon_id` → `id`；`coupon_min_order_amount/redeem_points/discount_amount` → `min_order_amount/redeem_points/discount_amount` |
 | 2026-07-01 | `brand_id`/`campaign_id` 範例值改為 ULID 格式，並於 response items 補上 ULID 型別註記 |
 | 2026-06-15 | `coupons_used[]` 新增 `discount_rate` 計算欄位 |
@@ -25,6 +26,9 @@ permalink: /api-specs/get-order/
   - API Key 須為樹享券平台前台端專屬授權
   - `order_id` 必須存在於神坊系統中
   - `order_id` 對應訂單的 `member_id` 必須與 request 帶入的 `member_id` 相符，否則回 `ORDER_NOT_FOUND`
+  - 來源 IP 須在白名單內
+
+> **注意：** `API Key` 與來源 IP 白名單皆存於 AWS Parameter Store。
 
 ## 使用情境
 前台端帶入 `order_id` 與 `member_id` 查詢該筆訂單的當前狀態、折抵明細及事件歷程，供用戶於歷史紀錄頁面查看。
