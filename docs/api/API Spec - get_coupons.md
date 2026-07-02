@@ -7,6 +7,8 @@ permalink: /api-specs/get-coupons/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
+| 2026-07-02 | 新增邊界檢查與 400 錯誤：會員須已啟用（`MEMBER_NOT_ACTIVATED`） |
 | 2026-07-02 | `status` 改為可複選（`status[]`，repeatable query param） |
 | 2026-07-02 | `brand_*` 欄位改為巢狀 `brand: {id, name, logo}`；`campaign_*` 欄位改為巢狀 `campaign: {id, name, type}` |
 | 2026-07-01 | `brand_id` 限制由 UUID 改為 ULID；`brand_id`/`campaign_id` 範例值改為 ULID 格式 |
@@ -26,7 +28,11 @@ permalink: /api-specs/get-coupons/
 - 邊界檢查：
   - API Key 須為樹享券平台前台端專屬授權，不接受其他呼叫方的 API Key
   - `member_id` 必須存在於神坊系統中
+  - 呼叫前會員必須已啟用（`members.is_activated = TRUE`）
   - `brand_id` 若有帶入，必須存在於神坊系統中
+  - 來源 IP 須在白名單內
+
+> **注意：** `API Key` 與來源 IP 白名單皆存於 AWS Parameter Store。
 
 ## 使用情境
 前台端由品牌卡片（`get_coupon_wallet`）進入後，帶入 `member_id` 與 `brand_id` 查詢該品牌下的券列表。若前端只想看特定券狀態，可搭配 `status` 進行篩選。
@@ -162,4 +168,5 @@ Content-Type: `application/json`
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 1. `member_id` 不存在：`MEMBER_NOT_FOUND`
-2. `brand_id` 不存在：`BRAND_NOT_FOUND`
+2. 會員未啟用：`MEMBER_NOT_ACTIVATED`
+3. `brand_id` 不存在：`BRAND_NOT_FOUND`
