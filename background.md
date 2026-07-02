@@ -108,7 +108,7 @@ Response discount_amount = 141
 ## Flow 1: 品牌一覽
 用戶可先看到所有品牌和對應當期自動兌換的規則
 需包含下列資料：
-1. max_selectable_brand_count
+1. max_selectable_auto_brand_count
 1. brand_name
 2. brand_logo
 3. brand_category
@@ -120,17 +120,17 @@ Response discount_amount = 141
 用戶選擇偏好 brand（特店） 例如：全家 / 7-11 or 康是美 / 屈臣氏 or 大全聯 / 頂好...etc
 需檢查下述邏輯：
 1. 用戶是否已完成點數授權，且神坊系統可取得或驗證該授權結果
-2. 用戶選擇的品牌數量（不超過當前 active rotation 的 `max_selectable_brand_count`）
-3. 選擇的品牌是否有 active campaign 可選
+2. 用戶選擇的品牌數量（不超過當前 active rotation 的 `max_selectable_auto_brand_count`）
+3. 選擇的品牌是否有 active `auto` campaign 可選
 
 此流程由樹享券平台前台端串接使用者設定 API。
 
 ## Flow 3: 瀏覽已選品牌
 瀏覽用戶目前的品牌設定狀態，需包含：
-1. max_selectable_brand_count
+1. max_selectable_auto_brand_count
 2. auto_redeem_enabled
 3. last_changed_at
-4. 已選、且當前仍具備 active campaign 的品牌清單
+4. 已選、且當前仍具備 active `auto` campaign 的品牌清單
 
 品牌清單需包含下列資料：
 1. brand_name
