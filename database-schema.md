@@ -9,6 +9,7 @@ permalink: /database-schema/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-02 | 新增 `treelife_use_point_log` 表，記錄每張券對應的小樹點(生活) / 小樹點(信用卡) 扣點明細 |
 | 2026-07-02 | `rotations.max_selectable_brand_count` 更名為 `max_selectable_auto_brand_count`，明確代表僅計入具備 active `auto` campaign 之品牌 |
 | 2026-07-01 | `brands.id` 型別由 `string(64)` 改為 `string(26)` 並定義為 ULID（與 `campaigns.id`、`rotations.id` 一致）；同步更新所有 `brand_id` FK 欄位（`campaigns`、`rotation_brands`、`member_selected_brands`、`orders`）寬度為 `string(26)` |
 | 2026-06-24 | `campaigns` 移除 `rotation_id FK`；新增 `rotation_campaigns` 中間表（`rotation_id`、`campaign_id`），支援 campaign 掛載多個 rotation 及上架時機控制；ERD 關聯同步更新；active 判斷改為透過 `rotation_campaigns` join |
@@ -77,6 +78,9 @@ erDiagram
     %% --- 批次 finalize 相關 ---
     finalize_batch_requests ||--o{ finalize_batch_items : contains
     orders o|--o{ finalize_batch_items : referenced_by
+
+    %% --- 點數扣除明細相關 ---
+    coupons ||--o{ treelife_use_point_log : logged_by
 
 
     %% --------------------------------------------------
@@ -237,6 +241,17 @@ erDiagram
         datetime created_at
         datetime updated_at
     }
+
+    treelife_use_point_log {
+        string(26) id PK "ULID"
+        string tlf_request_id "送往 treelife-api 的 request id"
+        string tlf_order_id "送往 treelife-api 的 order_id"
+        string(26) coupon_id FK "對應 coupons.id"
+        integer used_tree_points "此張券分配到的小樹點(生活)扣點數"
+        integer used_cub_points "此張券分配到的小樹點(信用卡)扣點數"
+        datetime created_at
+        datetime updated_at
+    }
 ```
 
 ## 關鍵欄位與約束
@@ -383,6 +398,18 @@ erDiagram
   - `SUCCESS`：處理成功，`finalized_at` 有值
   - `FAILED`：處理失敗，`error_code` 有值
 - `error_code` 可能值：`ORDER_NOT_FOUND`、`ORDER_ALREADY_FINALIZED`
+
+### treelife_use_point_log
+
+- 主鍵：`id`（ULID）
+- 外鍵：`coupon_id -> coupons.id`
+- 記錄每張券在同一筆 treelife-api 扣點請求中分配到的點數明細
+- `tlf_request_id`：送往 treelife-api 的 request id（同一筆 `create_order` 產出的多張券共享同一個 `tlf_request_id`）
+- `tlf_order_id`：送往 treelife-api 的 order_id（同上，同批券共享）
+- `used_tree_points`：此張券分配到的小樹點(生活)扣點數（可為 0）
+- `used_cub_points`：此張券分配到的小樹點(信用卡)扣點數（可為 0）
+- 清算規則：cub_points 優先分配給先發行（index 較小）的券；`used_tree_points + used_cub_points` = 該券的 `coupon_redeem_points`
+- 每張券對應一筆 log；一筆 `create_order` 可對應多筆 log
 
 ## 備註
 

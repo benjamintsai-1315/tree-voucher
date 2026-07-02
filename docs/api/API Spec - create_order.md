@@ -7,6 +7,7 @@ permalink: /api-specs/create-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-02 | response 新增 `points_used`（`tree_points` / `cub_points`）；新增點數分配邏輯（cub_points 優先）與 `treelife_use_point_log` 說明 |
 | 2026-07-02 | 新增 `transaction_time` request 欄位（呈現用）；新增 `max_redemption_per_rotation` campaign 屬性與對應 quota 檢查；新增 rotation 邊界暫定說明 |
 | 2026-07-01 | `brand_id` 限制改為 ULID |
 | 2026-06-25 | 新增 `merchant_name` request 欄位（必填）；快照保存於 `orders` 表，供前台訂單列表顯示門市名稱 |
@@ -65,7 +66,11 @@ Content-Type: `application/json`
 
 ```json
 {
-  "discount_amount": 141
+  "discount_amount": 141,
+  "points_used": {
+    "tree_points": 240,
+    "cub_points": 360
+  }
 }
 ```
 
@@ -74,6 +79,9 @@ Content-Type: `application/json`
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | discount_amount | Integer | 本次實際折抵總金額（元） |
+| points_used | Object | 本次扣點明細 |
+| points_used.tree_points | Integer | 本次使用的小樹點(生活)總數 |
+| points_used.cub_points | Integer | 本次使用的小樹點(信用卡)總數 |
 
 ### 邏輯說明
 
@@ -96,6 +104,9 @@ Content-Type: `application/json`
 6. 新券建立時，`expired_at = (issued_at 所在 UTC+8 日期 + coupon_valid_days) 的 23:59:59.999`
 
 - `discount_amount` = Σ（本次所有 `consumed` coupon 的 `coupon_discount_amount`）
+- 扣點時呼叫 treelife-api，treelife-api 回傳本次實際使用的 `tree_points`（小樹點生活）與 `cub_points`（小樹點信用卡）總數
+- 點數按券分配並寫入 `treelife_use_point_log`：cub_points 優先分配給先發行的券；分配規則為每張券消耗 `coupon_redeem_points` 點，先由 cub_points 填滿，不足時才使用 tree_points；`used_tree_points + used_cub_points` = 該券的 `coupon_redeem_points`
+- `points_used.tree_points` / `points_used.cub_points` 為 treelife-api 回傳的全批次總數，直接轉入 response
 - 僅在同一個 DB transaction 內完成扣點、發新券、既有券轉 `consumed`、建立 order 與建立 order event 後，才視為建單成功
   > 是否以同一 DB transaction 進行待討論
 - 建單成功後，訂單進入 `PROCESSING` 狀態，等待後續 `finalize_order`
@@ -110,7 +121,8 @@ Content-Type: `application/json`
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 1. `member_id` 不存在：`MEMBER_NOT_FOUND`
-2. `brand_id` 不存在：`BRAND_NOT_FOUND`
-3. `order_id` 已存在：`ORDER_ALREADY_EXISTS`
-4. 使用者未啟用該品牌自動兌換：`AUTO_REDEEM_NOT_ENABLED_FOR_BRAND`
-5. 用戶無 `available coupon` 且點數為 0（或無 active campaign 可發新券）：`NO_AVAILABLE_COUPON_AND_POINT`
+2. 會員未啟用：`MEMBER_NOT_ACTIVATED`
+3. `brand_id` 不存在：`BRAND_NOT_FOUND`
+4. `order_id` 已存在：`ORDER_ALREADY_EXISTS`
+5. 使用者未啟用該品牌自動兌換：`AUTO_REDEEM_NOT_ENABLED_FOR_BRAND`
+6. 用戶無 `available coupon` 且點數為 0（或無 active campaign 可發新券）：`NO_AVAILABLE_COUPON_AND_POINT`
