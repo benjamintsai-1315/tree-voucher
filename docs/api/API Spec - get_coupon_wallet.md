@@ -7,6 +7,7 @@ permalink: /api-specs/get-coupon-wallet/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-02 | `brands` 陣列內欄位移除 `brand_` prefix：`brand_id/brand_name/brand_logo` → `id/name/logo` |
 | 2026-07-01 | `brand_id` 範例值改為 ULID 格式，並於 response items 補上 ULID 型別註記 |
 | 2026-06-23 | 重新設計為品牌摘要 API；原券列表功能移至 `get_coupons` |
 
@@ -51,15 +52,15 @@ Content-Type: `application/json`
 {
   "brands": [
     {
-      "brand_id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK",
-      "brand_name": "全家便利商店",
-      "brand_logo": "https://cdn.example.com/logos/familymart.png",
+      "id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK",
+      "name": "全家便利商店",
+      "logo": "https://cdn.example.com/logos/familymart.png",
       "available_coupon_count": 3
     },
     {
-      "brand_id": "01HZYAWD1V0N5V7X9Z2A4C6DHM",
-      "brand_name": "7-ELEVEN",
-      "brand_logo": "https://cdn.example.com/logos/711.png",
+      "id": "01HZYAWD1V0N5V7X9Z2A4C6DHM",
+      "name": "7-ELEVEN",
+      "logo": "https://cdn.example.com/logos/711.png",
       "available_coupon_count": 0
     }
   ]
@@ -76,9 +77,9 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| brand_id | String | 品牌識別碼（ULID） |
-| brand_name | String | 品牌名稱 |
-| brand_logo | String | 品牌 logo 圖片 URL |
+| id | String | 品牌識別碼（ULID） |
+| name | String | 品牌名稱 |
+| logo | String | 品牌 logo 圖片 URL |
 | available_coupon_count | Integer | 該品牌目前狀態為 `AVAILABLE` 的券張數 |
 
 ### 邏輯說明

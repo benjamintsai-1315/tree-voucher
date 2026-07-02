@@ -7,6 +7,7 @@ permalink: /api-specs/get-member-orders/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-02 | `brand_id`、`brand_name` 改為巢狀物件 `brand: { id, name }` |
 | 2026-07-01 | `brand_id` 範例值改為 ULID 格式 |
 | 2026-06-12 | 由 `get_user_orders` 更名；`user_id` → `member_id`；`USER_NOT_FOUND` → `MEMBER_NOT_FOUND`；endpoint 改為 `/coupon/get_member_orders` |
 
@@ -57,8 +58,10 @@ Content-Type: `application/json`
   "items": [
     {
       "order_id": "ORD_20261001_00001",
-      "brand_id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK",
-      "brand_name": "全家便利商店",
+      "brand": {
+        "id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK",
+        "name": "全家便利商店"
+      },
       "cash_amount": 620,
       "card_last_four_digits": "1234",
       "discount_amount": 141,
@@ -68,8 +71,10 @@ Content-Type: `application/json`
     },
     {
       "order_id": "ORD_20261002_00005",
-      "brand_id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK",
-      "brand_name": "全家便利商店",
+      "brand": {
+        "id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK",
+        "name": "全家便利商店"
+      },
       "cash_amount": 300,
       "card_last_four_digits": "5678",
       "discount_amount": 21,
@@ -95,8 +100,9 @@ Content-Type: `application/json`
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | order_id | String | 訂單識別碼 |
-| brand_id | String | 對應 brand 識別碼（ULID） |
-| brand_name | String | 對應 brand 名稱 |
+| brand | Object | 對應品牌資訊 |
+| brand.id | String | 品牌識別碼（ULID） |
+| brand.name | String | 品牌名稱 |
 | cash_amount | Integer | 本次刷卡金額（元） |
 | card_last_four_digits | String | 該筆刷卡卡號後四碼，固定 4 碼數字字串 |
 | discount_amount | Integer | 本次實際折抵總金額（元） |

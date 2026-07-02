@@ -7,6 +7,7 @@ permalink: /api-specs/get-coupon-detail/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-02 | `brand_*` 欄位改為巢狀 `brand: {id, name, logo}`；`campaign_*` 欄位改為巢狀 `campaign: {id, name, type}` |
 | 2026-07-01 | `brand_id`/`campaign_id` 範例值改為 ULID 格式，並於 response items 補上 ULID 型別註記 |
 | 2026-06-23 | 初版 |
 
@@ -51,12 +52,16 @@ Content-Type: `application/json`
 {
   "id": "CPN_001",
   "status": "AVAILABLE",
-  "brand_id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK",
-  "brand_name": "全家便利商店",
-  "brand_logo": "https://cdn.example.com/logos/familymart.png",
-  "campaign_id": "01HZY5Q8WP5G7N9R2T4V6X8ZBD",
-  "campaign_name": "滿100折21",
-  "campaign_type": "auto",
+  "brand": {
+    "id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK",
+    "name": "全家便利商店",
+    "logo": "https://cdn.example.com/logos/familymart.png"
+  },
+  "campaign": {
+    "id": "01HZY5Q8WP5G7N9R2T4V6X8ZBD",
+    "name": "滿100折21",
+    "type": "auto"
+  },
   "min_order_amount": 100,
   "redeem_points": 20,
   "discount_amount": 21,
@@ -73,12 +78,8 @@ Content-Type: `application/json`
 | ---- | ---- | ---- |
 | id | String | 券識別碼 |
 | status | String | 券狀態：`AVAILABLE` \| `CONSUMED` \| `SETTLED` \| `EXPIRED` |
-| brand_id | String | 對應 brand 識別碼（ULID） |
-| brand_name | String | 對應 brand 名稱 |
-| brand_logo | String | 對應 brand logo 圖片 URL |
-| campaign_id | String | 該券所屬 campaign 識別碼（ULID） |
-| campaign_name | String | 該券所屬 campaign 名稱 |
-| campaign_type | String | 該券所屬 campaign 類型：`auto`（系統自動兌換）\| `manual`（用戶手動兌換） |
+| brand | Object | 對應品牌資訊，見下表 |
+| campaign | Object | 該券所屬 campaign 資訊，見下表 |
 | min_order_amount | Integer | 該券對應的消費門檻金額（元） |
 | redeem_points | Integer | 兌換此券所花費的點數（coupon 建立時的快照） |
 | discount_amount | Integer | 該券折抵金額（元） |
@@ -86,6 +87,22 @@ Content-Type: `application/json`
 | max_redemptions_per_order | Integer | 該券所屬 campaign 定義的單筆交易 active campaign 券使用張數上限 |
 | expired_at | String | 該券固定到期時間（UTC+8 ISO 8601，毫秒精度） |
 | created_at | String | 該券建立時間（UTC+8 ISO 8601） |
+
+### brand
+
+| 欄位 | 類型 | 說明 |
+| ---- | ---- | ---- |
+| id | String | 品牌識別碼（ULID） |
+| name | String | 品牌名稱 |
+| logo | String | 品牌 logo 圖片 URL |
+
+### campaign
+
+| 欄位 | 類型 | 說明 |
+| ---- | ---- | ---- |
+| id | String | Campaign 識別碼（ULID） |
+| name | String | Campaign 名稱 |
+| type | String | Campaign 類型：`auto`（系統自動兌換）\| `manual`（用戶手動兌換） |
 
 ### 邏輯說明
 - `coupon_id` 必須屬於該 `member_id`，否則回傳 `COUPON_NOT_FOUND`
