@@ -7,6 +7,8 @@ permalink: /api-specs/get-coupon-wallet/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
+| 2026-07-02 | 新增邊界檢查與 400 錯誤：會員須已啟用（`MEMBER_NOT_ACTIVATED`） |
 | 2026-07-02 | `brands` 陣列內欄位移除 `brand_` prefix：`brand_id/brand_name/brand_logo` → `id/name/logo` |
 | 2026-07-01 | `brand_id` 範例值改為 ULID 格式，並於 response items 補上 ULID 型別註記 |
 | 2026-06-23 | 重新設計為品牌摘要 API；原券列表功能移至 `get_coupons` |
@@ -21,6 +23,10 @@ permalink: /api-specs/get-coupon-wallet/
 - 邊界檢查：
   - API Key 須為樹享券平台前台端專屬授權，不接受其他呼叫方的 API Key
   - `member_id` 必須存在於神坊系統中
+  - 呼叫前會員必須已啟用（`members.is_activated = TRUE`）
+  - 來源 IP 須在白名單內
+
+> **注意：** `API Key` 與來源 IP 白名單皆存於 AWS Parameter Store。
 
 ## 使用情境
 前台端帶入 `member_id`，取得用戶目前券夾的品牌卡片摘要。前端可由此進入各品牌的券列表（`get_coupons`）。
@@ -90,3 +96,4 @@ Content-Type: `application/json`
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 1. `member_id` 不存在：`MEMBER_NOT_FOUND`
+2. 會員未啟用：`MEMBER_NOT_ACTIVATED`
