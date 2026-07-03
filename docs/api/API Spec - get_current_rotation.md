@@ -7,6 +7,7 @@ permalink: /api-specs/get-current-rotation/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-02 | campaigns 新增 `max_redemption_per_rotation` 欄位 |
 | 2026-07-02 | `max_selectable_brand_count` 更名為 `max_selectable_auto_brand_count`，明確代表僅計入具備 active `auto` campaign 品牌的可選上限 |
 | 2026-07-02 | `brands` 篩選條件明確為具備 active `auto` campaign 的品牌（不含僅有 `manual` campaign 的品牌）；`campaigns` 陣列仍回傳該品牌所有 active campaign（`auto` 與 `manual`） |
 | 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
@@ -22,7 +23,7 @@ permalink: /api-specs/get-current-rotation/
 # API: get_current_rotation
 
 ## 功能說明
-讓樹享券平台前台端取得目前 active rotation（輪播檔期）的設定資訊，以及本檔期所有具備 active `auto` campaign 的品牌清單與 campaign 規則，供前端顯示活動期間、品牌選擇上限、兌換條件說明及品牌一覽頁面。每個品牌回傳其所有 active campaign（`auto` 與 `manual`），前端依 `type` 篩選各頁面所需顯示的類型。
+讓樹享券平台前台端取得目前 active rotation（輪播檔期）的設定資訊，以及本檔期所有具備 active campaign 的品牌清單與 campaign 規則，供前端顯示活動期間、品牌選擇上限、兌換條件說明及品牌一覽頁面。每個品牌回傳其所有 active campaign（`auto` 與 `manual`），前端依 `type` 篩選各頁面所需顯示的類型。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`
@@ -78,6 +79,7 @@ Content-Type: `application/json`
           "coupon_discount_amount": 21,
           "discount_rate": 1.05,
           "max_redemptions_per_order": 3,
+          "max_redemption_per_rotation": 6,
           "created_at": "2025-09-01T00:00:00+08:00",
           "updated_at": "2025-10-01T09:00:00+08:00"
         },
@@ -90,6 +92,7 @@ Content-Type: `application/json`
           "coupon_discount_amount": 21,
           "discount_rate": 1.05,
           "max_redemptions_per_order": 3,
+          "max_redemption_per_rotation": 5,
           "created_at": "2025-09-01T00:00:00+08:00",
           "updated_at": "2025-10-01T09:00:00+08:00"
         }
@@ -112,6 +115,7 @@ Content-Type: `application/json`
           "coupon_discount_amount": 30,
           "discount_rate": 1.2,
           "max_redemptions_per_order": 10,
+          "max_redemption_per_rotation": 20,
           "created_at": "2025-10-01T00:00:00+08:00",
           "updated_at": "2025-10-01T09:00:00+08:00"
         }
@@ -159,6 +163,7 @@ Content-Type: `application/json`
 | coupon_discount_amount | Integer | 一張券可折抵的金額（元） |
 | discount_rate | Float | 每點折抵金額比率，`round(coupon_discount_amount / coupon_redeem_points, 2)`，四捨五入至小數點第二位，純計算欄位 |
 | max_redemptions_per_order | Integer | 單筆交易中，當前 active campaign 最多可使用幾張券；若為 0 則代表無上限 |
+| max_redemption_per_rotation | Integer | 同一用戶在此 campaign 整個 rotation 內最多可兌換得到幾張券（計數條件：`member_id + campaign_id + rotation_id`；涵蓋 auto 與 manual） |
 | created_at | String | Campaign 建立時間（UTC+8 ISO 8601） |
 | updated_at | String | Campaign 最後更新時間（UTC+8 ISO 8601） |
 
@@ -166,7 +171,6 @@ Content-Type: `application/json`
 - 回傳當前 active rotation 下所有具備 active `auto` campaign 的品牌；每個品牌的 `campaigns` 陣列仍包含其所有 active campaign（`auto` 與 `manual`），不受此篩選條件限制
 - campaign 的 active 判斷：`brand_rotation_campaigns` 中是否存在 `rotation_id = 當前 active rotation` 且 `campaign_id = 該 campaign` 的記錄
 - 每個 brand 的 `campaigns` 陣列包含 `auto` 與 `manual` 兩種類型；同一 brand 同一時間最多一個 `type = auto` 的 active campaign；`type = manual` 無此限制
-- 前端依 `type` 篩選所需呈現的 campaign：自動兌換頁面取 `type = auto`，手動換券頁面取 `type = manual`
 - `discount_rate` 為 server 端計算後附帶回傳，不存於 DB
 - brands 排序：以 `category` 分組後，組內依 `name` 字母順序排列
 - `campaigns` 排序：依 `campaign.id`
