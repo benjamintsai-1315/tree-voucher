@@ -29,8 +29,6 @@ permalink: /api-specs/get-member-settings/
     - member_id 必須存在於小樹生活中
     - 呼叫前會員必須已啟用（`members.is_activated = TRUE`）
     - 來源 IP 須在白名單內
-    - ~~該用戶所有已選品牌都必須存在且仍為有效 brand~~
-    - ~~該用戶所有已選品牌都必須仍有 active campaign~~
 
 > **注意：** `API Key` 與來源 IP 白名單皆存於 AWS Parameter Store。
 
@@ -86,7 +84,7 @@ Content-Type: `application/json`
 
 - 本 API 為「用戶進入系統」的觸發點之一，回傳前須先執行 **lazy cleanup**：若用戶現有 `member_selected_brands` 的 `rotation_id` 與當前 active rotation 不符，系統自動清除舊選擇並寫入 `system_clear_brands` log，再回傳清除後的最新狀態
 - `auto_redeem_enabled` 為使用者層級服務狀態；`PAUSE` 後為 `false`，`RESUME` 後為 `true`
-- `last_brand_selection_changed_at` 代表該用戶最近一次品牌選擇異動時間，僅在首次選牌、更換品牌時更新；`PAUSE`、`RESUME`、lazy cleanup 不影響此欄位
+- `last_brand_selection_changed_at` 代表該用戶最近一次品牌選擇異動時間，僅在更換品牌時更新；`PAUSE`、`RESUME`、lazy cleanup 不影響此欄位
     - 若使用者從未進行品牌選擇，回傳 `last_brand_selection_changed_at: null`
 - `selected_brand_ids` 僅回傳已選擇且當前仍具備 active auto campaign 的品牌 id，不回傳已無 active auto campaign 的品牌
 - `selected_brand_ids` 以 `id` 順序排列
@@ -97,3 +95,4 @@ Content-Type: `application/json`
 
 1. member_id 不存在：`MEMBER_NOT_FOUND`
 2. 會員未啟用：`MEMBER_NOT_ACTIVATED`
+3. 目前沒有任何檔期正在進行中：`NO_ACTIVE_ROTATION`
