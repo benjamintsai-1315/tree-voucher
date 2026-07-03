@@ -63,7 +63,7 @@ Content-Type: `application/json`
 HTTP Status: `200 OK`（無 body）
 
 ## 邏輯說明
-- 以 `brand_ids` 作為更新後完整清單；後端比對既有選擇計算 diff，將快照寫入 `member_brand_change_logs`
+- 以 `brand_ids` 作為更新後完整清單；後端比對既有選擇計算 diff，將快照寫入 `member_event_logs`
 - `brand_ids` 可為空陣列，代表清空全部已選品牌；此情況仍視為一次品牌異動並寫入紀錄
 - 本 API 為「用戶進入系統」的觸發點之一，呼叫時須先執行 lazy cleanup（詳見 background.md）
 - `NO_ACTIVE_ROTATION` 僅代表當前**完全無 active rotation**（不在任何 rotation 的時間區間內）；若 active rotation 存在、但 `brand_ids` 對應品牌無 active auto campaign，則回傳 `BRAND_HAS_NO_ACTIVE_CAMPAIGN`，兩者不可混用
