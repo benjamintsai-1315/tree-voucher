@@ -51,7 +51,7 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 必填 | 可空 | 預設值 | 限制條件 |
 | ---- | ---- | ---- | ---- | ------ | -------- |
-| member_id | string | TRUE | FALSE | ❎ | 最多 64 字 |
+| member_id | string | TRUE | FALSE | ❎ | UUID |
 | page | integer | FALSE | FALSE | 1 | > 0 |
 | limit | integer | FALSE | FALSE | 20 | 1~20；超過 20 回 422 |
 
@@ -139,7 +139,7 @@ Content-Type: `application/json`
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | id | String | 品牌 ID（ULID） |
-| name | String | 品牌名稱（反查當下 brand_name，可能為已失效品牌） |
+| name | String | 品牌名稱（不使用快照，反查當下 brand_name，可能為已失效品牌） |
 
 ## 邏輯說明
 - 依 `created_at` 由新到舊排序，僅回傳過去 1 年內紀錄
