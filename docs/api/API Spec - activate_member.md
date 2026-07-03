@@ -15,7 +15,7 @@ permalink: /api-specs/activate-member/
 # API: activate_member
 
 ## 功能說明
-用戶在 CR 前台同意啟用樹享券服務。樹享券平台收到請求後，主動呼叫點數系統 API 完成授權；點數系統成功後，神坊更新 `members.is_activated = TRUE` 並寫入一筆 `member_activation_logs`（action=ACTIVATE）。兩邊皆成功才視為完成，任一失敗則整筆失敗。
+用戶在 CR 前台同意啟用樹享券服務。樹享券平台收到請求後，主動呼叫點數系統 API 完成授權；點數系統成功後，樹配券平台新增會員或更新 `members.is_activated = TRUE` 並寫入一筆 `member_event_logs`（type = `active_member`，data = null）。兩邊皆成功才視為完成，任一失敗則整筆失敗。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`
@@ -60,9 +60,9 @@ HTTP Status: `200 OK`
 ```json
 {
   "member_id": "17e26fe8-2bf4-4fbc-996f-f17b90fac683",
-  "status": "ACTIVE",
-  "auth_updated_at": "2026-10-01T08:00:00+08:00"
-}
+  "is_activated": true,
+  "last_activated_at": "2026-10-01T08:00:00+08:00"
+} 
 ```
 
 ## Response Items
@@ -70,16 +70,18 @@ HTTP Status: `200 OK`
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | member_id | String | 神坊用戶識別碼 |
-| status | String | 執行後的服務啟用狀態，此 API 固定回傳 `ACTIVE`（對應資料庫 `members.is_activated = TRUE`） |
-| auth_updated_at | String | 啟用狀態最後變更時間（UTC+8 ISO 8601） |
+| is_activated | Bool | 執行後的啟用狀態，此 API 固定回傳 TRUE（對應資料庫 `members.is_activated = TRUE`） |
+| last_activated_at | String | 最後啟用時間（UTC+8 ISO 8601） |
 
 ### 邏輯說明
-- 神坊收到請求後，先呼叫點數系統 API；點數系統失敗則直接回失敗，神坊狀態不變
-- 點數系統成功後，神坊於同一 transaction 更新 `members.is_activated = TRUE`、`members.auth_updated_at`，並寫入一筆 `member_activation_logs`（action=ACTIVATE）
-- 冪等：`is_activated` 已為 `TRUE` 時重複呼叫，不重複寫 log，回傳當前狀態（`status: ACTIVE`）
+- 樹配券收到請求後，先檢查會員是否在樹配券平台存在且服務已啟用（`members.is_activated = true`）
+  - 是，直接回傳當前狀態即可（last_activated_at 意義則是上次啟用時間），不重複寫 log
+  - 否：先呼叫點數系統 API；點數系統失敗則直接回失敗，樹配券狀態不變
+    - Treelife API 成功後，會員是否存在於樹配券平台
+      - 是：更新 `members.is_activated` = true、`members.updated_at`。
+      - 否：新增 `members`
+- last_activated_at 取自 member_event_logs 對應 member & type=activate_member，最新一筆的 created_at
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
-1. `member_id` 不存在：`MEMBER_NOT_FOUND`
-
-## 502 錯誤回傳（TYPE: MESSAGE）
-1. 點數系統呼叫失敗：`POINT_SYSTEM_ERROR`
+1. `member_id` 不存在於小樹生活：`MEMBER_NOT_FOUND_IN_TREELIFE`
+2. 小樹生活點數系統呼叫失敗：`TREELIFE_ERROR`
