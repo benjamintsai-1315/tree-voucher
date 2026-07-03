@@ -59,7 +59,7 @@ Content-Type: `application/json`
 HTTP Status: `200 OK`（無 body）
 
 ## 邏輯說明
-- 更新 `members.auto_redeem_enabled`
+- 更新 `members.auto_redeem_enabled`，新增 member_event_logs
 - 冪等：若當前狀態已與目標一致，直接回 200，不重複寫異動紀錄
 - 不改變已選品牌清單
 - 不限制用戶當下是否有已選品牌（用戶券夾仍可能有可用券）
