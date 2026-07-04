@@ -32,10 +32,14 @@
 | **coupon** | 基於 campaign 產出、所屬於用戶的 instance |
 | **rotation** | 檔期，定義活動期間與品牌選擇上限（`max_selectable_auto_brand_count`，僅計入具備 active `auto` campaign 之品牌） |
 | **brand_rotation_campaigns** | campaign 掛載 rotation 的中間表（原 `rotation_campaigns`，2026-07-02 更名）；刪除此記錄 = campaign 下架 |
-| **active rotation** | `start_time <= now() < end_time`（end_time **不含**邊界） |
+| **active rotation** | `start_time <= now() <= end_time`（end_time **含**邊界，2026-07-05 起；原為不含邊界） |
 | **active campaign** | `brand_rotation_campaigns` 中存在對應當前 active rotation 記錄的 campaign |
 
 ### 關鍵業務規則
+
+**Rotation 邊界規則**（2026-07-05 起）：
+- `end_time` 為含邊界（`now() <= end_time` 仍視為 active），與原「不含邊界」定義不同
+- 為避免前後緊接的 rotation 在交界瞬間同時判定為 active（違反「同一時間只應有一個 active rotation」），建立 rotation 時須檢查 `next.start_time > prev.end_time`（嚴格大於，不得相等或交集）；此驗證屬後台 CRUD API（第二階段）範疇
 
 **FIFO + quota 清算邏輯**：
 - 已有 coupon 採 first-in-first-out（先到期先用）
