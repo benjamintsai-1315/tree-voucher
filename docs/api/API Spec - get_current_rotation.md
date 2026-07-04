@@ -7,6 +7,7 @@ permalink: /api-specs/get-current-rotation/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-05 | 邏輯說明補充 active rotation 邊界判斷：`start_time <= now() <= end_time`（end_time 含邊界，原不含邊界）；`discount_rate` 補充 `coupon_redeem_points = 0` 時回傳 `null`、四捨五入採一般四捨五入 |
 | 2026-07-02 | campaigns 新增 `max_redemption_per_rotation` 欄位 |
 | 2026-07-02 | `max_selectable_brand_count` 更名為 `max_selectable_auto_brand_count`，明確代表僅計入具備 active `auto` campaign 品牌的可選上限 |
 | 2026-07-02 | `brands` 篩選條件明確為具備 active `auto` campaign 的品牌（不含僅有 `manual` campaign 的品牌）；`campaigns` 陣列仍回傳該品牌所有 active campaign（`auto` 與 `manual`） |
@@ -161,7 +162,7 @@ Content-Type: `application/json`
 | coupon_min_order_amount | Integer | 每消費滿 N 元可對應使用一張券 |
 | coupon_redeem_points | Integer | 兌換一張券所需點數（>0） |
 | coupon_discount_amount | Integer | 一張券可折抵的金額（元） |
-| discount_rate | Float | 每點折抵金額比率，`round(coupon_discount_amount / coupon_redeem_points, 2)`，四捨五入至小數點第二位，純計算欄位 |
+| discount_rate | Float \| null | 每點折抵金額比率，`round(coupon_discount_amount / coupon_redeem_points, 2)`，四捨五入至小數點第二位（一般四捨五入），純計算欄位；`coupon_redeem_points = 0` 時回傳 `null` |
 | max_redemptions_per_order | Integer | 單筆交易中，當前 active campaign 最多可使用幾張券；若為 0 則代表無上限 |
 | max_redemption_per_rotation | Integer | 同一用戶在此 campaign 整個 rotation 內最多可兌換得到幾張券（計數條件：`member_id + campaign_id + rotation_id`；涵蓋 auto 與 manual） |
 | created_at | String | Campaign 建立時間（UTC+8 ISO 8601） |
@@ -170,6 +171,7 @@ Content-Type: `application/json`
 ## 邏輯說明
 - 回傳當前 active rotation 下所有具備 active `auto` campaign 的品牌；每個品牌的 `campaigns` 陣列仍包含其所有 active campaign（`auto` 與 `manual`），不受此篩選條件限制
 - campaign 的 active 判斷：`brand_rotation_campaigns` 中是否存在 `rotation_id = 當前 active rotation` 且 `campaign_id = 該 campaign` 的記錄
+- active rotation 判斷：`start_time <= now() <= end_time`（end_time 含邊界）；前後緊接的 rotation 不得交界重疊，由建立 rotation 時的邊界檢查保證（`next.start_time > prev.end_time`）
 - 每個 brand 的 `campaigns` 陣列包含 `auto` 與 `manual` 兩種類型；同一 brand 同一時間最多一個 `type = auto` 的 active campaign；`type = manual` 無此限制
 - `discount_rate` 為 server 端計算後附帶回傳，不存於 DB
 - brands 排序：以 `category` 分組後，組內依 `name` 字母順序排列
