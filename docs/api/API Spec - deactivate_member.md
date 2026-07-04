@@ -7,6 +7,7 @@ permalink: /api-specs/deactivate-member/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-05 | 比照 `activate_member`，新增同步呼叫點數系統 `member_unauthorize` 取消授權；response 欄位改為 `is_activated` / `last_deactivated_at`；新增 `TREELIFE_ERROR` 錯誤碼 |
 | 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
 | 2026-07-02 | `members.auth_status`（enum `AUTHORIZED`/`DEAUTHORIZED`）欄位改為 `members.is_activated`（boolean）；`member_authorization_logs` 改為 `member_activation_logs`（action 改為 `ACTIVATE`/`DEACTIVATE`）；「授權」用語全面改為「啟用」，以 `activate_member`/`deactivate_member` 概念取代舊有 `member_authorize`/`member_unauthorize` 定義 |
 | 2026-07-01 | 由 `member_unauthorize` 改名為 `deactivate_member`；response 欄位 `auth_status` 改為 `status`，值 `DEAUTHORIZED` 改為 `INACTIVE`（`members.auth_status` 資料庫欄位與 `AUTHORIZED`/`DEAUTHORIZED` enum 維持不變，API 層負責轉換） |
@@ -15,7 +16,7 @@ permalink: /api-specs/deactivate-member/
 # API: deactivate_member
 
 ## 功能說明
-用戶在 CR 前台主動解除樹享券服務。神坊更新 `members.is_activated = FALSE` 並寫入一筆 `member_activation_logs`（action=DEACTIVATE）。
+用戶在 CR 前台主動解除樹享券服務。樹享券平台收到請求後，主動呼叫點數系統 API 完成取消授權（`member_unauthorize`）；點數系統成功後，神坊更新 `members.is_activated = FALSE` 並寫入一筆 `member_event_logs`（type = `deactivate_member`，data = null）。兩邊皆成功才視為完成，任一失敗則整筆失敗。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`
@@ -60,8 +61,8 @@ HTTP Status: `200 OK`
 ```json
 {
   "member_id": "17e26fe8-2bf4-4fbc-996f-f17b90fac683",
-  "status": "INACTIVE",
-  "auth_updated_at": "2026-10-15T20:00:00+08:00"
+  "is_activated": false,
+  "last_deactivated_at": "2026-10-15T20:00:00+08:00"
 }
 ```
 
@@ -70,14 +71,18 @@ HTTP Status: `200 OK`
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | member_id | String | 神坊用戶識別碼 |
-| status | String | 執行後的服務啟用狀態，此 API 固定回傳 `INACTIVE`（對應資料庫 `members.is_activated = FALSE`） |
-| auth_updated_at | String | 啟用狀態最後變更時間（UTC+8 ISO 8601） |
+| is_activated | Bool | 執行後的啟用狀態，此 API 固定回傳 FALSE（對應資料庫 `members.is_activated = FALSE`） |
+| last_deactivated_at | String | 最後停用時間（UTC+8 ISO 8601） |
 
 ### 邏輯說明
-- 神坊於同一 transaction 更新 `members.is_activated = FALSE`、`members.auth_updated_at`，並寫入一筆 `member_activation_logs`（action=DEACTIVATE）
-- 冪等：`is_activated` 已為 `FALSE` 時重複呼叫，不重複寫 log，回傳當前狀態（`status: INACTIVE`）
+- 樹配券收到請求後，先檢查會員當前是否已為停用狀態（`members.is_activated = false`）
+  - 是：直接回傳當前狀態即可，不重複寫 log，不呼叫點數系統
+  - 否：先呼叫點數系統 API（`member_unauthorize`）取消授權；點數系統失敗則直接回失敗，樹配券狀態不變
+    - 點數系統成功後，更新 `members.is_activated = false`、`members.updated_at`，並寫入一筆 `member_event_logs`（type=deactivate_member，data=null）
+- `last_deactivated_at` 取自 `member_event_logs` 對應 member & type=deactivate_member，最新一筆的 `created_at`
 - 停用後，用戶錢包中 `AVAILABLE` 的 coupon 保留但不可用於新交易；`CONSUMED` 狀態的 order 繼續走完原流程
 - 重新啟用（呼叫 `activate_member`）後，原有 `AVAILABLE` coupon 自動恢復可用，無需額外操作
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 1. `member_id` 不存在：`MEMBER_NOT_FOUND`
+2. 小樹生活點數系統呼叫失敗：`TREELIFE_ERROR`
