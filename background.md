@@ -35,7 +35,7 @@ Coupon 本質作為本體，不採取「刷卡代金」概念作為本體
 每一 brand 底下同一時間只會有一個「自動兌換」的 campaign
 - 當用戶有同意「在此品牌刷卡時，自動以點數根據當前 campaign 兌換券」時
 - 在對應品牌刷卡發生時，清算可折抵多少刷卡額
-- campaign 是否為 active，依其 `rotation_id` 對應的 rotation 是否為當前 active rotation（`start_time <= now() < end_time`）判斷
+- campaign 是否為 active，依其 `rotation_id` 對應的 rotation 是否為當前 active rotation（`start_time <= now() <= end_time`，end_time 含邊界）判斷
 
 ## 計算邏輯與概念
 1. 已存在的 coupon 採 first-in-first-out -> 先到期先用
