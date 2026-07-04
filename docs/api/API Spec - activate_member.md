@@ -7,6 +7,7 @@ permalink: /api-specs/activate-member/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-05 | response 改為 `200 OK`（無 body）；呼叫端不需回傳資訊，移除 `is_activated` / `last_activated_at` 欄位 |
 | 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
 | 2026-07-02 | `members.auth_status`（enum `AUTHORIZED`/`DEAUTHORIZED`）欄位改為 `members.is_activated`（boolean）；`member_authorization_logs` 改為 `member_activation_logs`（action 改為 `ACTIVATE`/`DEACTIVATE`）；「授權」用語全面改為「啟用」，以 `activate_member` 概念取代舊有 `member_authorize` 定義 |
 | 2026-07-01 | 由 `member_authorize` 改名為 `activate_member`；response 欄位 `auth_status` 改為 `status`，值 `AUTHORIZED` 改為 `ACTIVE`（`members.auth_status` 資料庫欄位與 `AUTHORIZED`/`DEAUTHORIZED` enum 維持不變，API 層負責轉換） |
@@ -53,34 +54,18 @@ Content-Type: `application/json`
 ```
 
 # Response
-HTTP Status: `200 OK`
+HTTP Status: `200 OK`（無 body）
 
-## Response Sample（JSON）
-
-```json
-{
-  "member_id": "17e26fe8-2bf4-4fbc-996f-f17b90fac683",
-  "is_activated": true,
-  "last_activated_at": "2026-10-01T08:00:00+08:00"
-} 
-```
-
-## Response Items
-
-| 欄位 | 類型 | 說明 |
-| ---- | ---- | ---- |
-| member_id | String | 神坊用戶識別碼 |
-| is_activated | Bool | 執行後的啟用狀態，此 API 固定回傳 TRUE（對應資料庫 `members.is_activated = TRUE`） |
-| last_activated_at | String | 最後啟用時間（UTC+8 ISO 8601） |
+> **注意：** response 不回傳任何欄位，呼叫端不需要此 API 的回傳資訊；若需查詢會員當前啟用狀態，應呼叫 `get_member_settings`。
 
 ### 邏輯說明
 - 樹配券收到請求後，先檢查會員是否在樹配券平台存在且服務已啟用（`members.is_activated = true`）
-  - 是，直接回傳當前狀態即可（last_activated_at 意義則是上次啟用時間），不重複寫 log
+  - 是，直接回傳 `200 OK`，不重複寫 log
   - 否：先呼叫點數系統 API；點數系統失敗則直接回失敗，樹配券狀態不變
     - Treelife API 成功後，會員是否存在於樹配券平台
       - 是：更新 `members.is_activated` = true、`members.updated_at`。
       - 否：新增 `members`
-- last_activated_at 取自 member_event_logs 對應 member & type=activate_member，最新一筆的 created_at
+    - 寫入一筆 `member_event_logs`（type = `activate_member`，data = null）
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 1. `member_id` 不存在於小樹生活：`MEMBER_NOT_FOUND_IN_TREELIFE`
