@@ -366,8 +366,8 @@ erDiagram
 
 - 主鍵：`id`（ULID）
 - `start_time` / `end_time` 均為 UTC+8 時間戳記
-- active rotation 以 `start_time <= now() < end_time` 判斷
-- 系統同一時間只應有一個 active rotation
+- active rotation 以 `start_time <= now() <= end_time` 判斷（end_time 含邊界）
+- 系統同一時間只應有一個 active rotation；建立 rotation 時須檢查 `next.start_time > prev.end_time`（嚴格大於），避免前後緊接的 rotation 在交界瞬間同時判定為 active
 - `max_selectable_auto_brand_count`：此檔期用戶最多可選品牌數（僅計入具備 active `auto` campaign 之品牌），取代原 `system_configs.brand_selection_limit`
 - `description`：前端顯示用說明參數，固定以 JSON 字串寫入，格式為 `{"order_amount": N, "point_amount": N}`，由後台維護，前端自行 parse 組合說明文字，不參與任何清算邏輯
 
