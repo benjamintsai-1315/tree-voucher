@@ -211,7 +211,8 @@
 | 文件狀態 | 文件、spec、有沒有寫 | docs-status + doc-reader |
 | 溝通需求 | 通知、email、跟客戶說 | comms |
 | 工單操作 | 建立、更新、指派 | asana-pm（產出草稿，等待確認） |
-| 文件邏輯審查 | review、審查、有沒有問題、找漏洞 | spec-review（見下方審查原則） |
+| 文件邏輯審查（單份） | review、審查、有沒有問題、找漏洞 | spec-review（見下方審查原則） |
+| 全專案復盤（多份/全部） | 復盤、audit、全面 review、體檢、盤點漏洞、找出所有歧義 | `spec-audit` skill（編排全 spec 審查，見該 skill 定義） |
 
 <!-- SKILL 候選：「文件邏輯審查」程序完整且獨立，建議抽成 skill `spec-logic-review` -->
 
@@ -274,6 +275,7 @@ C. [具體行動]（若適用）
 ### docs/ 結構慣例
 - `docs/api/`：所有 API spec
 - `docs/changelogs/CHANGELOG.md`：changelog subagent 寫入目標；**業務規則的歷史變更也記錄於此**
+- `docs/reviews/`：`spec-audit` skill 的復盤報告輸出目標，檔名格式 `YYYY-MM-DD-spec-audit.md`（審查對象，不屬被審查文件）
 - `docs/README.md`：文件索引
 
 遇到需要寫入文件時：
