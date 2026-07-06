@@ -96,10 +96,10 @@
 
 **Member 啟用狀態**（2026-07-02 起之權威定義）：
 - DB 欄位：`members.is_activated`（Boolean）：`TRUE`（已啟用）／`FALSE`（未啟用或已停用）
-- 內部 log：`member_activation_logs`（action = `ACTIVATE` / `DEACTIVATE`）
+- 內部 log：`member_event_logs`（統一會員事件表；`type` 記錄事件種類，如 `activate_member` / `deactivate_member`，以及選牌變更、自動兌換設定變更、`system_clear_brands` 等；`data` 存事件快照或 null）
 - API：`activate_member` / `deactivate_member`，對外回傳 `status: ACTIVE` / `INACTIVE`，由 API 負責與 DB 欄位互相轉換
 - 各 API 邊界檢查一律使用「呼叫前會員必須已啟用（`members.is_activated = TRUE`）」與對應 400 錯誤 `MEMBER_NOT_ACTIVATED`；唯一例外為 `get_order`，因其設計為不透露訂單/會員狀態，一律回 `ORDER_NOT_FOUND`
-- ⚠️ 已棄用、文件中不得再新增使用：`members.auth_status`、`member_authorization_logs`、`member_authorize` / `member_unauthorize`
+- ⚠️ 已棄用、文件中不得再新增使用：`members.auth_status`、`member_authorization_logs`、`member_activation_logs`（統一併入 `member_event_logs`）、`member_authorize` / `member_unauthorize`
 
 ### 合作方與角色
 
@@ -125,6 +125,8 @@
 **Scope 外（本次不做）**：對帳 API、後台 CRUD API（第二階段）
 
 **前台 API 安全機制**：所有 `/coupon/...` API 除 `API Key` 驗證外，另須通過來源 IP 白名單檢查；`API Key`、IP 白名單皆存於 AWS Parameter Store，不寫死於程式碼或設定檔。`/bank/...` API 不在此列，邊界檢查另行定義。
+
+**驗證失敗回應（共同定義，各 spec 不重複列）**：`API Key` 無效或未帶 → `401 Unauthorized`；來源 IP 不在白名單 → `403 Forbidden`。
 
 ### Asana 工單位置
 
