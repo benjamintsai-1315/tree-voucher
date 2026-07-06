@@ -7,6 +7,7 @@ permalink: /api-specs/batch-finalize-orders/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-06 | 冪等統一：相同 `request_id` 一律回 `400 BATCH_REQUEST_ALREADY_EXISTS`；修正內文「冪等設計」誤述為直接回傳原批次接收資訊 |
 | 2026-06-25 | `BATCH_SIZE_EXCEEDED`、`INVALID_ACTION` 改為 422（語意驗證錯誤，與格式錯誤的 400 區分） |
 | 2026-06-25 | Response 改為 `200 OK` no body — `accepted_count` 無附加資訊（發卡主機自知筆數）；`submitted_at` 可由 `get_finalize_batch_status` 查詢；`request_id` 由發卡主機自行編列，回傳無意義 |
 | 2026-06-24 | 改為 JSON body（`application/json`）；`request_id` 改名為 `request_id`；新增單批次上限 1000 筆（超過回 `BATCH_SIZE_EXCEEDED`）；移除 CSV 上傳設計；建議銀行端每批 500–1000 筆分批打入 |
@@ -40,7 +41,7 @@ permalink: /api-specs/batch-finalize-orders/
 
 ### 冪等設計
 - `request_id` 由發卡主機自行產生並帶入，用於識別批次請求
-- 若相同 `request_id` 再次呼叫，神坊直接回傳原批次接收資訊，不重複建立或重跑
+- 若相同 `request_id` 再次呼叫，神坊回 `400 BATCH_REQUEST_ALREADY_EXISTS`，不重複建立或重跑
 
 ### 分批建議
 - 單次請求上限為 **1000 筆**，超過回 `BATCH_SIZE_EXCEEDED`
