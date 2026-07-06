@@ -7,6 +7,7 @@ permalink: /api-specs/deactivate-member/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-06 | log 表以 `member_event_logs`（統一會員事件表）為權威，釐清先前 changelog 誤植的 `member_activation_logs` |
 | 2026-07-05 | 比照 `activate_member`，新增同步呼叫點數系統 `member_unauthorize` 取消授權；新增 `TREELIFE_ERROR` 錯誤碼 |
 | 2026-07-05 | response 改為 `200 OK`（無 body）；呼叫端不需回傳資訊，移除 `is_activated` / `last_deactivated_at` 欄位 |
 | 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
