@@ -1,7 +1,0 @@
-interface:
-  display_name: "Push And Verify Pages"
-  short_description: "Push a repo and verify the live docs/site"
-  default_prompt: "Use $push-and-verify-pages to push the current repository and confirm the deployed page is live."
-
-policy:
-  allow_implicit_invocation: true

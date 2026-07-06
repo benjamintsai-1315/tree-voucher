@@ -5,7 +5,7 @@ description: >
   or internal engineering team. Generates email or message drafts — never sends them.
   Use when: notifying clients of delays, sharing progress updates, requesting clarification
   from partners, or syncing with the internal team on decisions.
-tools: Read, Glob, mcp__4eb223a0-adfa-4563-8421-220c13841328__create_draft
+tools: Read, Glob, mcp__gmail__create_draft
 model: claude-sonnet-4-6
 ---
 
@@ -35,11 +35,13 @@ model: claude-sonnet-4-6
 
 若任務描述提供了 Asana URL 或 docs 路徑，先 Read 取得背景資訊再寫草稿。
 
-## Gmail 草稿建立
+## Gmail 草稿建立（明確條件）
 
-若確定要存成 Gmail 草稿，使用 `mcp__4eb223a0-adfa-4563-8421-220c13841328__create_draft`：
+僅當任務描述**明確包含** `CREATE_GMAIL_DRAFT: true` 這一行時，才呼叫 `mcp__gmail__create_draft`：
 - 收件人由任務描述提供（若無則留空）
 - 主旨由草稿內容決定
+
+沒有這一行時，一律只輸出文字草稿，不呼叫 Gmail 工具。「幫我寫封信」「擬個 email」等描述都屬於文字草稿需求，不觸發 Gmail 草稿建立。
 
 ## 輸出格式
 
