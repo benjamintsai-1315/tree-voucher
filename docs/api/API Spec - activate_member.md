@@ -7,6 +7,7 @@ permalink: /api-specs/activate-member/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-06 | log 表以 `member_event_logs`（統一會員事件表）為權威，釐清先前 changelog 誤植的 `member_activation_logs`；內文 `type` 值統一為 `activate_member`（原誤植 `active_member`） |
 | 2026-07-05 | response 改為 `200 OK`（無 body）；呼叫端不需回傳資訊，移除 `is_activated` / `last_activated_at` 欄位 |
 | 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
 | 2026-07-02 | `members.auth_status`（enum `AUTHORIZED`/`DEAUTHORIZED`）欄位改為 `members.is_activated`（boolean）；`member_authorization_logs` 改為 `member_activation_logs`（action 改為 `ACTIVATE`/`DEACTIVATE`）；「授權」用語全面改為「啟用」，以 `activate_member` 概念取代舊有 `member_authorize` 定義 |
@@ -16,7 +17,7 @@ permalink: /api-specs/activate-member/
 # API: activate_member
 
 ## 功能說明
-用戶在 CR 前台同意啟用樹享券服務。樹享券平台收到請求後，主動呼叫點數系統 API 完成授權；點數系統成功後，樹配券平台新增會員或更新 `members.is_activated = TRUE` 並寫入一筆 `member_event_logs`（type = `active_member`，data = null）。兩邊皆成功才視為完成，任一失敗則整筆失敗。
+用戶在 CR 前台同意啟用樹享券服務。樹享券平台收到請求後，主動呼叫點數系統 API 完成授權；點數系統成功後，樹配券平台新增會員或更新 `members.is_activated = TRUE` 並寫入一筆 `member_event_logs`（type = `activate_member`，data = null）。兩邊皆成功才視為完成，任一失敗則整筆失敗。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`
