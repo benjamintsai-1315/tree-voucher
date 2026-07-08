@@ -7,6 +7,7 @@ permalink: /api-specs/get-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-08 | `order_status` 對齊 `order.status` 六態（小寫），前台端剔除 `failed`（改回 `ORDER_NOT_FOUND`）；actions 映射更新 `CREATED` → `waiting_finalization`；`finalize_order` 敘述改為 `batch_finalize_orders` |
 | 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
 | 2026-06-16 | `coupons_used[]` 欄位去除多餘 prefix：`coupon_id` → `id`；`coupon_min_order_amount/redeem_points/discount_amount` → `min_order_amount/redeem_points/discount_amount` |
 | 2026-07-01 | `brand_id`/`campaign_id` 範例值改為 ULID 格式，並於 response items 補上 ULID 型別註記 |
@@ -64,7 +65,7 @@ Content-Type: `application/json`
   "cash_amount": 620,
   "card_last_four_digits": "1234",
   "discount_amount": 141,
-  "order_status": "COMPLETED",
+  "order_status": "completed",
   "finalized_at": "2026-10-03T10:00:00+08:00",
   "coupons_used": [
     {
@@ -113,8 +114,8 @@ Content-Type: `application/json`
 | cash_amount | Integer | 本次刷卡金額（元） |
 | card_last_four_digits | String | 該筆刷卡卡號後四碼，固定 4 碼數字字串 |
 | discount_amount | Integer | 本次實際折抵總金額（元） |
-| order_status | String | 訂單當前狀態：`PROCESSING` \| `COMPLETED` \| `CANCELLED` |
-| finalized_at | String \| null | 訂單最終化時間；`PROCESSING` 時為 `null` |
+| order_status | String | 訂單當前狀態，取自 `order.status` 六態；本前台端與 `get_member_orders` 一致**剔除 `failed`**，實際僅出現 `waiting_finalization` \| `completed` \| `cancelled` |
+| finalized_at | String \| null | 訂單終結時間；未終結（`waiting_finalization`）時為 `null`，`completed` / `cancelled` 時為終結時間 |
 | coupons_used | Array | 本次被使用的券明細 |
 | actions | Array | 訂單事件歷程，依發生時間由舊到新排列 |
 | created_at | String | 訂單建立時間（UTC+8 ISO 8601） |
@@ -143,13 +144,13 @@ Content-Type: `application/json`
 - `discount_amount` = Σ `coupons_used[].discount_amount`
 - `coupons_used[]` 對應 DB layer 的 `order_coupon_logs`
 - `actions` 對應 DB layer 的 `order_logs`
-- `actions` 最少一筆（`CREATED`），finalize_order 執行後新增第二筆（`COMPLETED` 或 `CANCELLED`）
-- `order_status` 與 `actions` 最後一筆的 `action` 對應：`CREATED` → `PROCESSING`、`COMPLETED` → `COMPLETED`、`CANCELLED` → `CANCELLED`
-- `member_id` 不符時一律回 `ORDER_NOT_FOUND`，不透露訂單存在與否
+- `actions` 最少一筆（`CREATED`），`batch_finalize_orders` 執行後新增第二筆（`COMPLETED` 或 `CANCELLED`）
+- `order_status`（`order.status` 六態）與 `actions` 最後一筆的 `action` 對應：`CREATED` → `waiting_finalization`、`COMPLETED` → `completed`、`CANCELLED` → `cancelled`（清算中的 `pending` / `processing` 為暫態、不會有對應 action；`failed` 訂單不由本前台端回傳）
+- `member_id` 不符、或訂單為 `failed`（清算失敗）時，一律回 `ORDER_NOT_FOUND`，不透露訂單存在與否
 - `card_last_four_digits` 為建單時由發卡主機提供並保存於訂單上的顯示資訊，不參與任何清算邏輯
 
 # Error Handling
 
 | HTTP Status | Error Code | 說明 |
 | ----------- | ---------- | ---- |
-| 400 | `ORDER_NOT_FOUND` | `order_id` 不存在，或 `member_id` 與訂單不符 |
+| 400 | `ORDER_NOT_FOUND` | `order_id` 不存在、`member_id` 與訂單不符，或訂單為 `failed`（清算失敗、不對前台端揭露） |
