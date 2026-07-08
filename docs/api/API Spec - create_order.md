@@ -7,6 +7,7 @@ permalink: /api-specs/create-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-08 | 前台 `get_order` 廢除，訂單查詢導引改為 `bank_get_order`（發卡主機端）；前台不提供單筆訂單明細 |
 | 2026-07-08 | 定義 `order.status` 生命週期（`pending`→`processing`→`waiting_finalization`/`failed`→`completed`/`cancelled`），取代舊二態 `PROCESSING`/`FAILED`；明訂兩段 DB transaction（stage 1 建單+既有券段、stage 2 新券段 update 併回）；成敗回歸單一條件 `discount_amount > 0`；新券段失敗區分「點數端失敗（走 retry/cronjob）」與「我方失敗（孤兒點數、人工善後）」，兩者皆不改變判定 |
 | 2026-07-07 | 收斂待定事項：discount=0 回碼優先序定案為 400 清單編號順序（4→5→6→7→8）；跨品牌 `max_points_per_rotation` race condition 移交 RD 技術規格；`failed` 訂單可查性定案（`get_member_orders` 剔除、admin status filter 可查、`bank_get_order` 全回） |
 | 2026-07-07 | 新券段重排步驟並改為**依序發券**（不再先算 min 一次發行）；移除 per-order quota 檢查與 `MEMBER_EXCEED_PER_ORDER_QUOTA`（能進新券段即代表 per-order 未占滿）；`brand_id` 不再前置檢查、移除 `BRAND_NOT_FOUND`（不存在者自然落入 `NO_ACTIVE_CAMPAIGN`）；新增扣點逾時與 retry/每日 cronjob 對帳機制（銀行可接受 15 秒、`order_id` 與點數扣點交易一對一） |
@@ -45,7 +46,7 @@ permalink: /api-specs/create-order/
 
 發卡主機需一併帶入該筆刷卡卡號後四碼及刷卡門市名稱（`store_name`），供神坊保存於訂單資料，後續由前台端查詢訂單時顯示。
 
-若同一 `order_id` 已建立（無論 `waiting_finalization` 或 `failed`），任何再次收到的 `create_order` 請求皆不重做清算，直接回 `ORDER_ALREADY_EXISTS`。若需查詢訂單完整資訊、用券明細與事件歷程，應另呼叫 `get_order`。
+若同一 `order_id` 已建立（無論 `waiting_finalization` 或 `failed`），任何再次收到的 `create_order` 請求皆不重做清算，直接回 `ORDER_ALREADY_EXISTS`。發卡主機若需查詢訂單狀態與折抵金額，應另呼叫 `bank_get_order`。
 
 # Request
 HTTP method: `POST`
@@ -179,7 +180,7 @@ Content-Type: `application/json`
 - 券的 `issued_at` / `expired_at` 均以神坊**收到 request 的實際時間**為準，與 `transaction_time` 無關；`expired_at` 的日界（`23:59:59.999` UTC+8、含邊界）與 rotation active 判定採相同精度與邊界規則
 - **rotation 邊界暫定：** 若 `transaction_time` 早於 `rotation.end_time`（交易發生在舊檔期內），但神坊收到 request 時當下時間已超過 `rotation.end_time`，**暫定仍以收到 request 時間為準**執行清算（不回溯舊 rotation）
 - `max_points_per_rotation`：定義於 **rotation 屬性**（非 campaign）；語意為「同一用戶於此 rotation 內、跨所有品牌與 campaign 合計可用的點數上限」；計數條件為同一 `member_id + rotation_id` 下已發行 coupon 的 `coupon_redeem_points` 加總；`0` 代表無上限
-- `create_order` response 僅回傳 `discount_amount` 與 `points_used`；若需訂單狀態、用券明細、事件歷程與卡號後四碼，應另呼叫 `get_order`
+- `create_order` response 僅回傳 `discount_amount` 與 `points_used`；發卡主機若需查詢訂單狀態與折抵金額，應另呼叫 `bank_get_order`（前台端不提供單筆訂單明細查詢）
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 
