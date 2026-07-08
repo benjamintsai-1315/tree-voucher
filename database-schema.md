@@ -415,4 +415,4 @@ erDiagram
 
 - `coupon_wallet` 對應的是 `coupons` 的查詢投影，可依 `member_id`、`brand_id`、`status` 組合查詢，不需獨立建表。
 - `get_member_settings_change_logs` API 直接回傳 `member_brand_change_logs.data` 的 `before_brands` / `after_brands`，不需 API layer 重建；pause/resume 類型（`disable_auto_redeem`、`enable_auto_redeem`）的 `data` 為 null，API 直接回傳 `data: null`。
-- `get_order` API 的 `events` 對應 `order_logs`；`coupons_used` 對應 `order_coupon_logs`。
+- 訂單事件歷程（`actions`/`events`）對應 `order_logs`；用券明細（`coupons_used`）對應 `order_coupon_logs`。（前台 `get_order` 已於 2026-07-08 廢除，此映射現由發卡主機端 `bank_get_order` 沿用；前台改用 `get_member_orders` 摘要列表，不含此二明細。）
