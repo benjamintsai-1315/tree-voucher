@@ -7,6 +7,7 @@ permalink: /api-specs/get-member-orders/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-08 | `order_status` 對齊 `order.status` 六態（小寫），本會員列表剔除 `failed`、暫態不出現；`finalized_at` 說明改為終結（`completed`/`cancelled`）前為 null |
 | 2026-07-02 | 排序改為 `transaction_time DESC`；新增 `transaction_time` response 欄位（發卡主機傳入的刷卡交易時間，供前端顯示用） |
 | 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
 | 2026-07-02 | 新增邊界檢查與 400 錯誤：會員須已啟用（`MEMBER_NOT_ACTIVATED`） |
@@ -71,7 +72,7 @@ Content-Type: `application/json`
       "cash_amount": 620,
       "card_last_four_digits": "1234",
       "discount_amount": 141,
-      "order_status": "COMPLETED",
+      "order_status": "completed",
       "transaction_time": "2026-10-01T14:28:00+08:00",
       "finalized_at": "2026-10-03T10:00:00+08:00",
       "created_at": "2026-10-01T14:30:00+08:00"
@@ -85,7 +86,7 @@ Content-Type: `application/json`
       "cash_amount": 300,
       "card_last_four_digits": "5678",
       "discount_amount": 21,
-      "order_status": "PROCESSING",
+      "order_status": "waiting_finalization",
       "transaction_time": "2026-10-02T09:08:00+08:00",
       "finalized_at": null,
       "created_at": "2026-10-02T09:10:00+08:00"
@@ -112,9 +113,9 @@ Content-Type: `application/json`
 | cash_amount | Integer | 本次刷卡金額（元） |
 | card_last_four_digits | String | 該筆刷卡卡號後四碼，固定 4 碼數字字串 |
 | discount_amount | Integer | 本次實際折抵總金額（元） |
-| order_status | String | 訂單當前狀態：`PROCESSING` \| `COMPLETED` \| `CANCELLED` |
+| order_status | String | 訂單當前狀態，取自 `order.status` 六態；本會員列表**剔除 `failed`**，實際僅出現 `waiting_finalization` \| `completed` \| `cancelled` |
 | transaction_time | String | 發卡主機傳入的刷卡交易時間（UTC+8 ISO 8601）；列表依此欄位排序（DESC） |
-| finalized_at | String \| null | 訂單最終化時間；`PROCESSING` 時為 `null` |
+| finalized_at | String \| null | 訂單終結時間；未終結（`waiting_finalization`）時為 `null`，`completed` / `cancelled` 時為終結時間 |
 | created_at | String | 訂單建立時間（UTC+8 ISO 8601） |
 
 ### brand
@@ -126,6 +127,7 @@ Content-Type: `application/json`
 
 ### 邏輯說明
 - 列表為摘要資訊，不含 `coupons_used` 明細與 `events` 歷程；完整資訊請呼叫 `get_order`
+- **`order.status = failed` 的訂單（`create_order` 清算後折抵為 0）不列入本列表**；清算中的暫態（`pending` / `processing`）亦不會出現於已成立的訂單列表
 - `items` 內的 `card_last_four_digits` 為建單時由發卡主機提供，供前台端在訂單列表顯示卡號辨識資訊
 - 固定以 `transaction_time DESC` 排序
 
