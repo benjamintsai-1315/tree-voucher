@@ -106,7 +106,7 @@
 - DB 欄位：`members.is_activated`（Boolean）：`TRUE`（已啟用）／`FALSE`（未啟用或已停用）
 - 內部 log：`member_event_logs`（統一會員事件表；`type` 記錄事件種類，如 `activate_member` / `deactivate_member`，以及選牌變更、自動兌換設定變更、`system_clear_brands` 等；`data` 存事件快照或 null）
 - API：`activate_member` / `deactivate_member`，對外回傳 `status: ACTIVE` / `INACTIVE`，由 API 負責與 DB 欄位互相轉換
-- 各 API 邊界檢查一律使用「呼叫前會員必須已啟用（`members.is_activated = TRUE`）」與對應 400 錯誤 `MEMBER_NOT_ACTIVATED`；唯一例外為 `get_order`，因其設計為不透露訂單/會員狀態，一律回 `ORDER_NOT_FOUND`
+- 各前台 API 邊界檢查一律使用「呼叫前會員必須已啟用（`members.is_activated = TRUE`）」與對應 400 錯誤 `MEMBER_NOT_ACTIVATED`
 - ⚠️ 已棄用、文件中不得再新增使用：`members.auth_status`、`member_authorization_logs`、`member_activation_logs`（統一併入 `member_event_logs`）、`member_authorize` / `member_unauthorize`
 
 ### 合作方與角色
@@ -123,9 +123,10 @@
 **API spec 存放位置**：`docs/api/API Spec - [api_name].md`
 
 **前台 `/coupon/...`（已有 spec）**：
-`get_current_rotation`、`activate_member`、`deactivate_member`、`get_member_settings`、`update_member_selected_brands`、`update_member_auto_redeem_settings`、`get_member_settings_change_logs`、`get_coupon_wallet`、`get_coupons`、`get_coupon_detail`、`get_member_orders`、`get_order`
+`get_current_rotation`、`activate_member`、`deactivate_member`、`get_member_settings`、`update_member_selected_brands`、`update_member_auto_redeem_settings`、`get_member_settings_change_logs`、`get_coupon_wallet`、`get_coupons`、`get_coupon_detail`、`get_member_orders`
 
 > ⚠️ `update_member_settings` 已於 2026-06-25 拆分為 `update_member_selected_brands` 與 `update_member_auto_redeem_settings`，不再使用
+> ⚠️ 前台 `get_order` 已於 2026-07-08 廢除（前台不提供單筆訂單明細）；發卡主機端單筆訂單查詢由 `bank_get_order` 承接
 
 **發卡主機 `/bank/...`（已有 spec）**：
 `create_order`、`batch_finalize_orders`、`get_finalize_batch_status`、`bank_get_order`
