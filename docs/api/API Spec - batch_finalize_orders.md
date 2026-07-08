@@ -7,6 +7,7 @@ permalink: /api-specs/batch-finalize-orders/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-08 | 補述訂單狀態銜接：終結前置為 `order.status = waiting_finalization`，COMPLETED → `completed`、CANCELLED → `cancelled`；釐清 `ORDER_NOT_FOUND`（含不可終結的 `failed` 訂單）與 `ORDER_ALREADY_FINALIZED`（已為 `completed`/`cancelled`）判定 |
 | 2026-07-06 | 冪等統一：相同 `request_id` 一律回 `400 BATCH_REQUEST_ALREADY_EXISTS`；修正內文「冪等設計」誤述為直接回傳原批次接收資訊 |
 | 2026-06-25 | `BATCH_SIZE_EXCEEDED`、`INVALID_ACTION` 改為 422（語意驗證錯誤，與格式錯誤的 400 區分） |
 | 2026-06-25 | Response 改為 `200 OK` no body — `accepted_count` 無附加資訊（發卡主機自知筆數）；`submitted_at` 可由 `get_finalize_batch_status` 查詢；`request_id` 由發卡主機自行編列，回傳無意義 |
@@ -33,11 +34,13 @@ permalink: /api-specs/batch-finalize-orders/
 - 商戶向銀行請款後，發卡主機批次通知神坊
 - 神坊（非同步）將該訂單所有 `consumed` 券改為 `settled`
 - 神坊執行代償流程
+- 訂單狀態 `order.status` 由 `waiting_finalization` 推進為 `completed`
 
 ### 退刷（CANCELLED）
 - 商戶向銀行申請刷退後，發卡主機批次通知神坊
 - 神坊（非同步）將該訂單所有 `consumed` 券依是否到期轉為 `available` 或 `expired`
 - 點數不返還；退回的券成為後續可用的舊券
+- 訂單狀態 `order.status` 由 `waiting_finalization` 推進為 `cancelled`
 
 ### 冪等設計
 - `request_id` 由發卡主機自行產生並帶入，用於識別批次請求
@@ -92,10 +95,12 @@ Body: 無
 
 ### 邏輯說明
 - 神坊收到請求後，建立 `finalize_batch_requests` 記錄，並逐筆建立 `finalize_batch_items`（初始狀態 `PENDING`），立即回傳 `200`
-- 非同步 worker 處理各筆 item；每筆沿用原本的狀態轉換邏輯：
-  - `action = COMPLETED`：所有對應券 `consumed → settled`，觸發代償流程
-  - `action = CANCELLED`：`consumed` 券依是否到期轉為 `available` 或 `expired`，點數不返還
-- 單筆驗證失敗（`ORDER_NOT_FOUND`、`ORDER_ALREADY_FINALIZED`）不中斷整批次，錯誤記錄於該 item 的 `error_code`
+- 非同步 worker 處理各筆 item；每筆先確認 `order.status = waiting_finalization`（唯一可終結狀態），再沿用原本的狀態轉換邏輯：
+  - `action = COMPLETED`：所有對應券 `consumed → settled`，觸發代償流程，`order.status → completed`
+  - `action = CANCELLED`：`consumed` 券依是否到期轉為 `available` 或 `expired`，點數不返還，`order.status → cancelled`
+- 單筆驗證失敗不中斷整批次，錯誤記錄於該 item 的 `error_code`：
+  - `ORDER_NOT_FOUND`：查無此 `order_id`（含 `failed` 訂單，因其不可終結）
+  - `ORDER_ALREADY_FINALIZED`：訂單已為終態（`completed` / `cancelled`），不重複處理
 
 ## 400 錯誤回傳（request-level）
 1. `request_id` 未提供：`BATCH_REQUEST_ID_REQUIRED`
