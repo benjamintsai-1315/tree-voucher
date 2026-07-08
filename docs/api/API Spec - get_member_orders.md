@@ -7,6 +7,7 @@ permalink: /api-specs/get-member-orders/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-08 | 前台端 `get_order` 廢除後，明訂本 API 不提供單筆完整明細（`coupons_used`/`events`）查詢；移除原「呼叫 `get_order`」導引 |
 | 2026-07-08 | `order_status` 對齊 `order.status` 六態（小寫），本會員列表剔除 `failed`、暫態不出現；`finalized_at` 說明改為終結（`completed`/`cancelled`）前為 null |
 | 2026-07-02 | 排序改為 `transaction_time DESC`；新增 `transaction_time` response 欄位（發卡主機傳入的刷卡交易時間，供前端顯示用） |
 | 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
@@ -32,7 +33,7 @@ permalink: /api-specs/get-member-orders/
 > **注意：** `API Key` 與來源 IP 白名單皆存於 AWS Parameter Store。
 
 ## 使用情境
-前台端帶入 `member_id` 取得該會員所有訂單的摘要列表；如需查看單筆完整明細（含 events 歷程），再以 `order_id` 呼叫 `get_order`。
+前台端帶入 `member_id` 取得該會員所有訂單的摘要列表。前台端不提供單筆訂單完整明細（`coupons_used` / `events` 歷程）查詢。
 
 # Request
 HTTP method: `GET`
@@ -126,7 +127,7 @@ Content-Type: `application/json`
 | name | String | 品牌名稱 |
 
 ### 邏輯說明
-- 列表為摘要資訊，不含 `coupons_used` 明細與 `events` 歷程；完整資訊請呼叫 `get_order`
+- 列表為摘要資訊，不含 `coupons_used` 明細與 `events` 歷程；前台端不另提供單筆完整明細查詢
 - **`order.status = failed` 的訂單（`create_order` 清算後折抵為 0）不列入本列表**；清算中的暫態（`pending` / `processing`）亦不會出現於已成立的訂單列表
 - `items` 內的 `card_last_four_digits` 為建單時由發卡主機提供，供前台端在訂單列表顯示卡號辨識資訊
 - 固定以 `transaction_time DESC` 排序
