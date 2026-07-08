@@ -7,6 +7,7 @@ permalink: /api-specs/bank-get-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-08 | `order_status` 對齊 `order.status` 六態（小寫）；發卡主機端不分 status 全回（含 `failed`）；`failed` 訂單 `discount_amount = 0`、`finalized_at = null`；`finalized_at` 說明改為終結（`completed`/`cancelled`）前為 null |
 | 2026-06-15 | 從 get_order 拆分而來，僅供發卡主機端使用，回傳 order status 與必要欄位 |
 
 # API: bank_get_order（發卡主機端）
@@ -47,7 +48,7 @@ Content-Type: `application/json`
 ```json
 {
   "order_id": "ORD_20261001_00001",
-  "order_status": "COMPLETED",
+  "order_status": "completed",
   "discount_amount": 141,
   "finalized_at": "2026-10-03T10:00:00+08:00",
   "created_at": "2026-10-01T14:30:00+08:00"
@@ -59,9 +60,9 @@ Content-Type: `application/json`
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | order_id | String | 訂單識別碼 |
-| order_status | String | 訂單當前狀態：`PROCESSING` \| `COMPLETED` \| `CANCELLED` |
-| discount_amount | Integer | 本次實際折抵總金額（元） |
-| finalized_at | String \| null | 訂單最終化時間；`PROCESSING` 時為 `null` |
+| order_status | String | 訂單當前狀態，取自 `order.status` 六態：`pending` \| `processing` \| `waiting_finalization` \| `failed` \| `completed` \| `cancelled`；發卡主機端**不分 status 一律全回**（含清算失敗的 `failed`） |
+| discount_amount | Integer | 本次實際折抵總金額（元）；`failed` 訂單為 `0` |
+| finalized_at | String \| null | 訂單終結時間；未終結（`pending`/`processing`/`waiting_finalization`/`failed`）時為 `null`，`completed` / `cancelled` 時為終結時間 |
 | created_at | String | 訂單建立時間（UTC+8 ISO 8601） |
 
 # Error Handling
