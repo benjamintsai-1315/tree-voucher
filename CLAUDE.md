@@ -76,9 +76,11 @@
 
 **FIFO + quota 清算邏輯**：
 - 已有 coupon 採 first-in-first-out（先到期先用）
-- `max_redemptions_per_order`：當次交易中，當前 active campaign 的券最多可使用幾張
+- `max_redemptions_per_order`（campaign 屬性）：當次交易中，當前 active campaign 的券最多可使用幾張；`0` 代表無上限
 - 歷史 campaign 的舊券**不占** `max_redemptions_per_order` quota，仍照 FIFO 優先用
 - 若舊券屬於當前 active campaign，則占用 quota
+- `max_points_per_rotation`（**rotation 屬性**，2026-07-08 起；原 `max_redemption_per_rotation` 為 campaign 屬性、計張數，已廢）：同一用戶於此 rotation 內、跨所有品牌與 campaign 合計可用的**點數上限**；計數為同一 `member_id + rotation_id` 下已發行 coupon 的 `coupon_redeem_points` 加總（含全狀態）；`0` 代表無上限
+- 跨品牌並發超用 `max_points_per_rotation` 的防護（鎖定/序列化）屬 RD 技術規格範疇，不在 API spec 定義
 
 **Lazy Cleanup 機制**：
 - 觸發點：`get_member_settings`、`update_member_selected_brands`、`create_order`
@@ -93,6 +95,12 @@
 
 **Coupon 狀態 enum**（必須用這些，不得自造）：
 `AVAILABLE` → `CONSUMED`（授權中）→ `SETTLED`（請款完成）或 `EXPIRED`
+
+**Order 狀態 enum**（`order.status`，2026-07-08 起）：
+`pending`（剛建立）→ `processing`（清算中）→ `waiting_finalization`（清算完成待終結，`discount_amount > 0`）／`failed`（清算完成失敗，`discount_amount = 0`）→ `completed`（`batch_finalize_orders` action=COMPLETED）／`cancelled`（action=CANCELLED）
+- `create_order` 清算採兩段 DB transaction：stage 1（建單 + 既有券段清算）、stage 2（新券段扣點發券後 update 併回同筆 order）
+- 成敗回歸單一條件 `discount_amount > 0`；新券段失敗區分「點數端失敗」（走 retry/每日 cronjob 對帳）與「我方失敗」（扣點成功但發券失敗，孤兒點數、人工善後），兩者皆不改變成敗判定
+- 可查性：`get_member_orders` 剔除 `failed`；admin 端 status filter 可查；`bank_get_order` 不分 status 全回
 
 **Member 啟用狀態**（2026-07-02 起之權威定義）：
 - DB 欄位：`members.is_activated`（Boolean）：`TRUE`（已啟用）／`FALSE`（未啟用或已停用）
