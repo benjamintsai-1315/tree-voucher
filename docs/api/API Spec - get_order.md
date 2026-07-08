@@ -3,10 +3,13 @@ title: API Spec - get_order
 permalink: /api-specs/get-order/
 ---
 
+> **⚠️ Deprecated：** 前台端已不再提供單筆訂單明細查詢。訂單摘要列表請用 [`get_member_orders`](API%20Spec%20-%20get_member_orders.md)；發卡主機端單筆訂單狀態查詢由 [`bank_get_order`](API%20Spec%20-%20bank_get_order.md) 取代。請勿使用本文件。
+
 ## Changelog
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-08 | **Deprecated**：前台端單筆明細查詢廢除（前台不需單筆明細），發卡主機端由 `bank_get_order` 取代 |
 | 2026-07-08 | `order_status` 對齊 `order.status` 六態（小寫），前台端剔除 `failed`（改回 `ORDER_NOT_FOUND`）；actions 映射更新 `CREATED` → `waiting_finalization`；`finalize_order` 敘述改為 `batch_finalize_orders` |
 | 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
 | 2026-06-16 | `coupons_used[]` 欄位去除多餘 prefix：`coupon_id` → `id`；`coupon_min_order_amount/redeem_points/discount_amount` → `min_order_amount/redeem_points/discount_amount` |
