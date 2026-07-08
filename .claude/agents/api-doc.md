@@ -16,7 +16,7 @@ model: claude-sonnet-4-6
 - Spec 路徑與命名：`docs/api/API Spec - [api_name].md`（沿用現有命名，不自創格式）
 - 名詞必須使用專案統一術語（brand / campaign / coupon / rotation / brand_rotation_campaigns），不得混用同義詞
 - Coupon 狀態只能使用：`AVAILABLE` / `CONSUMED` / `SETTLED` / `EXPIRED`
-- 會員啟用檢查一律寫「呼叫前會員必須已啟用（`members.is_activated = TRUE`）」，錯誤碼 `MEMBER_NOT_ACTIVATED`（`get_order` 除外，一律回 `ORDER_NOT_FOUND`）
+- 前台 API 會員啟用檢查一律寫「呼叫前會員必須已啟用（`members.is_activated = TRUE`）」，錯誤碼 `MEMBER_NOT_ACTIVATED`
 - 前台 `/coupon/...` API 的安全機制段落須包含：API Key 驗證 + 來源 IP 白名單（皆存於 AWS Parameter Store）
 
 ## 執行前必做
