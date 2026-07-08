@@ -16,7 +16,9 @@
 | **待處理 issue 數** | **76** |
 | 待處理 Severity 分布 | High 16 ／ Medium 39 ／ Low 21 |
 
-**健康項（查證後跨檔一致，記錄以免誤判）**：Coupon 狀態 enum（`AVAILABLE`/`CONSUMED`/`SETTLED`/`EXPIRED`）跨全檔一致；`MEMBER_NOT_ACTIVATED` 會員啟用檢查一致，且 `get_order` 正確採例外回 `ORDER_NOT_FOUND`；`order.status` 六態生命週期已收錄 CLAUDE.md 權威表（2026-07-08）。
+**健康項（查證後跨檔一致，記錄以免誤判）**：Coupon 狀態 enum（`AVAILABLE`/`CONSUMED`/`SETTLED`/`EXPIRED`）跨全檔一致；`MEMBER_NOT_ACTIVATED` 會員啟用檢查跨前台 API 一致；`order.status` 六態生命週期已收錄 CLAUDE.md 權威表（2026-07-08）。
+
+> ⚠️ **本報告時效說明**：前台 `get_order` 已於 2026-07-08 廢除（前台不提供單筆訂單明細，改用 `get_member_orders`；發卡主機端由 `bank_get_order` 承接）。下方僅涉及 `get_order` 的條目（AUD-070/071）已因廢除失效；跨檔條目中的 `get_order` 部分不再適用。
 
 ---
 
@@ -157,6 +159,8 @@
 - **AUD-069 · Low** — card_last_four_digits 缺值。current_spec：「固定 4 碼數字字串」，發卡主機提供。ambiguity：未提供或非 4 碼時回什麼；型別 String（未標可空）與「固定 4 碼」在缺值情境衝突。
 
 ### get_order.md
+> ⚠️ 前台 `get_order` 已於 2026-07-08 廢除，以下條目已失效，保留僅供追溯。
+
 - **AUD-070 · High** — actions 多於兩筆。current_spec：order_status 由 actions 映射（CREATED→PROCESSING 等），L146「最少一筆 CREATED，finalize 後新增第二筆」。ambiguity：actions 是否可能 >2 筆（重試/部分結案），此時「最後一筆」規則是否仍成立未明確。（此為 get_order 設計「不透露狀態」以外的獨立問題；order.status 已擴六態，映射需同步）
 - **AUD-071 · Low** — coupons_used 空陣列。current_spec：discount_amount=Σ coupons_used[].discount_amount。ambiguity：陣列為空則總額 0，但 create_order 是否允許 0 券訂單、本 API 是否回傳這類訂單未說明。（註：create_order 已定 discount=0→failed，本 spec 對 failed 訂單可查性與 0 券呈現待同步）
 
