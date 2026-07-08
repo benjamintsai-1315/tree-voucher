@@ -73,7 +73,7 @@ AVAILABLE → CONSUMED → SETTLED
 | `get_coupons` | GET | 查詢特定品牌下的券列表（支援狀態篩選） |
 | `get_coupon_detail` | GET | 查詢單張券詳情（狀態、效期、兌換點數） |
 | `get_member_orders` | GET | 查詢消費折抵紀錄 |
-| `get_order` | GET | 查詢單筆訂單詳情 |
+| ~~`get_order`~~ | GET | ⚠️ 已於 2026-07-08 廢除，前台不提供單筆訂單明細（改用 `get_member_orders`；發卡主機端用 `bank_get_order`） |
 
 ### 發卡主機端（`/bank/...`）
 

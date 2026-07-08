@@ -33,7 +33,7 @@
 | `get_coupons` | `docs/api/API Spec - get_coupons.md` |
 | `get_coupon_detail` | `docs/api/API Spec - get_coupon_detail.md` |
 | `get_member_orders` | `docs/api/API Spec - get_member_orders.md` |
-| `get_order` | `docs/api/API Spec - get_order.md` |
+| ~~`get_order`~~ | `docs/api/API Spec - get_order.md`（⚠️ 已於 2026-07-08 廢除，前台不提供單筆訂單明細；改用 `get_member_orders`，發卡主機端用 `bank_get_order`） |
 
 ### 發卡主機（`/bank/...`）
 
