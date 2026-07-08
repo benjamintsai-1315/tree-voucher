@@ -45,7 +45,7 @@ spawn 一個 `spec-review`，任務描述指明跨文件模式，並附上 Phase
 
 1. **統一術語**：brand / campaign / coupon / rotation / brand_rotation_campaigns 在各 spec 的用法是否一致
 2. **Coupon 狀態 enum**：各 spec 引用的狀態是否僅限 `AVAILABLE` / `CONSUMED` / `SETTLED` / `EXPIRED`
-3. **會員啟用檢查**：各 API 的邊界檢查是否一致使用 `MEMBER_NOT_ACTIVATED`（`get_order` 應為例外，回 `ORDER_NOT_FOUND`）
+3. **會員啟用檢查**：各前台 API 的邊界檢查是否一致使用 `MEMBER_NOT_ACTIVATED`
 4. **時間邊界**：所有涉及 rotation 起訖的描述，`end_time` 是否一致為含邊界
 
 ## Phase 4 — 彙整報告
