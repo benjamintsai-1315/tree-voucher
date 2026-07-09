@@ -23,7 +23,7 @@ permalink: /api-specs/bank-get-order/
   - `order_id` 必須存在於神坊系統中
 
 ## 使用情境
-發卡主機於 `create_order` 或 `finalize_order` 後，依需要查詢訂單當前狀態與實際折抵金額。
+發卡主機於 `create_order` 或 `batch_finalize_orders` 後，依需要查詢訂單當前狀態、實際折抵金額，以及 `coupons[]` 對帳明細（含每張券的折抵與 `tree_points`/`cub_points` 點數拆分）。此明細與 `create_order` 建單當下回傳者一致，供發卡主機事後批次對帳重查。
 
 # Request
 HTTP method: `GET`
