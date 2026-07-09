@@ -7,6 +7,7 @@ permalink: /api-specs/bank-get-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-09 | 新增 `points_used` 與 `coupons[]` 對帳明細（與 `create_order` response 同結構），供發卡主機事後重查對帳；舊券（`is_new_issued=false`）本次不扣點故 `tree_points`/`cub_points` 為 0；`failed` 訂單 `coupons[]` 為空陣列、`points_used` 皆為 0 |
 | 2026-07-08 | `order_status` 對齊 `order.status` 六態（小寫）；發卡主機端不分 status 全回（含 `failed`）；`failed` 訂單 `discount_amount = 0`、`finalized_at = null`；`finalized_at` 說明改為終結（`completed`/`cancelled`）前為 null |
 | 2026-06-15 | 從 get_order 拆分而來，僅供發卡主機端使用，回傳 order status 與必要欄位 |
 
@@ -50,6 +51,34 @@ Content-Type: `application/json`
   "order_id": "ORD_20261001_00001",
   "order_status": "completed",
   "discount_amount": 141,
+  "points_used": {
+    "tree_points": 8,
+    "cub_points": 12
+  },
+  "coupons": [
+    {
+      "coupon_id": "CPN_001",
+      "campaign_id": "01HZY7SAYR7J2R4T6W8X1Z3AEH",
+      "is_new_issued": false,
+      "min_order_amount": 400,
+      "discount_amount": 120,
+      "redeem_points": 100,
+      "tree_points": 0,
+      "cub_points": 0,
+      "expired_at": "2026-10-31T23:59:59.999+08:00"
+    },
+    {
+      "coupon_id": "CPN_002",
+      "campaign_id": "01HZY8TBZS8K3S5V7X9Y2A4BFJ",
+      "is_new_issued": true,
+      "min_order_amount": 100,
+      "discount_amount": 21,
+      "redeem_points": 20,
+      "tree_points": 8,
+      "cub_points": 12,
+      "expired_at": "2026-11-30T23:59:59.999+08:00"
+    }
+  ],
   "finalized_at": "2026-10-03T10:00:00+08:00",
   "created_at": "2026-10-01T14:30:00+08:00"
 }
@@ -62,8 +91,35 @@ Content-Type: `application/json`
 | order_id | String | 訂單識別碼 |
 | order_status | String | 訂單當前狀態，取自 `order.status` 六態：`pending` \| `processing` \| `waiting_finalization` \| `failed` \| `completed` \| `cancelled`；發卡主機端**不分 status 一律全回**（含清算失敗的 `failed`） |
 | discount_amount | Integer | 本次實際折抵總金額（元）；`failed` 訂單為 `0` |
+| points_used | Object | 本次扣點總計（僅新券消耗）；`failed` 訂單 `tree_points`/`cub_points` 皆為 `0`，見下表 |
+| coupons | Array | 本次訂單所用的所有券明細（含舊券與新券），與 `create_order` response 同結構，供發卡主機對帳；`failed` 訂單為空陣列，見下表 |
 | finalized_at | String \| null | 訂單終結時間；未終結（`pending`/`processing`/`waiting_finalization`/`failed`）時為 `null`，`completed` / `cancelled` 時為終結時間 |
 | created_at | String | 訂單建立時間（UTC+8 ISO 8601） |
+
+### points_used
+| 欄位 | 類型 | 說明 |
+| ---- | ---- | ---- |
+| tree_points | Integer | 本次使用的小樹點(生活)總數 |
+| cub_points | Integer | 本次使用的小樹點(信用卡)總數 |
+
+### coupons
+| 欄位 | 類型 | 說明 |
+| ---- | ---- | ---- |
+| coupon_id | String | 券識別碼 |
+| campaign_id | String | 該券所屬 campaign 識別碼（ULID） |
+| is_new_issued | Boolean | `true`：本訂單即時發行的新券；`false`：本訂單之前已存在的舊券 |
+| min_order_amount | Integer | 該券對應的最低消費門檻（元） |
+| discount_amount | Integer | 該券本次實際折抵金額（元） |
+| redeem_points | Integer | 該券**發行時**的點數成本（固定屬性，非本次扣點）；新券等於本次 `tree_points + cub_points`，舊券為其原始發行成本 |
+| tree_points | Integer | 該券於**本次訂單**消耗的小樹點(生活)；舊券本次不扣點，固定為 `0` |
+| cub_points | Integer | 該券於**本次訂單**消耗的小樹點(信用卡)；舊券本次不扣點，固定為 `0` |
+| expired_at | String | 該券到期時間（UTC+8 ISO 8601，毫秒精度、含邊界） |
+
+### 對帳恆等式（僅新券貢獻點數）
+- `Σ coupons[].tree_points == points_used.tree_points`
+- `Σ coupons[].cub_points == points_used.cub_points`
+- `Σ coupons[].discount_amount == discount_amount`（含舊券與新券）
+- `cub_points`（小樹點信用卡）為銀行發行點數，是發卡主機對帳的主要依據；此明細與 `create_order` 建單當下回傳者一致，供事後重查
 
 # Error Handling
 
