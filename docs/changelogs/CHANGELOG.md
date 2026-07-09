@@ -2,15 +2,15 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
-## 2026-07-09 — create_order / bank_get_order 新增 coupons[] 對帳明細
+## 2026-07-09 — create_order / bank_get_order 新增 coupons_used[] 對帳明細
 
 ### 發卡主機對帳明細
-- `create_order` 與 `bank_get_order` response 新增 `coupons[]` 陣列，列出本次訂單所用的所有券（含舊券與新券），兩支 API 同結構
+- `create_order` 與 `bank_get_order` response 新增 `coupons_used[]` 陣列，列出本次訂單所用的所有券（含舊券與新券），兩支 API 同結構
 - 每張券含 `is_new_issued`（是否本次訂單即時發行）、`discount_amount`、`redeem_points`，以及**本次**消耗之 `tree_points`/`cub_points` 點數拆分
 - 舊券（`is_new_issued = false`）本次不扣點，`tree_points`/`cub_points` 固定為 `0`（歷史成本記於 `redeem_points`）
 - `cub_points`（小樹點信用卡）為銀行發行點數，是發卡主機對帳的主要依據；`tree_points`（小樹點生活）為神坊端點數，一併列出供完整核對
-- 對帳恆等式：`Σ coupons[].tree_points == points_used.tree_points`、`Σ coupons[].cub_points == points_used.cub_points`、`Σ coupons[].discount_amount == discount_amount`
-- `bank_get_order` 提供事後批次對帳重查（明細與 `create_order` 建單當下回傳者一致）；`failed` 訂單 `coupons[]` 為空陣列、`points_used` 皆為 0
+- 對帳恆等式：`Σ coupons_used[].tree_points == points_used.tree_points`、`Σ coupons_used[].cub_points == points_used.cub_points`、`Σ coupons_used[].discount_amount == discount_amount`
+- `bank_get_order` 提供事後批次對帳重查（明細與 `create_order` 建單當下回傳者一致）；`failed` 訂單 `coupons_used[]` 為空陣列、`points_used` 皆為 0
 
 ## 2026-07-08 — create_order 兩段清算與 order 狀態機定案（SA reviewed）
 
