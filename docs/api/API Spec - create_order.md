@@ -7,7 +7,7 @@ permalink: /api-specs/create-order/
 
 | Date | Summary |
 | ---- | ------- |
-| 2026-07-09 | response 新增 `coupons[]` 對帳明細：每張券含 `is_new_issued`、`discount_amount`、`redeem_points` 及**本次**消耗之 `tree_points`/`cub_points`（`cub_points` 為銀行發行點數，供對帳）；舊券（`is_new_issued=false`）本次不扣點，`tree_points`/`cub_points` 皆為 0；同一份明細同步加入 `bank_get_order` 供事後重查 |
+| 2026-07-09 | response 新增 `coupons_used[]` 對帳明細：每張券含 `is_new_issued`、`discount_amount`、`redeem_points` 及**本次**消耗之 `tree_points`/`cub_points`（`cub_points` 為銀行發行點數，供對帳）；舊券（`is_new_issued=false`）本次不扣點，`tree_points`/`cub_points` 皆為 0；同一份明細同步加入 `bank_get_order` 供事後重查 |
 | 2026-07-08 | 前台 `get_order` 廢除，訂單查詢導引改為 `bank_get_order`（發卡主機端）；前台不提供單筆訂單明細 |
 | 2026-07-08 | 定義 `order.status` 生命週期（`pending`→`processing`→`waiting_finalization`/`failed`→`completed`/`cancelled`），取代舊二態 `PROCESSING`/`FAILED`；明訂兩段 DB transaction（stage 1 建單+既有券段、stage 2 新券段 update 併回）；成敗回歸單一條件 `discount_amount > 0`；新券段失敗區分「點數端失敗（走 retry/cronjob）」與「我方失敗（孤兒點數、人工善後）」，兩者皆不改變判定 |
 | 2026-07-07 | 收斂待定事項：discount=0 回碼優先序定案為 400 清單編號順序（4→5→6→7→8）；跨品牌 `max_points_per_rotation` race condition 移交 RD 技術規格；`failed` 訂單可查性定案（`get_member_orders` 剔除、admin status filter 可查、`bank_get_order` 全回） |
@@ -83,7 +83,7 @@ Content-Type: `application/json`
     "tree_points": 8,
     "cub_points": 12
   },
-  "coupons": [
+  "coupons_used": [
     {
       "coupon_id": "01HZYA1B2C3D4E5F6G7H8J9K0M",
       "campaign_id": "01HZY7SAYR7J2R4T6W8X1Z3AEH",
@@ -116,7 +116,7 @@ Content-Type: `application/json`
 | ---- | ---- | ---- |
 | discount_amount | Integer | 本次實際折抵總金額（元），成功建單時必 `> 0` |
 | points_used | Object | 本次扣點總計（僅新券消耗，見下表） |
-| coupons | Array | 本次訂單所用的所有券明細（含舊券與新券），供發卡主機對帳，見下表 |
+| coupons_used | Array | 本次訂單所用的所有券明細（含舊券與新券），供發卡主機對帳，見下表 |
 
 ### points_used
 | 欄位 | 類型 | 說明 |
@@ -124,7 +124,7 @@ Content-Type: `application/json`
 | tree_points | Integer | 本次使用的小樹點(生活)總數 |
 | cub_points | Integer | 本次使用的小樹點(信用卡)總數 |
 
-### coupons
+### coupons_used
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | coupon_id | String | 券識別碼（ULID） |
@@ -183,13 +183,13 @@ Content-Type: `application/json`
 - 點數按券分配並寫入 `treelife_use_point_log`：cub_points 優先分配給先發行的券；分配規則為每張券消耗 `coupon_redeem_points` 點，先由 cub_points 填滿，不足時才使用 tree_points；`used_tree_points + used_cub_points` = 該券的 `coupon_redeem_points`，且各券加總須等於 treelife-api 回傳之總數
 - `points_used.tree_points` / `points_used.cub_points` 為 treelife-api 回傳的全批次總數，直接轉入 response
 
-**`coupons[]` 對帳明細（供發卡主機）：**
-- `coupons[]` 涵蓋本次訂單所用的**所有券**，含既有券段舊券（`is_new_issued = false`）與新券段新券（`is_new_issued = true`）
+**`coupons_used[]` 對帳明細（供發卡主機）：**
+- `coupons_used[]` 涵蓋本次訂單所用的**所有券**，含既有券段舊券（`is_new_issued = false`）與新券段新券（`is_new_issued = true`）
 - 每張券的 `tree_points` / `cub_points` 為該券於**本次訂單**實際消耗的點數；舊券的點數是在其原始發行訂單中扣除，故本次一律為 `0`（其歷史成本記於 `redeem_points`）
 - 對帳恆等式（僅新券貢獻點數）：
-  - `Σ coupons[].tree_points == points_used.tree_points`
-  - `Σ coupons[].cub_points == points_used.cub_points`
-  - `Σ coupons[].discount_amount == discount_amount`（含舊券與新券）
+  - `Σ coupons_used[].tree_points == points_used.tree_points`
+  - `Σ coupons_used[].cub_points == points_used.cub_points`
+  - `Σ coupons_used[].discount_amount == discount_amount`（含舊券與新券）
 - `cub_points`（小樹點信用卡）為銀行發行點數，是發卡主機對帳的主要依據；`tree_points`（小樹點生活）為神坊端點數，一併列出供完整核對
 
 **訂單狀態（`order.status`）生命週期：**
@@ -228,7 +228,7 @@ Content-Type: `application/json`
 - 券的 `issued_at` / `expired_at` 均以神坊**收到 request 的實際時間**為準，與 `transaction_time` 無關；`expired_at` 的日界（`23:59:59.999` UTC+8、含邊界）與 rotation active 判定採相同精度與邊界規則
 - **rotation 邊界暫定：** 若 `transaction_time` 早於 `rotation.end_time`（交易發生在舊檔期內），但神坊收到 request 時當下時間已超過 `rotation.end_time`，**暫定仍以收到 request 時間為準**執行清算（不回溯舊 rotation）
 - `max_points_per_rotation`：定義於 **rotation 屬性**（非 campaign）；語意為「同一用戶於此 rotation 內、跨所有品牌與 campaign 合計可用的點數上限」；計數條件為同一 `member_id + rotation_id` 下已發行 coupon 的 `coupon_redeem_points` 加總；`0` 代表無上限
-- `create_order` response 回傳 `discount_amount`、`points_used` 與 `coupons[]` 對帳明細；發卡主機若需事後重查訂單狀態、折抵金額與同一份 `coupons[]` 明細，應另呼叫 `bank_get_order`（前台端不提供單筆訂單明細查詢）
+- `create_order` response 回傳 `discount_amount`、`points_used` 與 `coupons_used[]` 對帳明細；發卡主機若需事後重查訂單狀態、折抵金額與同一份 `coupons_used[]` 明細，應另呼叫 `bank_get_order`（前台端不提供單筆訂單明細查詢）
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 
