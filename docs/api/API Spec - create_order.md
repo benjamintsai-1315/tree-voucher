@@ -85,7 +85,7 @@ Content-Type: `application/json`
   },
   "coupons": [
     {
-      "coupon_id": "CPN_001",
+      "coupon_id": "01HZYA1B2C3D4E5F6G7H8J9K0M",
       "campaign_id": "01HZY7SAYR7J2R4T6W8X1Z3AEH",
       "is_new_issued": false,
       "min_order_amount": 400,
@@ -96,7 +96,7 @@ Content-Type: `application/json`
       "expired_at": "2026-10-31T23:59:59.999+08:00"
     },
     {
-      "coupon_id": "CPN_002",
+      "coupon_id": "01HZYB2C3D4E5F6G7H8J9K0MNP",
       "campaign_id": "01HZY8TBZS8K3S5V7X9Y2A4BFJ",
       "is_new_issued": true,
       "min_order_amount": 100,
@@ -127,7 +127,7 @@ Content-Type: `application/json`
 ### coupons
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| coupon_id | String | 券識別碼 |
+| coupon_id | String | 券識別碼（ULID） |
 | campaign_id | String | 該券所屬 campaign 識別碼（ULID） |
 | is_new_issued | Boolean | `true`：本次訂單即時發行的新券；`false`：本次之前已存在的舊券（既有券段所用） |
 | min_order_amount | Integer | 該券對應的最低消費門檻（元） |
