@@ -2,6 +2,13 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-13 — create_order response 對帳結構簡化：coupons_used[] → summary
+
+- 移除逐張 `coupons_used[]` 明細與 `points_used`，改為 `summary`：`new_issued`／`existing` 兩組彙總，各含 `discount_amount`/`tree_points`/`cub_points`
+- `existing`（既有券段）點數固定為 `0`：舊券的點數已於其原始發行訂單扣除，非本次消耗
+- 對帳恆等式簡化為：`summary.new_issued.discount_amount + summary.existing.discount_amount == discount_amount`
+- `bank_get_order` 目前仍保留原逐張 `coupons_used[]`/`points_used` 結構，尚未同步簡化，待確認是否比照調整
+
 ## 2026-07-13 — max_points_per_rotation 更名為 max_points_per_member ＋ get_current_rotation 補跟 quota 規則變更
 
 ### 命名校正（影響 CLAUDE.md／create_order.md／get_current_rotation.md）
