@@ -2,6 +2,27 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-13 — PRD 復盤決議定案（品牌入選前置、CANCELLED 歸零、查詢期限、member_event_logs enum）
+
+### create_order（決議 1、5）
+- 新券段新增品牌入選前置條件：`member_selected_brands` 須存在 `member_id + brand_id + rotation_id`（當前 active rotation）完全符合之記錄才進入新券清算；未入選僅跳過新券段（舊券照常清算）；未入選且無可用舊券歸入既有錯誤碼 `NO_ACTIVE_CAMPAIGN`（不新增錯誤碼）
+- 補註 `pending` 滯留訂單（stage 2 中斷）暫無自動收斂機制，處置方式由營運團隊另行討論
+
+### batch_finalize_orders（決議 2）
+- 明訂 `action = CANCELLED` 時訂單 `discount_amount` 歸零（與券狀態轉換同一 transaction），前台以 `discount_amount = 0` + `order_status = cancelled` 顯示「已退回券匣」
+
+### get_member_settings_change_logs（決議 8）
+- 「過去 1 年內」精確定義為查詢當下 **T-366 天**（含）；資料不清除，僅查詢範圍有上限
+
+### member_event_logs（決議 6）
+- `type` enum 定案為僅此 6 項：`activate_member`、`deactivate_member`、`change_selected_brands`、`system_clear_brands`、`disable_auto_redeem`、`enable_auto_redeem`（權威清單記於 CLAUDE.md）
+
+### 舊表名清理（決議 3 盤點）
+- `background.md`、`index.md`、`docs/README.md` 之 `member_brand_change_logs` / 舊 API 名殘留已更新；`database-schema.md` 過時範圍遠超此表（`auth_status`、`rotation_campaigns`、訂單狀態舊 enum 等），待獨立一輪全面同步
+
+### 未排程（決議 7、9）
+- 會員啟用歷史後台查詢 API 命名、`manual` campaign 兌換流程：留待未來規劃
+
 ## 2026-07-13 — PRD 全文同步至現行 spec（移入 docs/ 後之內容更新）
 
 - §5/§6 全面改寫：兩段清算（既有券段必成／新券段 best effort）、依序發券、兩段 DB transaction、扣點 retry 與每日 cronjob 對帳、order.status 五態（`pending`/`processing`/`error`/`completed`/`cancelled`）
