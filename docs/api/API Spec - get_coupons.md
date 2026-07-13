@@ -7,6 +7,7 @@ permalink: /api-specs/get-coupons/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-13 | Response 精簡化：`coupons[]` 移除列表畫面不需要的 `brand`、`redeem_points`、`discount_rate`、`max_redemptions_per_order`、`created_at`，`campaign` 巢狀物件改為扁平 `campaign_name`；同時調整同一狀態 bucket 排序規則：`AVAILABLE`/`CONSUMED`/`EXPIRED` 改為 `expired_at DESC`、`id ASC`，`SETTLED` 改依 `updated_at DESC`（finalize 時間）、`id ASC` |
 | 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
 | 2026-07-02 | 新增邊界檢查與 400 錯誤：會員須已啟用（`MEMBER_NOT_ACTIVATED`） |
 | 2026-07-02 | `status` 改為可複選（`status[]`，repeatable query param） |
@@ -73,44 +74,18 @@ Content-Type: `application/json`
     {
       "id": "CPN_001",
       "status": "AVAILABLE",
-      "brand": {
-        "id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK",
-        "name": "全家便利商店",
-        "logo": "https://cdn.example.com/logos/familymart.png"
-      },
-      "campaign": {
-        "id": "01HZY5Q8WP5G7N9R2T4V6X8ZBD",
-        "name": "滿100折21",
-        "type": "auto"
-      },
+      "campaign_name": "滿100折21",
       "min_order_amount": 100,
-      "redeem_points": 20,
       "discount_amount": 21,
-      "discount_rate": 1.05,
-      "max_redemptions_per_order": 3,
-      "expired_at": "2026-10-31T23:59:59.999+08:00",
-      "created_at": "2026-10-01T09:00:00+08:00"
+      "expired_at": "2026-10-31T23:59:59.999+08:00"
     },
     {
       "id": "CPN_002",
       "status": "CONSUMED",
-      "brand": {
-        "id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK",
-        "name": "全家便利商店",
-        "logo": "https://cdn.example.com/logos/familymart.png"
-      },
-      "campaign": {
-        "id": "01HZY5Q8WP5G7N9R2T4V6X8ZBD",
-        "name": "滿100折21",
-        "type": "auto"
-      },
+      "campaign_name": "滿100折21",
       "min_order_amount": 100,
-      "redeem_points": 20,
       "discount_amount": 21,
-      "discount_rate": 1.05,
-      "max_redemptions_per_order": 3,
-      "expired_at": "2026-10-31T23:59:59.999+08:00",
-      "created_at": "2026-10-03T10:30:00+08:00"
+      "expired_at": "2026-10-31T23:59:59.999+08:00"
     }
   ]
 }
@@ -131,40 +106,23 @@ Content-Type: `application/json`
 | ---- | ---- | ---- |
 | id | String | 券識別碼 |
 | status | String | 券狀態：`AVAILABLE` \| `CONSUMED` \| `SETTLED` \| `EXPIRED` |
-| brand | Object | 對應品牌資訊，見下表 |
-| campaign | Object | 該券所屬 campaign 資訊，見下表 |
+| campaign_name | String | 該券所屬 campaign 名稱 |
 | min_order_amount | Integer | 該券對應的消費門檻金額（元） |
-| redeem_points | Integer | 該券建立時所對應的點數成本 |
 | discount_amount | Integer | 該券折抵金額（元） |
-| discount_rate | Float | 每點折抵金額比率，`round(discount_amount / redeem_points, 2)`，純計算欄位 |
-| max_redemptions_per_order | Integer | 該券所屬 campaign 定義的單筆交易 active campaign 券使用張數上限 |
 | expired_at | String | 該券固定到期時間（UTC+8 ISO 8601，毫秒精度） |
-| created_at | String | 該券建立時間（UTC+8 ISO 8601） |
-
-### brand
-
-| 欄位 | 類型 | 說明 |
-| ---- | ---- | ---- |
-| id | String | 品牌識別碼（ULID） |
-| name | String | 品牌名稱 |
-| logo | String | 品牌 logo 圖片 URL |
-
-### campaign
-
-| 欄位 | 類型 | 說明 |
-| ---- | ---- | ---- |
-| id | String | Campaign 識別碼（ULID） |
-| name | String | Campaign 名稱 |
-| type | String | Campaign 類型：`auto`（系統自動兌換）\| `manual`（用戶手動兌換） |
 
 ### 邏輯說明
 - 預設回傳該用戶所有券狀態，不只 `AVAILABLE`
 - 若帶 `status[]`，僅回傳指定狀態的券；可同時帶多個值（例如 `?status[]=AVAILABLE&status[]=CONSUMED`）
 - 若帶 `brand_id`，僅回傳該品牌底下的券
 - 預設排序先依狀態 bucket：`AVAILABLE` → `CONSUMED` → `SETTLED` → `EXPIRED`
-- 同一狀態 bucket 內依 `expired_at ASC`、`created_at ASC`、`id ASC` 排序
+- 同一狀態 bucket 內排序：
+  - `AVAILABLE`、`CONSUMED` bucket 依 `expired_at DESC`、`id ASC` 排序
+  - `SETTLED` bucket 依 `updated_at DESC`（finalize 的時間）、`id ASC` 排序
+  - `EXPIRED` bucket 依 `expired_at DESC`、`id ASC` 排序
 - 無任何符合條件的券時，回傳 `coupons: []`，不報錯
 - 本 API 不回傳訂單關聯欄位，例如 `order_id`
+- 本 API 回傳精簡化券資訊，供列表畫面使用；不含 `brand`（已由 `brand_id` 篩選帶入）、`redeem_points`、`discount_rate`、`max_redemptions_per_order`、`created_at`。如需完整詳情請呼叫 `get_coupon_detail`
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 1. `member_id` 不存在：`MEMBER_NOT_FOUND`
