@@ -75,6 +75,7 @@
 - 為避免前後緊接的 rotation 在交界瞬間同時判定為 active（違反「同一時間只應有一個 active rotation」），建立 rotation 時須檢查 `next.start_time > prev.end_time`（嚴格大於，不得相等或交集）；此驗證屬後台 CRUD API（第二階段）範疇
 
 **FIFO + quota 清算邏輯**：
+- 新券段前置條件（2026-07-13 起）：該品牌須於當前 rotation **入選**（`member_selected_brands` 存在 `member_id + brand_id + rotation_id` 完全符合之記錄）才進入新券清算；未入選僅跳過新券段（舊券照常清算），未入選且無可用舊券歸入 `NO_ACTIVE_CAMPAIGN`
 - 已有 coupon 採 first-in-first-out（先到期先用）
 - `max_redemptions_per_order`（campaign 屬性）：當次交易中，當前 active campaign 的券最多可使用幾張；`0` 代表無上限
 - 歷史 campaign 的舊券**不占** `max_redemptions_per_order` quota，仍照 FIFO 優先用
@@ -104,7 +105,7 @@
 
 **Member 啟用狀態**（2026-07-02 起之權威定義）：
 - DB 欄位：`members.is_activated`（Boolean）：`TRUE`（已啟用）／`FALSE`（未啟用或已停用）
-- 內部 log：`member_event_logs`（統一會員事件表；`type` 記錄事件種類，如 `activate_member` / `deactivate_member`，以及選牌變更、自動兌換設定變更、`system_clear_brands` 等；`data` 存事件快照或 null）
+- 內部 log：`member_event_logs`（統一會員事件表；`data` 存事件快照或 null）。`type` enum 完整清單（2026-07-13 定案，僅此 6 項）：`activate_member`、`deactivate_member`、`change_selected_brands`、`system_clear_brands`、`disable_auto_redeem`、`enable_auto_redeem`
 - API：`activate_member` / `deactivate_member`，對外回傳 `status: ACTIVE` / `INACTIVE`，由 API 負責與 DB 欄位互相轉換
 - 各前台 API 邊界檢查一律使用「呼叫前會員必須已啟用（`members.is_activated = TRUE`）」與對應 400 錯誤 `MEMBER_NOT_ACTIVATED`
 - ⚠️ 已棄用、文件中不得再新增使用：`members.auth_status`、`member_authorization_logs`、`member_activation_logs`（統一併入 `member_event_logs`）、`member_authorize` / `member_unauthorize`
