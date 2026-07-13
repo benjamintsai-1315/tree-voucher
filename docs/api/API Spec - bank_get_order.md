@@ -7,6 +7,7 @@ permalink: /api-specs/bank-get-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-13 | `order.status` 實際 DB 欄位值校正為五態：`waiting_finalization` 更名為 `processing`、`failed` 更名為 `error`；原「`processing`＝清算中」之暫態定義移除，併入 `pending` |
 | 2026-07-09 | 新增 `points_used` 與 `coupons_used[]` 對帳明細（與 `create_order` response 同結構），供發卡主機事後重查對帳；舊券（`is_new_issued=false`）本次不扣點故 `tree_points`/`cub_points` 為 0；`failed` 訂單 `coupons_used[]` 為空陣列、`points_used` 皆為 0 |
 | 2026-07-08 | `order_status` 對齊 `order.status` 六態（小寫）；發卡主機端不分 status 全回（含 `failed`）；`failed` 訂單 `discount_amount = 0`、`finalized_at = null`；`finalized_at` 說明改為終結（`completed`/`cancelled`）前為 null |
 | 2026-06-15 | 從 get_order 拆分而來，僅供發卡主機端使用，回傳 order status 與必要欄位 |
@@ -89,11 +90,11 @@ Content-Type: `application/json`
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | order_id | String | 訂單識別碼 |
-| order_status | String | 訂單當前狀態，取自 `order.status` 六態：`pending` \| `processing` \| `waiting_finalization` \| `failed` \| `completed` \| `cancelled`；發卡主機端**不分 status 一律全回**（含清算失敗的 `failed`） |
-| discount_amount | Integer | 本次實際折抵總金額（元）；`failed` 訂單為 `0` |
-| points_used | Object | 本次扣點總計（僅新券消耗）；`failed` 訂單 `tree_points`/`cub_points` 皆為 `0`，見下表 |
-| coupons_used | Array | 本次訂單所用的所有券明細（含舊券與新券），與 `create_order` response 同結構，供發卡主機對帳；`failed` 訂單為空陣列，見下表 |
-| finalized_at | String \| null | 訂單終結時間；未終結（`pending`/`processing`/`waiting_finalization`/`failed`）時為 `null`，`completed` / `cancelled` 時為終結時間 |
+| order_status | String | 訂單當前狀態，取自 `order.status` 五態：`pending` \| `processing` \| `error` \| `completed` \| `cancelled`；發卡主機端**不分 status 一律全回**（含清算失敗的 `error`） |
+| discount_amount | Integer | 本次實際折抵總金額（元）；`error` 訂單為 `0` |
+| points_used | Object | 本次扣點總計（僅新券消耗）；`error` 訂單 `tree_points`/`cub_points` 皆為 `0`，見下表 |
+| coupons_used | Array | 本次訂單所用的所有券明細（含舊券與新券），與 `create_order` response 同結構，供發卡主機對帳；`error` 訂單為空陣列，見下表 |
+| finalized_at | String \| null | 訂單終結時間；未終結（`pending`/`processing`/`error`）時為 `null`，`completed` / `cancelled` 時為終結時間 |
 | created_at | String | 訂單建立時間（UTC+8 ISO 8601） |
 
 ### points_used
