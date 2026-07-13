@@ -2,6 +2,12 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-13 — max_points_per_rotation 更名為 max_points_per_member ＋ get_current_rotation 補跟 quota 規則變更
+
+### 命名校正（影響 CLAUDE.md／create_order.md／get_current_rotation.md）
+- `max_points_per_rotation`（rotation 屬性、跨品牌合計點數上限）更名為 `max_points_per_member`，語意不變
+- `get_current_rotation` 此前未跟上 2026-07-06/07-08 已定案的 quota 規則變更：campaigns 陣列移除已廢棄的 `max_redemption_per_rotation`（campaign 屬性、計張數），新增 rotation 層級的 `max_points_per_member` 欄位
+
 ## 2026-07-13 — order.status 實際欄位值校正（六態→五態）＋ get_member_orders 補齊列表畫面欄位
 
 ### order.status 命名校正（影響 create_order／bank_get_order／batch_finalize_orders／get_member_orders／CLAUDE.md）
