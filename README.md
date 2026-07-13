@@ -10,7 +10,6 @@
 |------|------|
 | [PRD](docs/樹享券2.0_PRD.md) | 核心產品需求文件，涵蓋商業邏輯、狀態機與資訊流 |
 | [背景說明](background.md) | 專案演進脈絡與「券加金」機制設計原由 |
-| [資料庫 Schema](database-schema.md) | ER Diagram 與各資料表欄位定義 |
 | [API 清單](api_list.md) | 全範圍 API 總表（前台、發卡主機、後台、批次） |
 | [API 規格索引](api-specs.md) | 各 API 詳細規格連結 |
 | [品牌識別機制](品牌識別機制.md) | 品牌匹配規則的兩種架構方案比較 |
@@ -98,10 +97,9 @@ AVAILABLE → CONSUMED → SETTLED
 | `coupons` | 折抵券（含狀態、金額、到期日、campaign 規則快照） |
 | `orders` | 折抵訂單 |
 | `order_coupon_logs` | 訂單與折抵券的關聯日誌 |
-| `member_settings_change_logs` | 設定異動事件日誌 |
-| `member_authorization_logs` | 授權操作稽核紀錄 |
+| `member_event_logs` | 統一會員事件日誌（啟用／停用、選牌變更、自動兌換設定、系統清空） |
 
-完整 ER Diagram 請見 [database-schema.md](database-schema.md)。
+> 完整 ER Diagram 與資料表定義由 RD 另行整理中（原 `database-schema.md` 已於 2026-07-13 廢棄刪除）。
 
 ---
 
