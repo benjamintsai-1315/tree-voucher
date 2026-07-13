@@ -79,8 +79,8 @@
 - `max_redemptions_per_order`（campaign 屬性）：當次交易中，當前 active campaign 的券最多可使用幾張；`0` 代表無上限
 - 歷史 campaign 的舊券**不占** `max_redemptions_per_order` quota，仍照 FIFO 優先用
 - 若舊券屬於當前 active campaign，則占用 quota
-- `max_points_per_rotation`（**rotation 屬性**，2026-07-08 起；原 `max_redemption_per_rotation` 為 campaign 屬性、計張數，已廢）：同一用戶於此 rotation 內、跨所有品牌與 campaign 合計可用的**點數上限**；計數為同一 `member_id + rotation_id` 下已發行 coupon 的 `coupon_redeem_points` 加總（含全狀態）；`0` 代表無上限
-- 跨品牌並發超用 `max_points_per_rotation` 的防護（鎖定/序列化）屬 RD 技術規格範疇，不在 API spec 定義
+- `max_points_per_member`（**rotation 屬性**，2026-07-13 起；原名 `max_points_per_rotation`，此次更名；再更早之前為 `max_redemption_per_rotation`，campaign 屬性、計張數，已廢）：同一用戶於此 rotation 內、跨所有品牌與 campaign 合計可用的**點數上限**；計數為同一 `member_id + rotation_id` 下已發行 coupon 的 `coupon_redeem_points` 加總（含全狀態）；`0` 代表無上限
+- 跨品牌並發超用 `max_points_per_member` 的防護（鎖定/序列化）屬 RD 技術規格範疇，不在 API spec 定義
 
 **Lazy Cleanup 機制**：
 - 觸發點：`get_member_settings`、`update_member_selected_brands`、`create_order`
