@@ -2,6 +2,11 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-13 — 修正 create_order summary.existing 點數欄位誤植
+
+- 前次（本日稍早）將 `summary.existing.tree_points`/`cub_points` 定義為固定 `0`，理由是「舊券點數已於原始發行時扣除，非本次消耗」——這個理由沒錯，但不代表該顯示 `0`：`existing` 分組本身就已表明這不是本次新消耗，欄位應如實列出該些舊券**原始發行時**的歷史點數組成（取自 `treelife_use_point_log` 的 `used_tree_points`/`used_cub_points` 加總），而非強制歸零
+- 已同步修正 `create_order.md`（Response items、對帳彙總說明、sample）與 PRD §5.2/§5.4 對應範例
+
 ## 2026-07-13 — PRD 復盤決議定案（品牌入選前置、CANCELLED 歸零、查詢期限、member_event_logs enum）
 
 ### create_order（決議 1、5）
