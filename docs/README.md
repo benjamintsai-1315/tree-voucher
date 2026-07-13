@@ -13,7 +13,6 @@
 | 檔案 | 內容 |
 |---|---|
 | `background.md` | 專案背景與業務邏輯說明 |
-| `database-schema.md` | ER Diagram 與資料表定義 |
 | `api_list.md` | API 範圍總覽清單 |
 | `api-specs.md` | API spec 索引（對應 docs/api/ 下各檔案） |
 
