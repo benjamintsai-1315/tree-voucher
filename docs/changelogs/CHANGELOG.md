@@ -2,6 +2,13 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-13 — PRD 全文同步至現行 spec（移入 docs/ 後之內容更新）
+
+- §5/§6 全面改寫：兩段清算（既有券段必成／新券段 best effort）、依序發券、兩段 DB transaction、扣點 retry 與每日 cronjob 對帳、order.status 五態（`pending`/`processing`/`error`/`completed`/`cancelled`）
+- 廢棄命名全數更新：`max_redemption_per_rotation` → `max_points_per_member`（rotation 屬性）、`finalize_order` → `batch_finalize_orders`（200 OK／`BATCH_REQUEST_ALREADY_EXISTS`）、`ORDER_ALREADY_EXIST` → `ORDER_ALREADY_EXISTS`、`cash_amount` → `order_amount`、`merchant_name` → `store_name`、`member_activation_logs`/`member_brand_change_logs` → `member_event_logs`
+- create_order response 同步為 `discount_amount + summary`；Flow 6 券夾改為三層瀏覽並對齊 get_coupons 精簡欄位；Flow 1/§4.4/§9 補 `max_points_per_member`
+- PRD §5.1 保留一則待決議標註：`member_selected_brands` 對 create_order 清算的作用未定義（原「用戶已選該品牌」觸發條件與現行 spec 不一致）
+
 ## 2026-07-13 — create_order response 對帳結構簡化：coupons_used[] → summary
 
 - 移除逐張 `coupons_used[]` 明細與 `points_used`，改為 `summary`：`new_issued`／`existing` 兩組彙總，各含 `discount_amount`/`tree_points`/`cub_points`
