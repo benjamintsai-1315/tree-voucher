@@ -7,6 +7,7 @@ permalink: /api-specs/create-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-13 | 修正前次誤植：`summary.existing.tree_points`/`cub_points` 不應強制為 `0`，應列出該分組舊券於其**原始發行時**所使用之點數（歷史組成，非本次消耗）；是否為本次新消耗已由 `new_issued`／`existing` 分組本身區分，無需另外歸零 |
 | 2026-07-13 | 新券段新增品牌入選前置條件：`member_selected_brands` 須存在 `member_id + brand_id + rotation_id`（當前 active rotation）完全符合之記錄才進入新券清算；未入選僅跳過新券段，舊券照常清算；未入選且無可用舊券歸入 `NO_ACTIVE_CAMPAIGN` |
 | 2026-07-13 | 補註 `pending` 滯留訂單（stage 2 中斷未完成）暫無自動收斂機制，處置方式由營運團隊另行討論 |
 | 2026-07-13 | response 對帳結構簡化：移除逐張 `coupons_used[]` 明細與 `points_used`，改為 `summary`（`new_issued`／`existing` 兩組彙總，各含 `discount_amount`/`tree_points`/`cub_points`）；`existing` 因舊券點數已於原始發行時扣除，`tree_points`/`cub_points` 固定為 `0` |
@@ -86,7 +87,7 @@ Content-Type: `application/json`
   "discount_amount": 109,
   "summary": {
     "new_issued": { "discount_amount": 46, "tree_points": 30, "cub_points": 10 },
-    "existing": { "discount_amount": 63, "tree_points": 0, "cub_points": 0 }
+    "existing": { "discount_amount": 63, "tree_points": 25, "cub_points": 38 }
   }
 }
 ```
@@ -110,8 +111,8 @@ Content-Type: `application/json`
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | discount_amount | Integer | 該分組本次折抵金額合計（元） |
-| tree_points | Integer | 該分組於**本次訂單**消耗的小樹點(生活)總數；`existing` 固定為 `0`（舊券點數已於其原始發行訂單扣除，非本次消耗） |
-| cub_points | Integer | 該分組於**本次訂單**消耗的小樹點(信用卡)總數；`existing` 固定為 `0`（原因同上） |
+| tree_points | Integer | `new_issued`：本次訂單消耗的小樹點(生活)總數；`existing`：該分組舊券於其**原始發行時**所使用的小樹點(生活)總數（非本次消耗，僅呈現歷史組成，是否為本次消耗以所屬分組區分） |
+| cub_points | Integer | `new_issued`：本次訂單消耗的小樹點(信用卡)總數；`existing`：該分組舊券於其**原始發行時**所使用的小樹點(信用卡)總數（原因同上） |
 
 ### 邏輯說明
 
@@ -158,11 +159,11 @@ Content-Type: `application/json`
 - `discount_amount` = Σ（本次所有 `consumed` coupon 的 `coupon_discount_amount`）（含既有券段與新券段）
 - 扣點時呼叫 treelife-api，treelife-api 回傳本批次實際使用的 `tree_points`（小樹點生活）與 `cub_points`（小樹點信用卡）**總數**；由神坊定義各券分配多少 cub/tree
 - 點數按券分配並寫入 `treelife_use_point_log`：cub_points 優先分配給先發行的券；分配規則為每張券消耗 `coupon_redeem_points` 點，先由 cub_points 填滿，不足時才使用 tree_points；`used_tree_points + used_cub_points` = 該券的 `coupon_redeem_points`，且各券加總須等於 treelife-api 回傳之總數
-- `summary.new_issued.tree_points` / `summary.new_issued.cub_points` 為 treelife-api 回傳的全批次總數，直接轉入 response；既有券段不產生新的點數消耗，`summary.existing.tree_points`/`cub_points` 固定為 `0`
+- `summary.new_issued.tree_points` / `summary.new_issued.cub_points` 為 treelife-api 回傳的全批次總數，直接轉入 response；`summary.existing.tree_points`/`cub_points` 則取自該分組每張舊券於其原始發行訂單寫入 `treelife_use_point_log` 的 `used_tree_points`/`used_cub_points` 加總（歷史值，非本次消耗）
 
 **`summary` 對帳彙總（供發卡主機）：**
 - `summary` 依新券段／既有券段分組彙總，非逐張券明細；`new_issued` 對應本次即時發行的新券，`existing` 對應本次使用的既有舊券
-- `existing` 分組的點數固定為 `0`：舊券的點數是在其原始發行訂單中扣除，非本次訂單消耗
+- `existing` 分組列出的點數為該些舊券**原始發行時**的歷史點數組成，並非本次訂單新消耗；該分組是否為本次新消耗，由 `new_issued`／`existing` 兩個分組本身即可判斷，不需另外歸零
 - 對帳恆等式：`summary.new_issued.discount_amount + summary.existing.discount_amount == discount_amount`
 - `cub_points`（小樹點信用卡）為銀行發行點數，是發卡主機對帳的主要依據；`tree_points`（小樹點生活）為神坊端點數，一併列出供完整核對
 
