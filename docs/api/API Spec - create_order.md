@@ -7,6 +7,8 @@ permalink: /api-specs/create-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-13 | 新券段新增品牌入選前置條件：`member_selected_brands` 須存在 `member_id + brand_id + rotation_id`（當前 active rotation）完全符合之記錄才進入新券清算；未入選僅跳過新券段，舊券照常清算；未入選且無可用舊券歸入 `NO_ACTIVE_CAMPAIGN` |
+| 2026-07-13 | 補註 `pending` 滯留訂單（stage 2 中斷未完成）暫無自動收斂機制，處置方式由營運團隊另行討論 |
 | 2026-07-13 | response 對帳結構簡化：移除逐張 `coupons_used[]` 明細與 `points_used`，改為 `summary`（`new_issued`／`existing` 兩組彙總，各含 `discount_amount`/`tree_points`/`cub_points`）；`existing` 因舊券點數已於原始發行時扣除，`tree_points`/`cub_points` 固定為 `0` |
 | 2026-07-13 | `max_points_per_rotation`（rotation 屬性、跨品牌合計點數上限）更名為 `max_points_per_member`，語意不變 |
 | 2026-07-13 | `order.status` 實際 DB 欄位值校正為五態：`waiting_finalization` 更名為 `processing`（清算完成、待終結）、`failed` 更名為 `error`（清算完成、失敗）；原「`processing`＝清算中」之暫態定義移除，該過程期間狀態維持 `pending` 至清算結束 |
@@ -46,7 +48,7 @@ permalink: /api-specs/create-order/
 
 
 ## 使用情境
-發卡主機於用戶刷卡授權成功後，同步呼叫此 API。神坊以 request 提供的 `brand_id` 作為唯一品牌來源，先取用既有 `available coupon`，再依 active campaign、該品牌自動兌換設定、剩餘點數與各項 quota 決定是否即時發新券；執行扣點時，系統應依 `brand` 讀取其 `treepoint_merchant_provider_key`，作為點數帳務通路識別。
+發卡主機於用戶刷卡授權成功後，同步呼叫此 API。神坊以 request 提供的 `brand_id` 作為唯一品牌來源，先取用既有 `available coupon`，再依 active campaign、會員自動兌換設定、品牌入選狀態（`member_selected_brands`）、剩餘點數與各項 quota 決定是否即時發新券；執行扣點時，系統應依 `brand` 讀取其 `treepoint_merchant_provider_key`，作為點數帳務通路識別。
 
 發卡主機需一併帶入該筆刷卡卡號後四碼及刷卡門市名稱（`store_name`），供神坊保存於訂單資料，後續由前台端查詢訂單時顯示。
 
@@ -116,6 +118,7 @@ Content-Type: `application/json`
 - campaign 的 active 判斷：`brand_rotation_campaigns` 中是否存在對應當前 active rotation 的記錄；active campaign 必須為 `type = auto`
 - 即使該 brand 當前無 active campaign，只要用戶有 `available` 的舊券，仍應執行既有券段清算並使用舊券；無 active campaign 時僅跳過新券發行步驟，不視為錯誤
 - 同理，若該**會員**已暫停自動兌換服務（`members.auto_redeem_enabled = false`，會員層級單一開關，非品牌層級），僅跳過新券發行步驟，既有 `available` 舊券仍照常清算
+- 同理，若該品牌**未入選**（`member_selected_brands` 中不存在 `member_id + brand_id + rotation_id`〔當前 active rotation〕完全符合之記錄，含 lazy cleanup 清空後的狀態），僅跳過新券發行步驟，既有 `available` 舊券仍照常清算
 
 **既有券段（清算成功即 commit）：**
 1. 取出用戶在此 brand 下所有 `status = available` 且尚未過期的 coupons，依 `expired_at ASC`、`created_at ASC`、`coupon_id ASC` 排序（FIFO）
@@ -128,7 +131,7 @@ Content-Type: `application/json`
 
 **新券段（best effort，失敗不推翻既有券段）：**
 1. 計算剩餘消費額：`order_amount - Σ（已使用既有券的 coupon_min_order_amount）`
-2. 若無 active campaign，或該會員 `members.auto_redeem_enabled = false`（會員層級暫停自動兌換），跳過新券發行
+2. 若無 active campaign、該會員 `members.auto_redeem_enabled = false`（會員層級暫停自動兌換）、或該品牌未入選（`member_selected_brands` 無 `member_id + brand_id + rotation_id` 完全符合之記錄），跳過新券發行
 3. 計算 per-rotation 點數 quota：`max_points_per_member = 0` 時視為無上限；否則
    `remaining_rotation_point_budget = max_points_per_member - used_rotation_points`
    其中 `used_rotation_points = Σ（該 member 於當前 rotation 內已發行 coupon 的 coupon_redeem_points）`（跨品牌、跨 campaign 合計，含 `consumed`/`settled`/`available`/`expired` 全狀態）；若 `remaining_rotation_point_budget <= 0` 跳過新券發行
@@ -173,6 +176,8 @@ Content-Type: `application/json`
 | `completed` | 已終結 | `batch_finalize_orders` action=`COMPLETED` |
 | `cancelled` | 已終結（取消） | `batch_finalize_orders` action=`CANCELLED` |
 
+> ⚠️ `pending` 滯留：若 stage 2 執行中系統中斷，訂單將停留於 `pending`（不出現於 `get_member_orders`、亦不可終結）。目前**無自動收斂機制**，滯留訂單之處置方式由營運團隊另行討論後補充。
+
 **兩段 DB transaction 邊界：**
 - **stage 1（既有券段）**：於單一 transaction 內建立 order（狀態維持 `pending`）、既有券段清算（舊券轉 `consumed`）、建立 order event 後 commit
 - **stage 2（新券段）**：另一 transaction 執行扣點、發新券；完成後將新券的折抵與點數 **update 併回同一筆 order**
@@ -210,7 +215,7 @@ Content-Type: `application/json`
 > `brand_id` 不另做前置存在性檢查；不存在或無效的 `brand_id` 會自然落入清算流程（無此品牌舊券、無 active campaign）而導致 discount=0，歸入下方 `NO_ACTIVE_CAMPAIGN`。
 
 **清算後折抵金額為 0（訂單標記 `error` 並記 `error_type`；`get_member_orders` 不回傳）：**
-4. 無 active campaign 可發新券（含 `brand_id` 不存在/無效），且無符合門檻的可用舊券：`NO_ACTIVE_CAMPAIGN`
+4. 無 active campaign 可發新券（含 `brand_id` 不存在/無效、該品牌未入選 `member_selected_brands`），且無符合門檻的可用舊券：`NO_ACTIVE_CAMPAIGN`
 5. 該會員已暫停自動兌換服務（`members.auto_redeem_enabled = false`）而無法發新券，且無可用舊券：`AUTO_REDEEM_NOT_ENABLED`
 6. 有 active campaign 但點數不足發任何新券，且無可用舊券：`NO_AVAILABLE_COUPON_AND_POINT`
 7. 訂單金額未達可用券的最低消費門檻（含 `order_amount` 過小），本次無折抵：`ORDER_AMOUNT_BELOW_MIN_AMOUNT`
