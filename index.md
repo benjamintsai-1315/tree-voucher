@@ -13,7 +13,6 @@ permalink: /
 - [API Scope List]({{ '/api-list/' | relative_url }})
 - [背景說明]({{ '/background/' | relative_url }})
 - [品牌識別機制]({{ '/brand-positioning/' | relative_url }})
-- [下載 Word 版 PRD]({{ '/樹享券2.0_PRD.docx' | relative_url }})
 
 ## API 規格
 
