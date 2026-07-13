@@ -7,6 +7,7 @@ permalink: /api-specs/create-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-13 | response 對帳結構簡化：移除逐張 `coupons_used[]` 明細與 `points_used`，改為 `summary`（`new_issued`／`existing` 兩組彙總，各含 `discount_amount`/`tree_points`/`cub_points`）；`existing` 因舊券點數已於原始發行時扣除，`tree_points`/`cub_points` 固定為 `0` |
 | 2026-07-13 | `max_points_per_rotation`（rotation 屬性、跨品牌合計點數上限）更名為 `max_points_per_member`，語意不變 |
 | 2026-07-13 | `order.status` 實際 DB 欄位值校正為五態：`waiting_finalization` 更名為 `processing`（清算完成、待終結）、`failed` 更名為 `error`（清算完成、失敗）；原「`processing`＝清算中」之暫態定義移除，該過程期間狀態維持 `pending` 至清算結束 |
 | 2026-07-09 | response 新增 `coupons_used[]` 對帳明細：每張券含 `is_new_issued`、`discount_amount`、`redeem_points` 及**本次**消耗之 `tree_points`/`cub_points`（`cub_points` 為銀行發行點數，供對帳）；舊券（`is_new_issued=false`）本次不扣點，`tree_points`/`cub_points` 皆為 0；同一份明細同步加入 `bank_get_order` 供事後重查 |
@@ -80,35 +81,11 @@ Content-Type: `application/json`
 
 ```json
 {
-  "discount_amount": 141,
-  "points_used": {
-    "tree_points": 8,
-    "cub_points": 12
-  },
-  "coupons_used": [
-    {
-      "coupon_id": "01HZYA1B2C3D4E5F6G7H8J9K0M",
-      "campaign_id": "01HZY7SAYR7J2R4T6W8X1Z3AEH",
-      "is_new_issued": false,
-      "min_order_amount": 400,
-      "discount_amount": 120,
-      "redeem_points": 100,
-      "tree_points": 0,
-      "cub_points": 0,
-      "expired_at": "2026-10-31T23:59:59.999+08:00"
-    },
-    {
-      "coupon_id": "01HZYB2C3D4E5F6G7H8J9K0MNP",
-      "campaign_id": "01HZY8TBZS8K3S5V7X9Y2A4BFJ",
-      "is_new_issued": true,
-      "min_order_amount": 100,
-      "discount_amount": 21,
-      "redeem_points": 20,
-      "tree_points": 8,
-      "cub_points": 12,
-      "expired_at": "2026-11-30T23:59:59.999+08:00"
-    }
-  ]
+  "discount_amount": 109,
+  "summary": {
+    "new_issued": { "discount_amount": 46, "tree_points": 30, "cub_points": 10 },
+    "existing": { "discount_amount": 63, "tree_points": 0, "cub_points": 0 }
+  }
 }
 ```
 
@@ -116,28 +93,23 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| discount_amount | Integer | 本次實際折抵總金額（元），成功建單時必 `> 0` |
-| points_used | Object | 本次扣點總計（僅新券消耗，見下表） |
-| coupons_used | Array | 本次訂單所用的所有券明細（含舊券與新券），供發卡主機對帳，見下表 |
+| discount_amount | Integer | 本次實際折抵總金額（元），成功建單時必 `> 0`；等於 `summary.new_issued.discount_amount + summary.existing.discount_amount` |
+| summary | Object | 本次折抵金額與點數消耗，依新發券／既有券分組彙總，見下表 |
 
-### points_used
+### summary
+
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| tree_points | Integer | 本次使用的小樹點(生活)總數 |
-| cub_points | Integer | 本次使用的小樹點(信用卡)總數 |
+| new_issued | Object | 本次訂單**新券段**即時發行之新券的彙總，見下表 |
+| existing | Object | 本次訂單**既有券段**使用之舊券的彙總，見下表 |
 
-### coupons_used
+`new_issued` 與 `existing` 皆為同一結構：
+
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| coupon_id | String | 券識別碼（ULID） |
-| campaign_id | String | 該券所屬 campaign 識別碼（ULID） |
-| is_new_issued | Boolean | `true`：本次訂單即時發行的新券；`false`：本次之前已存在的舊券（既有券段所用） |
-| min_order_amount | Integer | 該券對應的最低消費門檻（元） |
-| discount_amount | Integer | 該券本次實際折抵金額（元） |
-| redeem_points | Integer | 該券**發行時**的點數成本（固定屬性，非本次扣點）；新券等於本次 `tree_points + cub_points`，舊券為其原始發行成本 |
-| tree_points | Integer | 該券於**本次訂單**消耗的小樹點(生活)；舊券本次不扣點，固定為 `0` |
-| cub_points | Integer | 該券於**本次訂單**消耗的小樹點(信用卡)；舊券本次不扣點，固定為 `0` |
-| expired_at | String | 該券到期時間（UTC+8 ISO 8601，毫秒精度、含邊界） |
+| discount_amount | Integer | 該分組本次折抵金額合計（元） |
+| tree_points | Integer | 該分組於**本次訂單**消耗的小樹點(生活)總數；`existing` 固定為 `0`（舊券點數已於其原始發行訂單扣除，非本次消耗） |
+| cub_points | Integer | 該分組於**本次訂單**消耗的小樹點(信用卡)總數；`existing` 固定為 `0`（原因同上） |
 
 ### 邏輯說明
 
@@ -183,15 +155,12 @@ Content-Type: `application/json`
 - `discount_amount` = Σ（本次所有 `consumed` coupon 的 `coupon_discount_amount`）（含既有券段與新券段）
 - 扣點時呼叫 treelife-api，treelife-api 回傳本批次實際使用的 `tree_points`（小樹點生活）與 `cub_points`（小樹點信用卡）**總數**；由神坊定義各券分配多少 cub/tree
 - 點數按券分配並寫入 `treelife_use_point_log`：cub_points 優先分配給先發行的券；分配規則為每張券消耗 `coupon_redeem_points` 點，先由 cub_points 填滿，不足時才使用 tree_points；`used_tree_points + used_cub_points` = 該券的 `coupon_redeem_points`，且各券加總須等於 treelife-api 回傳之總數
-- `points_used.tree_points` / `points_used.cub_points` 為 treelife-api 回傳的全批次總數，直接轉入 response
+- `summary.new_issued.tree_points` / `summary.new_issued.cub_points` 為 treelife-api 回傳的全批次總數，直接轉入 response；既有券段不產生新的點數消耗，`summary.existing.tree_points`/`cub_points` 固定為 `0`
 
-**`coupons_used[]` 對帳明細（供發卡主機）：**
-- `coupons_used[]` 涵蓋本次訂單所用的**所有券**，含既有券段舊券（`is_new_issued = false`）與新券段新券（`is_new_issued = true`）
-- 每張券的 `tree_points` / `cub_points` 為該券於**本次訂單**實際消耗的點數；舊券的點數是在其原始發行訂單中扣除，故本次一律為 `0`（其歷史成本記於 `redeem_points`）
-- 對帳恆等式（僅新券貢獻點數）：
-  - `Σ coupons_used[].tree_points == points_used.tree_points`
-  - `Σ coupons_used[].cub_points == points_used.cub_points`
-  - `Σ coupons_used[].discount_amount == discount_amount`（含舊券與新券）
+**`summary` 對帳彙總（供發卡主機）：**
+- `summary` 依新券段／既有券段分組彙總，非逐張券明細；`new_issued` 對應本次即時發行的新券，`existing` 對應本次使用的既有舊券
+- `existing` 分組的點數固定為 `0`：舊券的點數是在其原始發行訂單中扣除，非本次訂單消耗
+- 對帳恆等式：`summary.new_issued.discount_amount + summary.existing.discount_amount == discount_amount`
 - `cub_points`（小樹點信用卡）為銀行發行點數，是發卡主機對帳的主要依據；`tree_points`（小樹點生活）為神坊端點數，一併列出供完整核對
 
 **訂單狀態（`order.status`）生命週期：**
@@ -229,7 +198,7 @@ Content-Type: `application/json`
 - 券的 `issued_at` / `expired_at` 均以神坊**收到 request 的實際時間**為準，與 `transaction_time` 無關；`expired_at` 的日界（`23:59:59.999` UTC+8、含邊界）與 rotation active 判定採相同精度與邊界規則
 - **rotation 邊界暫定：** 若 `transaction_time` 早於 `rotation.end_time`（交易發生在舊檔期內），但神坊收到 request 時當下時間已超過 `rotation.end_time`，**暫定仍以收到 request 時間為準**執行清算（不回溯舊 rotation）
 - `max_points_per_member`：定義於 **rotation 屬性**（非 campaign）；語意為「同一用戶於此 rotation 內、跨所有品牌與 campaign 合計可用的點數上限」；計數條件為同一 `member_id + rotation_id` 下已發行 coupon 的 `coupon_redeem_points` 加總；`0` 代表無上限
-- `create_order` response 回傳 `discount_amount`、`points_used` 與 `coupons_used[]` 對帳明細；發卡主機若需事後重查訂單狀態、折抵金額與同一份 `coupons_used[]` 明細，應另呼叫 `bank_get_order`（前台端不提供單筆訂單明細查詢）
+- `create_order` response 回傳 `discount_amount` 與 `summary`（新券段／既有券段彙總）；發卡主機若需事後重查訂單狀態與折抵金額，應另呼叫 `bank_get_order`（前台端不提供單筆訂單明細查詢）
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 
