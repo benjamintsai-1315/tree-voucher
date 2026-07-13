@@ -7,6 +7,8 @@ permalink: /api-specs/get-member-orders/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-13 | `order.status` 實際 DB 欄位值校正為五態：`waiting_finalization` 更名為 `processing`、`failed` 更名為 `error`；本會員列表可見狀態改為 `processing` \| `completed` \| `cancelled` |
+| 2026-07-13 | 補齊前端列表畫面所需欄位：新增 `store_name`（`create_order` 已有此快照欄位，此前漏未於本 API 回傳）；新增 `coupon_usage_summary[]`（依 campaign 分組聚合的券使用摘要，非逐張明細）與 `point_used`（本次新發券消耗點數） |
 | 2026-07-08 | 前台端 `get_order` 廢除後，明訂本 API 不提供單筆完整明細（`coupons_used`/`events`）查詢；移除原「呼叫 `get_order`」導引 |
 | 2026-07-08 | `order_status` 對齊 `order.status` 六態（小寫），本會員列表剔除 `failed`、暫態不出現；`finalized_at` 說明改為終結（`completed`/`cancelled`）前為 null |
 | 2026-07-02 | 排序改為 `transaction_time DESC`；新增 `transaction_time` response 欄位（發卡主機傳入的刷卡交易時間，供前端顯示用） |
@@ -65,32 +67,71 @@ Content-Type: `application/json`
   "total": 3,
   "items": [
     {
-      "order_id": "ORD_20261001_00001",
+      "order_id": "ORD_20260920_00001",
       "brand": {
         "id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK",
         "name": "全家便利商店"
       },
-      "cash_amount": 620,
-      "card_last_four_digits": "1234",
-      "discount_amount": 141,
-      "order_status": "completed",
-      "transaction_time": "2026-10-01T14:28:00+08:00",
-      "finalized_at": "2026-10-03T10:00:00+08:00",
-      "created_at": "2026-10-01T14:30:00+08:00"
+      "store_name": "全家便利商店一土城行政店",
+      "cash_amount": 600,
+      "card_last_four_digits": "7284",
+      "discount_amount": 20,
+      "coupon_usage_summary": [
+        { "campaign_name": "樹配券 $20", "discount_amount": 20, "quantity": 1 }
+      ],
+      "point_used": {
+        "tree_points": 0,
+        "cub_points": 20
+      },
+      "order_status": "processing",
+      "transaction_time": "2026-09-20T23:59:59+08:00",
+      "finalized_at": null,
+      "created_at": "2026-09-20T23:59:59+08:00"
     },
     {
-      "order_id": "ORD_20261002_00005",
+      "order_id": "ORD_20260919_00005",
+      "brand": {
+        "id": "01HZYC3D4E5F6G7H8J9K0MNPQR",
+        "name": "POYA寶雅"
+      },
+      "store_name": "POYA寶雅 信義松壽店",
+      "cash_amount": 600,
+      "card_last_four_digits": "7284",
+      "discount_amount": 162,
+      "coupon_usage_summary": [
+        { "campaign_name": "樹配券 $30", "discount_amount": 90, "quantity": 3 },
+        { "campaign_name": "樹配券 $24", "discount_amount": 72, "quantity": 3 }
+      ],
+      "point_used": {
+        "tree_points": 30,
+        "cub_points": 30
+      },
+      "order_status": "completed",
+      "transaction_time": "2026-09-19T23:59:59+08:00",
+      "finalized_at": "2026-09-20T02:00:00+08:00",
+      "created_at": "2026-09-19T23:59:59+08:00"
+    },
+    {
+      "order_id": "ORD_20260917_00002",
       "brand": {
         "id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK",
         "name": "全家便利商店"
       },
-      "cash_amount": 300,
-      "card_last_four_digits": "5678",
-      "discount_amount": 21,
-      "order_status": "waiting_finalization",
-      "transaction_time": "2026-10-02T09:08:00+08:00",
-      "finalized_at": null,
-      "created_at": "2026-10-02T09:10:00+08:00"
+      "store_name": "全家便利商店土城中源店",
+      "cash_amount": 600,
+      "card_last_four_digits": "7284",
+      "discount_amount": 0,
+      "coupon_usage_summary": [
+        { "campaign_name": "樹配券 $24", "discount_amount": 72, "quantity": 3 }
+      ],
+      "point_used": {
+        "tree_points": 30,
+        "cub_points": 30
+      },
+      "order_status": "cancelled",
+      "transaction_time": "2026-09-17T23:59:59+08:00",
+      "finalized_at": "2026-09-18T02:00:00+08:00",
+      "created_at": "2026-09-17T23:59:59+08:00"
     }
   ]
 }
@@ -111,12 +152,15 @@ Content-Type: `application/json`
 | ---- | ---- | ---- |
 | order_id | String | 訂單識別碼 |
 | brand | Object | 對應品牌資訊，見下表 |
+| store_name | String | 刷卡門市名稱，`create_order` 建單時由發卡主機傳入的快照值，原樣呈現，不做任何品牌/門市對應轉換 |
 | cash_amount | Integer | 本次刷卡金額（元） |
 | card_last_four_digits | String | 該筆刷卡卡號後四碼，固定 4 碼數字字串 |
-| discount_amount | Integer | 本次實際折抵總金額（元） |
-| order_status | String | 訂單當前狀態，取自 `order.status` 六態；本會員列表**剔除 `failed`**，實際僅出現 `waiting_finalization` \| `completed` \| `cancelled` |
+| discount_amount | Integer | 本次折抵總金額（元）；`order_status = processing` 時為清算當下計算之預計金額，`completed` 時為實際折抵金額，`cancelled` 時固定為 `0` |
+| coupon_usage_summary | Array | 本次訂單所用券，依 `campaign_name` 分組聚合的使用摘要，見下表 |
+| point_used | Object | 本次訂單**新發券**消耗的點數（僅新券產生點數消耗，沿用既有券不消耗點數），見下表 |
+| order_status | String | 訂單當前狀態，取自 `order.status` 五態；本會員列表**剔除 `error`**，實際僅出現 `processing` \| `completed` \| `cancelled` |
 | transaction_time | String | 發卡主機傳入的刷卡交易時間（UTC+8 ISO 8601）；列表依此欄位排序（DESC） |
-| finalized_at | String \| null | 訂單終結時間；未終結（`waiting_finalization`）時為 `null`，`completed` / `cancelled` 時為終結時間 |
+| finalized_at | String \| null | 訂單終結時間；未終結（`processing`）時為 `null`，`completed` / `cancelled` 時為終結時間 |
 | created_at | String | 訂單建立時間（UTC+8 ISO 8601） |
 
 ### brand
@@ -126,10 +170,26 @@ Content-Type: `application/json`
 | id | String | 品牌識別碼（ULID） |
 | name | String | 品牌名稱 |
 
+### coupon_usage_summary
+
+| 欄位 | 類型 | 說明 |
+| ---- | ---- | ---- |
+| campaign_name | String | 該組券所屬 campaign 名稱（如「樹配券 $30」） |
+| discount_amount | Integer | 該組券小計折抵金額（元）；訂單取消（`order_status = cancelled`）時仍為原始計算值，前端應依 `order_status` 顯示為「已退回券匣」，不直接呈現金額 |
+| quantity | Integer | 該組使用的券張數 |
+
+### point_used
+
+| 欄位 | 類型 | 說明 |
+| ---- | ---- | ---- |
+| tree_points | Integer | 本次新發券消耗的小樹點(生活)；若本次全數使用既有券則為 `0` |
+| cub_points | Integer | 本次新發券消耗的小樹點(信用卡)；若本次全數使用既有券則為 `0` |
+
 ### 邏輯說明
-- 列表為摘要資訊，不含 `coupons_used` 明細與 `events` 歷程；前台端不另提供單筆完整明細查詢
-- **`order.status = failed` 的訂單（`create_order` 清算後折抵為 0）不列入本列表**；清算中的暫態（`pending` / `processing`）亦不會出現於已成立的訂單列表
-- `items` 內的 `card_last_four_digits` 為建單時由發卡主機提供，供前台端在訂單列表顯示卡號辨識資訊
+- 列表為摘要資訊，`coupon_usage_summary` 為依 campaign 分組的聚合統計，非逐張券明細；本 API 仍不含逐張 `coupons_used` 明細與 `events` 歷程，前台端不另提供單筆完整明細查詢
+- **`order.status = error` 的訂單（`create_order` 清算後折抵為 0）不列入本列表**；清算中的暫態（`pending`）亦不會出現於已成立的訂單列表
+- `items` 內的 `card_last_four_digits`、`store_name` 為建單時由發卡主機提供，供前台端在訂單列表顯示辨識資訊
+- 訂單取消時，`discount_amount` 與 `coupon_usage_summary[].discount_amount` 皆維持既有欄位語意（前者歸零、後者為原始計算值），前端純依 `order_status = cancelled` 判斷顯示邏輯，不需額外欄位
 - 固定以 `transaction_time DESC` 排序
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
