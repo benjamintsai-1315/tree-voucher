@@ -7,6 +7,7 @@ permalink: /api-specs/get-coupon-detail/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-13 | 明確定義 `created_at` 即為券「有效期間」之起始時間，並補齊毫秒精度，與 `expired_at` 一致 |
 | 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
 | 2026-07-02 | 新增邊界檢查與 400 錯誤：會員須已啟用（`MEMBER_NOT_ACTIVATED`） |
 | 2026-07-02 | `brand_*` 欄位改為巢狀 `brand: {id, name, logo}`；`campaign_*` 欄位改為巢狀 `campaign: {id, name, type}` |
@@ -74,7 +75,7 @@ Content-Type: `application/json`
   "discount_rate": 1.05,
   "max_redemptions_per_order": 3,
   "expired_at": "2026-10-31T23:59:59.999+08:00",
-  "created_at": "2026-10-01T09:00:00+08:00"
+  "created_at": "2026-10-01T09:00:00.000+08:00"
 }
 ```
 
@@ -91,8 +92,8 @@ Content-Type: `application/json`
 | discount_amount | Integer | 該券折抵金額（元） |
 | discount_rate | Float | 每點折抵金額比率，`round(discount_amount / redeem_points, 2)`，純計算欄位 |
 | max_redemptions_per_order | Integer | 該券所屬 campaign 定義的單筆交易 active campaign 券使用張數上限 |
-| expired_at | String | 該券固定到期時間（UTC+8 ISO 8601，毫秒精度） |
-| created_at | String | 該券建立時間（UTC+8 ISO 8601） |
+| expired_at | String | 該券固定到期時間，即有效期間迄日（UTC+8 ISO 8601，毫秒精度） |
+| created_at | String | 該券建立時間，即有效期間起始時間（UTC+8 ISO 8601，毫秒精度） |
 
 ### brand
 
@@ -113,6 +114,7 @@ Content-Type: `application/json`
 ### 邏輯說明
 - `coupon_id` 必須屬於該 `member_id`，否則回傳 `COUPON_NOT_FOUND`
 - `redeem_points` 為 coupon 建立時的快照值，不隨 campaign 規則變動
+- `created_at` 即該券有效期間之起始時間，與 `expired_at` 共同構成完整的有效期間起迄，兩者時間精度一致（毫秒）
 - 本 API 不回傳訂單關聯欄位，例如 `order_id`
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
