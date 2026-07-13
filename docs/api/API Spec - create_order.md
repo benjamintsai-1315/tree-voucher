@@ -7,6 +7,7 @@ permalink: /api-specs/create-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-13 | `order.status` 實際 DB 欄位值校正為五態：`waiting_finalization` 更名為 `processing`（清算完成、待終結）、`failed` 更名為 `error`（清算完成、失敗）；原「`processing`＝清算中」之暫態定義移除，該過程期間狀態維持 `pending` 至清算結束 |
 | 2026-07-09 | response 新增 `coupons_used[]` 對帳明細：每張券含 `is_new_issued`、`discount_amount`、`redeem_points` 及**本次**消耗之 `tree_points`/`cub_points`（`cub_points` 為銀行發行點數，供對帳）；舊券（`is_new_issued=false`）本次不扣點，`tree_points`/`cub_points` 皆為 0；同一份明細同步加入 `bank_get_order` 供事後重查 |
 | 2026-07-08 | 前台 `get_order` 廢除，訂單查詢導引改為 `bank_get_order`（發卡主機端）；前台不提供單筆訂單明細 |
 | 2026-07-08 | 定義 `order.status` 生命週期（`pending`→`processing`→`waiting_finalization`/`failed`→`completed`/`cancelled`），取代舊二態 `PROCESSING`/`FAILED`；明訂兩段 DB transaction（stage 1 建單+既有券段、stage 2 新券段 update 併回）；成敗回歸單一條件 `discount_amount > 0`；新券段失敗區分「點數端失敗（走 retry/cronjob）」與「我方失敗（孤兒點數、人工善後）」，兩者皆不改變判定 |
@@ -29,7 +30,7 @@ permalink: /api-specs/create-order/
 ## 功能說明
 讓發卡主機以 API Key 於信用卡授權後建立折抵訂單。神坊依 `order_id`、`member_id`、`brand_id`、`order_amount`、`card_last_four_digits` 與 `store_name` 執行 coupon 清算，扣點時依 `brand.treepoint_merchant_provider_key` 帶入點數帳務通路。
 
-清算分兩段：**既有券段**（使用既有 `available` 舊券、轉 `consumed`、建立訂單與事件）與**新券段**（扣點、即時發新券）。唯有本次實際折抵金額 `discount_amount > 0` 才算建單成功（訂單進入 `waiting_finalization`）並回傳折抵金額；折抵金額為 0 則訂單標記 `failed` 並回對應失敗碼。
+清算分兩段：**既有券段**（使用既有 `available` 舊券、轉 `consumed`、建立訂單與事件）與**新券段**（扣點、即時發新券）。唯有本次實際折抵金額 `discount_amount > 0` 才算建單成功（訂單進入 `processing`）並回傳折抵金額；折抵金額為 0 則訂單標記 `error` 並回對應失敗碼。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{issuer_api_key}}`
@@ -164,7 +165,7 @@ Content-Type: `application/json`
 6. 執行扣點：依上一步決定的張數與總點數，呼叫 treelife-api 扣點（依 `brand.treepoint_merchant_provider_key` 作帳務歸屬）
 7. 扣點成功後即時建立對應張數新券，狀態為 `consumed`；`expired_at = (issued_at 所在 UTC+8 日期 + coupon_valid_days) 的 23:59:59.999`；`coupon_valid_days = 0` 代表當日到期（即 issued_at 當日 `23:59:59.999`）
    - **我方失敗**：若扣點已成功但此步發券寫入失敗，該批新券不計入折抵（產生孤兒點數），依「建單成敗判定」僅以舊券折抵決定訂單狀態，善後見下方兩種失敗類型表
-8. **扣點失敗或逾時（treelife-api error / timeout，屬點數端失敗）**：依下方「扣點逾時與 retry 機制」處理。最終無法完成扣點時跳過整個新券段（不發新券）；若既有券段已產生折抵（`discount_amount > 0`）→ `waiting_finalization`；若既有券段亦無折抵→ `failed`（`TREELIFE_ERROR`）
+8. **扣點失敗或逾時（treelife-api error / timeout，屬點數端失敗）**：依下方「扣點逾時與 retry 機制」處理。最終無法完成扣點時跳過整個新券段（不發新券）；若既有券段已產生折抵（`discount_amount > 0`）→ `processing`；若既有券段亦無折抵→ `error`（`TREELIFE_ERROR`）
 
 **扣點逾時與 retry 機制：**
 - 發卡主機可接受 `create_order` 於 **15 秒內**回覆；樹配券與點數系統的 `order_id` 為**一對一關係**（同一 `order_id` 對應點數系統的扣點交易，供結果確認與退還使用）
@@ -196,32 +197,31 @@ Content-Type: `application/json`
 
 | 狀態 | 意義 | 進入時機 |
 | ---- | ---- | ---- |
-| `pending` | 剛建立 | stage 1 一開始即建立 order（不論有無舊券） |
-| `processing` | 清算中 | 開始既有券段 / 新券段清算 |
-| `waiting_finalization` | 清算完成、待終結 | 清算完成且 `discount_amount > 0`，等待 `batch_finalize_orders` |
-| `failed` | 清算完成、失敗 | 清算完成且 `discount_amount = 0` |
+| `pending` | 剛建立，涵蓋清算執行中（既有券段 + 新券段），無獨立的「清算中」狀態值 | stage 1 一開始即建立 order（不論有無舊券） |
+| `processing` | 清算完成、待終結 | 清算完成且 `discount_amount > 0`，等待 `batch_finalize_orders` |
+| `error` | 清算完成、失敗 | 清算完成且 `discount_amount = 0` |
 | `completed` | 已終結 | `batch_finalize_orders` action=`COMPLETED` |
 | `cancelled` | 已終結（取消） | `batch_finalize_orders` action=`CANCELLED` |
 
 **兩段 DB transaction 邊界：**
-- **stage 1（既有券段）**：於單一 transaction 內建立 order（`pending`→`processing`）、既有券段清算（舊券轉 `consumed`）、建立 order event 後 commit
+- **stage 1（既有券段）**：於單一 transaction 內建立 order（狀態維持 `pending`）、既有券段清算（舊券轉 `consumed`）、建立 order event 後 commit
 - **stage 2（新券段）**：另一 transaction 執行扣點、發新券；完成後將新券的折抵與點數 **update 併回同一筆 order**
 - 兩段皆於 15 秒同步窗內跑完才回覆發卡主機；response 的 `discount_amount` 為兩段合計
 
 **成敗判定（單一條件，不受新券段失敗種類影響）：**
 - 清算完成後 `discount_amount = Σ（既有券折抵 + 成功發出新券折抵）`
-- **`discount_amount > 0` → `waiting_finalization`**（成功），等待後續 `batch_finalize_orders`
-- **`discount_amount = 0` → `failed`**，記錄對應 `error_type`（見下方 400 清單 4～8），API 回傳該失敗碼
+- **`discount_amount > 0` → `processing`**（成功），等待後續 `batch_finalize_orders`
+- **`discount_amount = 0` → `error`**，記錄對應 `error_type`（見下方 400 清單 4～8），API 回傳該失敗碼
 
 **新券段失敗的兩種類型（皆不改變上述判定，只影響善後）：**
 
 | 失敗種類 | 情境 | 點數狀態 | 對訂單影響 | 後續處理 |
 | ---- | ---- | ---- | ---- | ---- |
-| **點數端失敗** | treelife-api 扣點 fail / timeout | 未扣或未定 | 跳過新券段，只計舊券折抵：有舊券折抵→`waiting_finalization`；無→`failed`（`TREELIFE_ERROR`） | retry / 每日 cronjob（見上「扣點逾時與 retry 機制」） |
-| **我方失敗** | 扣點已成功、但神坊端發券寫入失敗 | 已扣（孤兒點數） | **不影響判定**，僅計舊券折抵：有舊券折抵→`waiting_finalization`；無→`failed` | 屬 5xx 非預期錯誤，人工事後補券或退還已扣點數 |
+| **點數端失敗** | treelife-api 扣點 fail / timeout | 未扣或未定 | 跳過新券段，只計舊券折抵：有舊券折抵→`processing`；無→`error`（`TREELIFE_ERROR`） | retry / 每日 cronjob（見上「扣點逾時與 retry 機制」） |
+| **我方失敗** | 扣點已成功、但神坊端發券寫入失敗 | 已扣（孤兒點數） | **不影響判定**，僅計舊券折抵：有舊券折抵→`processing`；無→`error` | 屬 5xx 非預期錯誤，人工事後補券或退還已扣點數 |
 
-- **可查性**：`get_member_orders` 剔除 `failed`；admin 端可經 status filter 查得；`bank_get_order` 不分 status 一律全回
-- **冪等**：同一 `order_id` 只允許建立一次（不論最終為 `waiting_finalization` 或 `failed`，皆佔用 `order_id`）；任何再次收到的請求皆回 `ORDER_ALREADY_EXISTS`，不得再次扣點、發券、改券狀態或新增事件
+- **可查性**：`get_member_orders` 剔除 `error`；admin 端可經 status filter 查得；`bank_get_order` 不分 status 一律全回
+- **冪等**：同一 `order_id` 只允許建立一次（不論最終為 `processing` 或 `error`，皆佔用 `order_id`）；任何再次收到的請求皆回 `ORDER_ALREADY_EXISTS`，不得再次扣點、發券、改券狀態或新增事件
 
 **時間與 rotation 邊界：**
 - `card_last_four_digits`、`store_name`、`transaction_time` 均為顯示用途欄位，由發卡主機於建單時提供，神坊原樣保存於訂單資料（快照），供後續訂單查詢 API 回傳；不參與任何清算邏輯
@@ -235,11 +235,11 @@ Content-Type: `application/json`
 **前置驗證失敗（不建立訂單；優先序：member 相關最前）：**
 1. `member_id` 不存在：`MEMBER_NOT_FOUND`
 2. 會員未啟用：`MEMBER_NOT_ACTIVATED`
-3. `order_id` 已存在（含先前 `failed` 訂單）：`ORDER_ALREADY_EXISTS`
+3. `order_id` 已存在（含先前 `error` 訂單）：`ORDER_ALREADY_EXISTS`
 
 > `brand_id` 不另做前置存在性檢查；不存在或無效的 `brand_id` 會自然落入清算流程（無此品牌舊券、無 active campaign）而導致 discount=0，歸入下方 `NO_ACTIVE_CAMPAIGN`。
 
-**清算後折抵金額為 0（訂單標記 `failed` 並記 `error_type`；`get_member_orders` 不回傳）：**
+**清算後折抵金額為 0（訂單標記 `error` 並記 `error_type`；`get_member_orders` 不回傳）：**
 4. 無 active campaign 可發新券（含 `brand_id` 不存在/無效），且無符合門檻的可用舊券：`NO_ACTIVE_CAMPAIGN`
 5. 該會員已暫停自動兌換服務（`members.auto_redeem_enabled = false`）而無法發新券，且無可用舊券：`AUTO_REDEEM_NOT_ENABLED`
 6. 有 active campaign 但點數不足發任何新券，且無可用舊券：`NO_AVAILABLE_COUPON_AND_POINT`
@@ -260,4 +260,4 @@ Content-Type: `application/json`
 > 已定案（非待定）：
 > - **B 類（4～8）回碼優先序**：單筆清算同時符合多個 discount=0 原因時，依 400 清單編號順序判定（4 → 5 → 6 → 7 → 8）。
 > - **跨品牌並發**：`max_points_per_rotation` 跨品牌共用點數池的 race condition 防超用機制，由 RD 於後續技術規格定義，不在本 spec 範圍。
-> - **`failed` 訂單可查性**：見上「訂單狀態生命週期」段之可查性定義。
+> - **`error` 訂單可查性**：見上「訂單狀態生命週期」段之可查性定義。
