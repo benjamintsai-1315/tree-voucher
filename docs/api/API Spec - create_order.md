@@ -7,6 +7,7 @@ permalink: /api-specs/create-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-13 | `max_points_per_rotation`（rotation 屬性、跨品牌合計點數上限）更名為 `max_points_per_member`，語意不變 |
 | 2026-07-13 | `order.status` 實際 DB 欄位值校正為五態：`waiting_finalization` 更名為 `processing`（清算完成、待終結）、`failed` 更名為 `error`（清算完成、失敗）；原「`processing`＝清算中」之暫態定義移除，該過程期間狀態維持 `pending` 至清算結束 |
 | 2026-07-09 | response 新增 `coupons_used[]` 對帳明細：每張券含 `is_new_issued`、`discount_amount`、`redeem_points` 及**本次**消耗之 `tree_points`/`cub_points`（`cub_points` 為銀行發行點數，供對帳）；舊券（`is_new_issued=false`）本次不扣點，`tree_points`/`cub_points` 皆為 0；同一份明細同步加入 `bank_get_order` 供事後重查 |
 | 2026-07-08 | 前台 `get_order` 廢除，訂單查詢導引改為 `bank_get_order`（發卡主機端）；前台不提供單筆訂單明細 |
@@ -156,8 +157,8 @@ Content-Type: `application/json`
 **新券段（best effort，失敗不推翻既有券段）：**
 1. 計算剩餘消費額：`order_amount - Σ（已使用既有券的 coupon_min_order_amount）`
 2. 若無 active campaign，或該會員 `members.auto_redeem_enabled = false`（會員層級暫停自動兌換），跳過新券發行
-3. 計算 per-rotation 點數 quota：`max_points_per_rotation = 0` 時視為無上限；否則
-   `remaining_rotation_point_budget = max_points_per_rotation - used_rotation_points`
+3. 計算 per-rotation 點數 quota：`max_points_per_member = 0` 時視為無上限；否則
+   `remaining_rotation_point_budget = max_points_per_member - used_rotation_points`
    其中 `used_rotation_points = Σ（該 member 於當前 rotation 內已發行 coupon 的 coupon_redeem_points）`（跨品牌、跨 campaign 合計，含 `consumed`/`settled`/`available`/`expired` 全狀態）；若 `remaining_rotation_point_budget <= 0` 跳過新券發行
    - 註：新券段**不檢查** per-order 張數上限（`max_redemptions_per_order`）。該上限僅在既有券段對 active-campaign 舊券計數；能進入新券段即代表 per-order 尚未占滿，不存在「因 per-order 上限而無法發任何新券」的情境
 4. 取會員點數餘額 `point_balance`
@@ -227,7 +228,7 @@ Content-Type: `application/json`
 - `card_last_four_digits`、`store_name`、`transaction_time` 均為顯示用途欄位，由發卡主機於建單時提供，神坊原樣保存於訂單資料（快照），供後續訂單查詢 API 回傳；不參與任何清算邏輯
 - 券的 `issued_at` / `expired_at` 均以神坊**收到 request 的實際時間**為準，與 `transaction_time` 無關；`expired_at` 的日界（`23:59:59.999` UTC+8、含邊界）與 rotation active 判定採相同精度與邊界規則
 - **rotation 邊界暫定：** 若 `transaction_time` 早於 `rotation.end_time`（交易發生在舊檔期內），但神坊收到 request 時當下時間已超過 `rotation.end_time`，**暫定仍以收到 request 時間為準**執行清算（不回溯舊 rotation）
-- `max_points_per_rotation`：定義於 **rotation 屬性**（非 campaign）；語意為「同一用戶於此 rotation 內、跨所有品牌與 campaign 合計可用的點數上限」；計數條件為同一 `member_id + rotation_id` 下已發行 coupon 的 `coupon_redeem_points` 加總；`0` 代表無上限
+- `max_points_per_member`：定義於 **rotation 屬性**（非 campaign）；語意為「同一用戶於此 rotation 內、跨所有品牌與 campaign 合計可用的點數上限」；計數條件為同一 `member_id + rotation_id` 下已發行 coupon 的 `coupon_redeem_points` 加總；`0` 代表無上限
 - `create_order` response 回傳 `discount_amount`、`points_used` 與 `coupons_used[]` 對帳明細；發卡主機若需事後重查訂單狀態、折抵金額與同一份 `coupons_used[]` 明細，應另呼叫 `bank_get_order`（前台端不提供單筆訂單明細查詢）
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
@@ -259,5 +260,5 @@ Content-Type: `application/json`
 
 > 已定案（非待定）：
 > - **B 類（4～8）回碼優先序**：單筆清算同時符合多個 discount=0 原因時，依 400 清單編號順序判定（4 → 5 → 6 → 7 → 8）。
-> - **跨品牌並發**：`max_points_per_rotation` 跨品牌共用點數池的 race condition 防超用機制，由 RD 於後續技術規格定義，不在本 spec 範圍。
+> - **跨品牌並發**：`max_points_per_member` 跨品牌共用點數池的 race condition 防超用機制，由 RD 於後續技術規格定義，不在本 spec 範圍。
 > - **`error` 訂單可查性**：見上「訂單狀態生命週期」段之可查性定義。
