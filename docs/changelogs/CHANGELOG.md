@@ -18,7 +18,8 @@
 - `type` enum 定案為僅此 6 項：`activate_member`、`deactivate_member`、`change_selected_brands`、`system_clear_brands`、`disable_auto_redeem`、`enable_auto_redeem`（權威清單記於 CLAUDE.md）
 
 ### 舊表名清理（決議 3 盤點）
-- `background.md`、`index.md`、`docs/README.md` 之 `member_brand_change_logs` / 舊 API 名殘留已更新；`database-schema.md` 過時範圍遠超此表（`auth_status`、`rotation_campaigns`、訂單狀態舊 enum 等），待獨立一輪全面同步
+- `background.md`、`index.md`、`docs/README.md` 之 `member_brand_change_logs` / 舊 API 名殘留已更新
+- `database-schema.md` 過時範圍遠超此表（`auth_status`、`rotation_campaigns`、訂單狀態舊 enum 等），經決議**廢棄並刪除**，schema 文件改由 RD 另行整理；README/docs 索引之對應連結同步移除
 
 ### 未排程（決議 7、9）
 - 會員啟用歷史後台查詢 API 命名、`manual` campaign 兌換流程：留待未來規劃
