@@ -7,6 +7,7 @@ permalink: /api-specs/get-member-settings-change-logs/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-13 | 「過去 1 年內」查詢範圍精確定義為查詢當下 **T-366 天**（含）；資料本身不清除，僅查詢範圍有上限 |
 | 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
 | 2026-07-02 | 新增邊界檢查與 400 錯誤：會員須已啟用（`MEMBER_NOT_ACTIVATED`） |
 | 2026-07-02 | `items` 新增 `id`（log 唯一識別碼） |
@@ -28,13 +29,13 @@ permalink: /api-specs/get-member-settings-change-logs/
   - API Key 須為樹享券平台前台端專屬授權，不接受其他呼叫方的 API Key
   - `member_id` 必須存在於神坊系統中
   - 呼叫前會員必須已啟用（`members.is_activated = TRUE`）
-  - 僅回傳過去 1 年內的異動紀錄
+  - 僅回傳查詢範圍內（查詢當下 T-366 天，含）的異動紀錄
   - 來源 IP 須在白名單內
 
 > **注意：** `API Key` 與來源 IP 白名單皆存於 AWS Parameter Store。
 
 ## 使用情境
-前台端帶入 `member_id` 查詢該會員過去 1 年內的設定異動紀錄，供會員回看曾經的品牌選擇變更與服務暫停／啟用歷程。
+前台端帶入 `member_id` 查詢該會員過去 1 年內（查詢當下 T-366 天，含）的設定異動紀錄，供會員回看曾經的品牌選擇變更與服務暫停／啟用歷程。
 
 # Request
 HTTP method: `GET`
@@ -142,7 +143,8 @@ Content-Type: `application/json`
 | name | String | 品牌名稱（不使用快照，反查當下 brand_name，可能為已失效品牌） |
 
 ## 邏輯說明
-- 依 `created_at` 由新到舊排序，僅回傳過去 1 年內紀錄
+- 依 `created_at` 由新到舊排序，僅回傳查詢範圍內紀錄：查詢範圍為查詢當下 **T-366 天**（含）至今
+- 超過查詢範圍的紀錄**不清除**，僅不納入本 API 查詢結果（資料保留、查詢有上限）
 - `change_selected_brands`：涵蓋首次選牌與後續品牌更換，統一以此 type 表示；`before_brands` 為異動前清單，`after_brands` 為異動後清單
 - `disable_auto_redeem` / `enable_auto_redeem`：服務暫停／重啟，`data: null`
 - `system_clear_brands`：系統 lazy cleanup 清空舊檔期，`before_brands` 為被清空的品牌、`after_brands` 為 `[]`；`created_at` 為舊 rotation 的 `end_time`
