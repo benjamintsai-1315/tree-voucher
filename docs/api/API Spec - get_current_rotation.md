@@ -7,6 +7,7 @@ permalink: /api-specs/get-current-rotation/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-13 | 補跟已於 2026-07-06/07-08 定案的 quota 規則變更：移除 campaigns 下已廢棄的 `max_redemption_per_rotation`（campaign 屬性、計張數）；新增 rotation 層級的 `max_points_per_member`（同一用戶於此 rotation 內跨品牌合計可用點數上限，原名 `max_points_per_rotation`，此次一併更名） |
 | 2026-07-05 | 邏輯說明補充 active rotation 邊界判斷：`start_time <= now() <= end_time`（end_time 含邊界，原不含邊界）；`discount_rate` 補充 `coupon_redeem_points = 0` 時回傳 `null`、四捨五入採一般四捨五入 |
 | 2026-07-02 | campaigns 新增 `max_redemption_per_rotation` 欄位 |
 | 2026-07-02 | `max_selectable_brand_count` 更名為 `max_selectable_auto_brand_count`，明確代表僅計入具備 active `auto` campaign 品牌的可選上限 |
@@ -64,6 +65,7 @@ Content-Type: `application/json`
   "end_time": "2026-03-31T23:59:59+08:00",
   "description": "{\"order_amount\": 100, \"point_amount\": 20}",
   "max_selectable_auto_brand_count": 3,
+  "max_points_per_member": 200,
   "brands": [
     {
       "id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK",
@@ -80,7 +82,6 @@ Content-Type: `application/json`
           "coupon_discount_amount": 21,
           "discount_rate": 1.05,
           "max_redemptions_per_order": 3,
-          "max_redemption_per_rotation": 6,
           "created_at": "2025-09-01T00:00:00+08:00",
           "updated_at": "2025-10-01T09:00:00+08:00"
         },
@@ -93,7 +94,6 @@ Content-Type: `application/json`
           "coupon_discount_amount": 21,
           "discount_rate": 1.05,
           "max_redemptions_per_order": 3,
-          "max_redemption_per_rotation": 5,
           "created_at": "2025-09-01T00:00:00+08:00",
           "updated_at": "2025-10-01T09:00:00+08:00"
         }
@@ -116,7 +116,6 @@ Content-Type: `application/json`
           "coupon_discount_amount": 30,
           "discount_rate": 1.2,
           "max_redemptions_per_order": 10,
-          "max_redemption_per_rotation": 20,
           "created_at": "2025-10-01T00:00:00+08:00",
           "updated_at": "2025-10-01T09:00:00+08:00"
         }
@@ -138,6 +137,7 @@ Content-Type: `application/json`
 | end_time | String | 檔期結束時間（UTC+8 ISO 8601） |
 | description | String | 顯示用說明參數，JSON 字串格式：`{"order_amount": N, "point_amount": N}`，由前端自行 parse 呈現，不影響清算 |
 | max_selectable_auto_brand_count | Integer | 本檔期用戶最多可選擇的（具備 active `auto` campaign）品牌數量 |
+| max_points_per_member | Integer | 同一用戶在此 rotation 內、跨所有品牌與 campaign 合計可用的點數上限；`0` 代表無上限 |
 | brands | Array | 本檔期所有具備 active `auto` campaign 的品牌清單 |
 
 ### brands
@@ -164,7 +164,6 @@ Content-Type: `application/json`
 | coupon_discount_amount | Integer | 一張券可折抵的金額（元） |
 | discount_rate | Float \| null | 每點折抵金額比率，`round(coupon_discount_amount / coupon_redeem_points, 2)`，四捨五入至小數點第二位（一般四捨五入），純計算欄位；`coupon_redeem_points = 0` 時回傳 `null` |
 | max_redemptions_per_order | Integer | 單筆交易中，當前 active campaign 最多可使用幾張券；若為 0 則代表無上限 |
-| max_redemption_per_rotation | Integer | 同一用戶在此 campaign 整個 rotation 內最多可兌換得到幾張券（計數條件：`member_id + campaign_id + rotation_id`；涵蓋 auto 與 manual） |
 | created_at | String | Campaign 建立時間（UTC+8 ISO 8601） |
 | updated_at | String | Campaign 最後更新時間（UTC+8 ISO 8601） |
 
@@ -178,6 +177,7 @@ Content-Type: `application/json`
 - `campaigns` 排序：依 `campaign.id`
 - 無任何符合條件的品牌時，回傳 `brands: []`，不報錯
 - `NO_ACTIVE_ROTATION` 僅代表當前**完全無 active rotation**（不在任何 rotation 的時間區間內）；若 active rotation 存在但無符合條件的品牌，屬於「有 rotation 但無 brand」情境，回傳 `brands: []`，非錯誤，兩者不可混用
+- `max_points_per_member` 為 rotation 屬性，非 campaign 屬性；實際清算時的 quota 檢查與扣減邏輯見 `create_order` spec
 
 # Error Handling
 
