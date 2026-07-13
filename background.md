@@ -148,11 +148,10 @@ Response discount_amount = 141
 調閱用戶過往 1 年內的異動紀錄，包含異動時間與異動行為（首次啟用、暫停用券、重啟用券、更換品牌）
 其中更換品牌需要包含「更換前有哪些」vs「更換後是哪些」
 
-底層資料模型採 `member_brand_change_logs` request 粒度事件模型：
-- 每次操作寫入一筆紀錄，`request_id` 唯一標識同一次操作
-- `type` enum：`initial_selection`（首次選牌）、`change_brand`（品牌更換）、`pause`、`resume`、`system_clear_brands`
-- `change_brand` 時，`added_brand_ids` / `removed_brand_ids` 於寫入時預先計算存入
-- `PAUSE` / `RESUME` 不關聯特定品牌
+底層資料模型採 `member_event_logs`（統一會員事件表，原 `member_brand_change_logs` 已併入）request 粒度事件模型：
+- 每次操作寫入一筆紀錄
+- `type` enum（完整 6 項）：`activate_member`、`deactivate_member`、`change_selected_brands`（涵蓋首次選牌與後續換牌）、`system_clear_brands`、`disable_auto_redeem`、`enable_auto_redeem`
+- 選牌類事件之 `data` 儲存 `before_brands` / `after_brands` 快照；暫停／啟用類事件 `data = null`
 
 此流程由樹享券平台前台端串接異動紀錄 API。
 
