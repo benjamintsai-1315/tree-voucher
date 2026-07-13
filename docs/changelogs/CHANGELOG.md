@@ -2,6 +2,16 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-13 — 前台券 API 依前端頁面需求校準（get_coupons 精簡化、get_coupon_detail 有效期間定義）
+
+### get_coupon_detail
+- 明確定義 `created_at` 即為券「有效期間」之起始時間，與 `expired_at`（迄）合組完整起訖區間
+- `created_at` 補齊毫秒精度，與 `expired_at` 一致
+
+### get_coupons
+- Response 精簡化：`coupons[]` 移除列表畫面不需要的 `brand`、`redeem_points`、`discount_rate`、`max_redemptions_per_order`、`created_at`；`campaign` 巢狀物件改為扁平 `campaign_name`
+- 同一狀態 bucket 排序規則調整：`AVAILABLE`/`CONSUMED`/`EXPIRED` 改為 `expired_at DESC`、`id ASC`；`SETTLED` 改依 `updated_at DESC`（finalize 時間）、`id ASC`（原統一規則為 `expired_at ASC`、`created_at ASC`、`id ASC`）
+
 ## 2026-07-09 — create_order / bank_get_order 新增 coupons_used[] 對帳明細
 
 ### 發卡主機對帳明細
