@@ -28,7 +28,7 @@
 | `deactivate_member` | `docs/api/API Spec - deactivate_member.md` |
 | `get_member_settings` | `docs/api/API Spec - get_member_settings.md` |
 | `update_member_settings` | `docs/api/API Spec - update_member_settings.md` |
-| `get_member_brand_change_logs` | `docs/api/API Spec - get_member_settings_change_logs.md` |
+| `get_member_settings_change_logs` | `docs/api/API Spec - get_member_settings_change_logs.md` |
 | `get_coupon_wallet` | `docs/api/API Spec - get_coupon_wallet.md` |
 | `get_coupons` | `docs/api/API Spec - get_coupons.md` |
 | `get_coupon_detail` | `docs/api/API Spec - get_coupon_detail.md` |

@@ -23,7 +23,7 @@ permalink: /
 - [get_current_rotation]({{ '/api-specs/get-current-rotation/' | relative_url }})
 - [get_coupon_wallet]({{ '/api-specs/get-coupon-wallet/' | relative_url }})
 - ~~[get_order]({{ '/api-specs/get-order/' | relative_url }})~~ ⚠️ 已於 2026-07-08 廢除（前台改用 get_member_orders，發卡主機端用 bank_get_order）
-- [get_member_brand_change_logs]({{ '/api-specs/get-member-brand-change-logs/' | relative_url }})
+- [get_member_settings_change_logs]({{ '/api-specs/get-member-settings-change-logs/' | relative_url }})
 - [get_member_orders]({{ '/api-specs/get-member-orders/' | relative_url }})
 - [get_member_settings]({{ '/api-specs/get-member-settings/' | relative_url }})
 - [update_member_selected_brands]({{ '/api-specs/update-member-selected-brands/' | relative_url }})
