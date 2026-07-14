@@ -7,6 +7,7 @@ permalink: /api-specs/get-coupons/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-14 | 修正說明不清：`id`（券識別碼）型別補上 ULID 註記；sample 的 `CPN_001`/`CPN_002` 佔位字串改為 ULID 格式，避免誤導實際格式 |
 | 2026-07-13 | Response 精簡化：`coupons[]` 移除列表畫面不需要的 `brand`、`redeem_points`、`discount_rate`、`max_redemptions_per_order`、`created_at`，`campaign` 巢狀物件改為扁平 `campaign_name`；同時調整同一狀態 bucket 排序規則：`AVAILABLE`/`CONSUMED`/`EXPIRED` 改為 `expired_at DESC`、`id ASC`，`SETTLED` 改依 `updated_at DESC`（finalize 時間）、`id ASC` |
 | 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
 | 2026-07-02 | 新增邊界檢查與 400 錯誤：會員須已啟用（`MEMBER_NOT_ACTIVATED`） |
@@ -72,7 +73,7 @@ Content-Type: `application/json`
   "total": 3,
   "coupons": [
     {
-      "id": "CPN_001",
+      "id": "01HZYA1B2C3D4E5F6G7H8J9K0M",
       "status": "AVAILABLE",
       "campaign_name": "滿100折21",
       "min_order_amount": 100,
@@ -80,7 +81,7 @@ Content-Type: `application/json`
       "expired_at": "2026-10-31T23:59:59.999+08:00"
     },
     {
-      "id": "CPN_002",
+      "id": "01HZYB2C3D4E5F6G7H8J9K0MNP",
       "status": "CONSUMED",
       "campaign_name": "滿100折21",
       "min_order_amount": 100,
@@ -104,7 +105,7 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| id | String | 券識別碼 |
+| id | String | 券識別碼（ULID） |
 | status | String | 券狀態：`AVAILABLE` \| `CONSUMED` \| `SETTLED` \| `EXPIRED` |
 | campaign_name | String | 該券所屬 campaign 名稱 |
 | min_order_amount | Integer | 該券對應的消費門檻金額（元） |
