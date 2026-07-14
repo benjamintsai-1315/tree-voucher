@@ -2,6 +2,11 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-14 — get_coupons 補上 updated_at 欄位
+
+- `SETTLED` bucket 的排序規則早已定義為依 `updated_at DESC`（finalize 時間），但 response schema 未實際回傳此欄位，說明與資料脫鉤
+- 補上 `updated_at`（UTC+8 ISO 8601，毫秒精度）於 `coupons[]`，並將 sample 第二筆改為 `SETTLED` 狀態以對應說明
+
 ## 2026-07-14 — 收斂 last_brand_selection_changed_at 與 lazy cleanup 矛盾（AUD-036）
 
 - 既有矛盾：`get_member_settings.md` 明訂「lazy cleanup 不影響 `last_brand_selection_changed_at`」，但 PRD Flow 4 與 Flow 5-1 兩處寫「lazy cleanup 換檔清空時需更新此欄位為舊 rotation 的 `end_time`」——此矛盾先前已被 `docs/reviews/2026-07-06-spec-audit.md`（AUD-036）標記為待釐清
