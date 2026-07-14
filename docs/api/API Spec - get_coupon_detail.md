@@ -7,6 +7,7 @@ permalink: /api-specs/get-coupon-detail/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-14 | 修正說明不清：`id`（券識別碼）型別補上 ULID 註記；sample 的 `CPN_001` 佔位字串改為 ULID 格式，避免誤導實際格式 |
 | 2026-07-14 | 新增 `tree_points`/`cub_points`：`redeem_points` 僅為合計，未拆分兩種點數組成，資訊不足；補上兩種點數明細，資料來源與 `create_order` 對帳一致（`treelife_use_point_log`） |
 | 2026-07-13 | 明確定義 `created_at` 即為券「有效期間」之起始時間，並補齊毫秒精度，與 `expired_at` 一致 |
 | 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
@@ -58,7 +59,7 @@ Content-Type: `application/json`
 
 ```json
 {
-  "id": "CPN_001",
+  "id": "01HZYA1B2C3D4E5F6G7H8J9K0M",
   "status": "AVAILABLE",
   "brand": {
     "id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK",
@@ -86,7 +87,7 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| id | String | 券識別碼 |
+| id | String | 券識別碼（ULID） |
 | status | String | 券狀態：`AVAILABLE` \| `CONSUMED` \| `SETTLED` \| `EXPIRED` |
 | brand | Object | 對應品牌資訊，見下表 |
 | campaign | Object | 該券所屬 campaign 資訊，見下表 |
