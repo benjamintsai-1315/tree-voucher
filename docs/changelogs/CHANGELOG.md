@@ -2,6 +2,11 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-14 — get_member_orders coupon_usage_summary 新增新舊券區分
+
+- 新增 `is_new_issued`（Boolean）：`true` 為本次訂單即時發行的新券、`false` 為本次使用的既有舊券，供前端做差異顯示
+- 分組鍵同步調整為 `campaign_name` + `is_new_issued`：同一 campaign 若同時有新券與舊券被使用，分兩組回傳，不合併
+
 ## 2026-07-14 — 盤點修正：coupon id 未標示 ULID 之處
 
 - `get_coupons.md`、`get_coupon_detail.md`：`id`（券識別碼）欄位說明補上 ULID 型別註記；sample 中 `CPN_001`/`CPN_002` 佔位字串改為 ULID 格式，避免誤導實際格式
