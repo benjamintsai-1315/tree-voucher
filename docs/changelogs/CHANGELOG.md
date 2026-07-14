@@ -2,6 +2,12 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-14 — 盤點修正：coupon id 未標示 ULID 之處
+
+- `get_coupons.md`、`get_coupon_detail.md`：`id`（券識別碼）欄位說明補上 ULID 型別註記；sample 中 `CPN_001`/`CPN_002` 佔位字串改為 ULID 格式，避免誤導實際格式
+- 已核對 `bank_get_order.md`（已正確標註 ULID）；已廢棄的 `get_order.md` 維持不動（歷史紀錄，不再是現行端點）
+- `create_order.md`、`get_member_orders.md` 目前 response 皆不含 coupon 層級 `id` 欄位，不受影響
+
 ## 2026-07-14 — 修正兩個邏輯錯誤：get_coupon_wallet 範圍、get_coupon_detail 點數拆分
 
 ### get_coupon_wallet
