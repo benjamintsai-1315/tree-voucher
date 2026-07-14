@@ -19,13 +19,13 @@ permalink: /api-specs/get-member-settings/
 
 ## 功能說明
 
-讓樹享券平台前台端以 API Key 依 `member_id` 取得該會員目前的完整設定狀態，包含自動兌換服務是否啟用，以及目前已選擇且仍具備 active auto campaign 的品牌 id 清單，供前端呈現會員設定頁面。
+讓樹配券平台前台端以 API Key 依 `member_id` 取得該會員目前的完整設定狀態，包含自動兌換服務是否啟用，以及目前已選擇且仍具備 active auto campaign 的品牌 id 清單，供前端呈現會員設定頁面。
 
 ## 權限需求
 
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`
 - 邊界檢查：
-    - API Key 須為樹享券平台前台端專屬授權，不接受其他呼叫方的 API Key
+    - API Key 須為樹配券平台前台端專屬授權，不接受其他呼叫方的 API Key
     - member_id 必須存在於小樹生活中
     - 呼叫前會員必須已啟用（`members.is_activated = TRUE`）
     - 來源 IP 須在白名單內

@@ -16,12 +16,12 @@ permalink: /api-specs/update-member-auto-redeem-settings/
 # API: update_member_auto_redeem_setting
 
 ## 功能說明
-讓樹享券平台前台端以 API Key 切換該會員的自動兌換服務狀態（暫停／啟用）。
+讓樹配券平台前台端以 API Key 切換該會員的自動兌換服務狀態（暫停／啟用）。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`
 - 邊界檢查：
-  - API Key 須為樹享券平台前台端專屬授權，不接受其他呼叫方的 API Key
+  - API Key 須為樹配券平台前台端專屬授權，不接受其他呼叫方的 API Key
   - `member_id` 必須存在於神坊系統中
   - 呼叫前會員必須已啟用（`members.is_activated = TRUE`）
   - 來源 IP 須在白名單內

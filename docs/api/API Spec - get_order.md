@@ -22,12 +22,12 @@ permalink: /api-specs/get-order/
 # API: get_order（前台端）
 
 ## 功能說明
-讓樹享券平台前台端依 `order_id` 與 `member_id` 查詢單筆訂單的完整資訊，包含折抵券明細與從建立到結單的事件歷程。
+讓樹配券平台前台端依 `order_id` 與 `member_id` 查詢單筆訂單的完整資訊，包含折抵券明細與從建立到結單的事件歷程。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`
 - 邊界檢查：
-  - API Key 須為樹享券平台前台端專屬授權
+  - API Key 須為樹配券平台前台端專屬授權
   - `order_id` 必須存在於神坊系統中
   - `order_id` 對應訂單的 `member_id` 必須與 request 帶入的 `member_id` 相符，否則回 `ORDER_NOT_FOUND`
   - 來源 IP 須在白名單內

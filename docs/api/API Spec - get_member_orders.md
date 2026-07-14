@@ -23,12 +23,12 @@ permalink: /api-specs/get-member-orders/
 # API: get_member_orders
 
 ## 功能說明
-讓樹享券平台前台端以 API Key 依 member_id 取得該會員的訂單列表，支援分頁，固定以 `transaction_time DESC` 排序，供會員瀏覽歷史折抵紀錄。
+讓樹配券平台前台端以 API Key 依 member_id 取得該會員的訂單列表，支援分頁，固定以 `transaction_time DESC` 排序，供會員瀏覽歷史折抵紀錄。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`
 - 邊界檢查：
-  - API Key 須為樹享券平台前台端專屬授權，不接受發卡主機的 API Key
+  - API Key 須為樹配券平台前台端專屬授權，不接受發卡主機的 API Key
   - `member_id` 必須存在於神坊系統中
   - 呼叫前會員必須已啟用（`members.is_activated = TRUE`）
   - 來源 IP 須在白名單內

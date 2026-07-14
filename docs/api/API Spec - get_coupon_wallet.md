@@ -22,7 +22,7 @@ permalink: /api-specs/get-coupon-wallet/
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`
 - 邊界檢查：
-  - API Key 須為樹享券平台前台端專屬授權，不接受其他呼叫方的 API Key
+  - API Key 須為樹配券平台前台端專屬授權，不接受其他呼叫方的 API Key
   - `member_id` 必須存在於神坊系統中
   - 呼叫前會員必須已啟用（`members.is_activated = TRUE`）
   - 來源 IP 須在白名單內

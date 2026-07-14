@@ -18,7 +18,7 @@ permalink: /api-specs/deactivate-member/
 # API: deactivate_member
 
 ## 功能說明
-用戶在 CR 前台主動解除樹享券服務。樹享券平台收到請求後，主動呼叫點數系統 API 完成取消授權（`member_unauthorize`）；點數系統成功後，神坊更新 `members.is_activated = FALSE` 並寫入一筆 `member_event_logs`（type = `deactivate_member`，data = null）。兩邊皆成功才視為完成，任一失敗則整筆失敗。
+用戶在 CR 前台主動解除樹配券服務。樹配券平台收到請求後，主動呼叫點數系統 API 完成取消授權（`member_unauthorize`）；點數系統成功後，神坊更新 `members.is_activated = FALSE` 並寫入一筆 `member_event_logs`（type = `deactivate_member`，data = null）。兩邊皆成功才視為完成，任一失敗則整筆失敗。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`

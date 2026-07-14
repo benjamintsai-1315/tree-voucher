@@ -3,13 +3,13 @@ title: 首頁
 permalink: /
 ---
 
-# 樹享券 2.0 文件站
+# 樹配券 2.0 文件站
 
-這個站點整理了樹享券 2.0 的產品需求、背景說明與 API 規格，方便直接在瀏覽器中查閱。
+這個站點整理了樹配券 2.0 的產品需求、背景說明與 API 規格，方便直接在瀏覽器中查閱。
 
 ## 核心文件
 
-- [樹享券 2.0 PRD]({{ '/prd/' | relative_url }})
+- [樹配券 2.0 PRD]({{ '/prd/' | relative_url }})
 - [API Scope List]({{ '/api-list/' | relative_url }})
 - [背景說明]({{ '/background/' | relative_url }})
 - [品牌識別機制]({{ '/brand-positioning/' | relative_url }})

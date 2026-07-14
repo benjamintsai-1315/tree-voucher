@@ -6,7 +6,7 @@
 |---|---|
 | `docs/api/` | API 規格文件（18 個 API spec） |
 | `docs/changelogs/CHANGELOG.md` | 文件變更歷程 |
-| `docs/樹享券2.0_PRD.md` | 核心產品需求文件（2026-07-13 由 repo root 移入；內容尚未跟上近期 API spec 變更，待後續整理） |
+| `docs/樹配券2.0_PRD.md` | 核心產品需求文件（2026-07-13 由 repo root 移入；內容尚未跟上近期 API spec 變更，待後續整理） |
 
 ## 其他重要文件（位於 repo root）
 

@@ -3,14 +3,14 @@ title: API Scope List
 permalink: /api-list/
 ---
 
-# 樹享券 2.0 API List
+# 樹配券 2.0 API List
 
 ## 文件目的
-彙整樹享券 2.0 可能需要的 API，並依呼叫端區分。此文件先作為 API scope 清單，後續可依各 API 逐一拆成完整 API spec。
+彙整樹配券 2.0 可能需要的 API，並依呼叫端區分。此文件先作為 API scope 清單，後續可依各 API 逐一拆成完整 API spec。
 
 ## Scope 原則
 - 本次專案核心為「券加金」模式：用戶刷卡後，以點數兌換神坊發行的 coupon，並將 coupon 用於折抵本次刷卡消費。
-- 樹享券平台前台端負責品牌瀏覽、使用者自動兌換設定、券夾與歷史紀錄查詢。
+- 樹配券平台前台端負責品牌瀏覽、使用者自動兌換設定、券夾與歷史紀錄查詢。
 - 發卡主機端負責刷卡授權後建立訂單，以及請款完成或取消交易後完成訂單生命週期。
 - 對帳 API 不在本次 project scope，會另起專案處理。
 
@@ -23,12 +23,12 @@ permalink: /api-list/
 | 可選 | 視前端或營運需求決定是否納入 |
 | Scope 外 | 已確認不納入本次 project scope |
 
-## 樹享券平台前台端
+## 樹配券平台前台端
 
 | API | Method | Endpoint | 用途 | 狀態 |
 | ---- | ---- | ---- | ---- | ---- |
 | `get_current_rotation` | `GET` | `/coupon/get_current_rotation` | 取得當前 active rotation 的設定（活動期間、品牌選擇上限、顯示用說明參數），及本檔期所有具備 active `auto` campaign 的品牌清單與 campaign 規則。 | 已有 spec |
-| `activate_member` | `POST` | `/coupon/activate_member` | 用戶在 CR 前台同意啟用樹享券服務。神坊呼叫點數系統 API，成功後更新授權狀態並寫入 log。（原 `member_authorize`） | 已有 spec |
+| `activate_member` | `POST` | `/coupon/activate_member` | 用戶在 CR 前台同意啟用樹配券服務。神坊呼叫點數系統 API，成功後更新授權狀態並寫入 log。（原 `member_authorize`） | 已有 spec |
 | `deactivate_member` | `POST` | `/coupon/deactivate_member` | 用戶在 CR 前台主動解除服務。神坊更新授權狀態並寫入 log；現有 coupon 保留但不可用。（原 `member_unauthorize`） | 已有 spec |
 | `get_member_settings` | `GET` | `/coupon/get_member_settings` | 取得使用者目前的完整設定狀態，包含 `auto_redeem_enabled`、`max_selectable_auto_brand_count`、`last_changed_at`，以及目前已選擇、且當前仍具備 active `auto` campaign 的品牌。 | 已有 spec |
 | `update_member_selected_brands` | `POST` | `/coupon/update_member_selected_brands` | 更新該會員的已選品牌清單。以 `brand_ids` 作為更新後完整結果，後端自行計算 diff 並寫入異動紀錄。 | 已有 spec |

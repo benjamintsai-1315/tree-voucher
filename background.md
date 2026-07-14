@@ -6,9 +6,9 @@ permalink: /background/
 # 一、背景說明
 原規劃：「點數 + 金流整合支付（點加金）」 
 因 法規限制 → 支付案暫緩 
-改為推動新模式：「券加金」模式（樹享券 2.0）
+改為推動新模式：「券加金」模式（樹配券 2.0）
 
-# 二、樹享券 2.0 定義
+# 二、樹配券 2.0 定義
 ## 核心概念：
 使用者刷卡消費後
 系統即時觸發：
@@ -102,7 +102,7 @@ Response discount_amount = 141
 1. 票券發行單位：神坊（我們）
 2. 發起交易方：發卡主機（銀行信用卡系統）
 3. 刷卡場域：品牌通路
-4. 使用者介面：樹享券平台前台端
+4. 使用者介面：樹配券平台前台端
 
 # 四、資訊流程
 ## Flow 1: 品牌一覽
@@ -114,7 +114,7 @@ Response discount_amount = 141
 3. brand_category
 4. brand_active_campaign_details
 
-此流程由樹享券平台前台端串接品牌查詢 API。
+此流程由樹配券平台前台端串接品牌查詢 API。
 
 ## Flow 2: 選品牌
 用戶選擇偏好 brand（特店） 例如：全家 / 7-11 or 康是美 / 屈臣氏 or 大全聯 / 頂好...etc
@@ -123,7 +123,7 @@ Response discount_amount = 141
 2. 用戶選擇的品牌數量（不超過當前 active rotation 的 `max_selectable_auto_brand_count`）
 3. 選擇的品牌是否有 active `auto` campaign 可選
 
-此流程由樹享券平台前台端串接使用者設定 API。
+此流程由樹配券平台前台端串接使用者設定 API。
 
 ## Flow 3: 瀏覽已選品牌
 瀏覽用戶目前的品牌設定狀態，需包含：
@@ -153,7 +153,7 @@ Response discount_amount = 141
 - `type` enum（完整 6 項）：`activate_member`、`deactivate_member`、`change_selected_brands`（涵蓋首次選牌與後續換牌）、`system_clear_brands`、`disable_auto_redeem`、`enable_auto_redeem`
 - 選牌類事件之 `data` 儲存 `before_brands` / `after_brands` 快照；暫停／啟用類事件 `data = null`
 
-此流程由樹享券平台前台端串接異動紀錄 API。
+此流程由樹配券平台前台端串接異動紀錄 API。
 
 ## Flow 4-1: 換檔後 Lazy Cleanup 自動清空已選品牌
 系統採用「用戶進入時觸發」的 lazy cleanup 機制，在用戶呼叫相關 API 時自動清除舊檔期選擇，不需批次排程。
@@ -179,7 +179,7 @@ Response discount_amount = 141
 9. max_redemptions_per_order
 10. expired_at
 
-此流程由樹享券平台前台端串接券夾查詢 API。
+此流程由樹配券平台前台端串接券夾查詢 API。
 
 ## Flow 6: 刷卡
 1. 由發卡主機刷卡交易 create_order (信用卡授權後執行)，並由神坊比對品牌與清算後發起用券；response 僅回 `discount_amount`

@@ -1,5 +1,5 @@
 title: Tree Voucher 2.0 Docs
-description: 樹享券 2.0 PRD、背景文件與 API 規格
+description: 樹配券 2.0 PRD、背景文件與 API 規格
 theme: minima
 lang: zh-TW
 markdown: kramdown
@@ -7,7 +7,7 @@ permalink: pretty
 show_excerpts: false
 header_pages:
   - index.md
-  - 樹享券2.0_PRD.md
+  - docs/樹配券2.0_PRD.md
   - api_list.md
   - background.md
   - 品牌識別機制.md

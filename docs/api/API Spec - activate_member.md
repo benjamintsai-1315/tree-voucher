@@ -17,7 +17,7 @@ permalink: /api-specs/activate-member/
 # API: activate_member
 
 ## 功能說明
-用戶在 CR 前台同意啟用樹享券服務。樹享券平台收到請求後，主動呼叫點數系統 API 完成授權；點數系統成功後，樹配券平台新增會員或更新 `members.is_activated = TRUE` 並寫入一筆 `member_event_logs`（type = `activate_member`，data = null）。兩邊皆成功才視為完成，任一失敗則整筆失敗。
+用戶在 CR 前台同意啟用樹配券服務。樹配券平台收到請求後，主動呼叫點數系統 API 完成授權；點數系統成功後，樹配券平台新增會員或更新 `members.is_activated = TRUE` 並寫入一筆 `member_event_logs`（type = `activate_member`，data = null）。兩邊皆成功才視為完成，任一失敗則整筆失敗。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`

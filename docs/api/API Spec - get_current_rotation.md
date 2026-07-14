@@ -25,12 +25,12 @@ permalink: /api-specs/get-current-rotation/
 # API: get_current_rotation
 
 ## 功能說明
-讓樹享券平台前台端取得目前 active rotation（輪播檔期）的設定資訊，以及本檔期所有具備 active campaign 的品牌清單與 campaign 規則，供前端顯示活動期間、品牌選擇上限、兌換條件說明及品牌一覽頁面。每個品牌回傳其所有 active campaign（`auto` 與 `manual`），前端依 `type` 篩選各頁面所需顯示的類型。
+讓樹配券平台前台端取得目前 active rotation（輪播檔期）的設定資訊，以及本檔期所有具備 active campaign 的品牌清單與 campaign 規則，供前端顯示活動期間、品牌選擇上限、兌換條件說明及品牌一覽頁面。每個品牌回傳其所有 active campaign（`auto` 與 `manual`），前端依 `type` 篩選各頁面所需顯示的類型。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`
 - 邊界檢查：
-  - API Key 須為樹享券平台前台端專屬授權，不接受其他呼叫方的 API Key
+  - API Key 須為樹配券平台前台端專屬授權，不接受其他呼叫方的 API Key
   - 來源 IP 須在白名單內
 
 > **注意：** `API Key` 與來源 IP 白名單皆存於 AWS Parameter Store。

@@ -3,11 +3,11 @@ title: API 規格
 permalink: /api-specs/
 ---
 
-# 樹享券 2.0 API 規格
+# 樹配券 2.0 API 規格
 
 這裡集中列出目前已整理完成的 API spec，方便從同一頁面往下鑽。
 
-## 樹享券平台前台端
+## 樹配券平台前台端
 
 - [get_current_rotation]({{ '/api-specs/get-current-rotation/' | relative_url }})
 - [get_coupon_wallet]({{ '/api-specs/get-coupon-wallet/' | relative_url }})

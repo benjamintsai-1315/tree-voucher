@@ -1,4 +1,4 @@
-# 樹享券 2.0 (Tree Voucher 2.0)
+# 樹配券 2.0 (Tree Voucher 2.0)
 
 數位點數折抵券系統的產品規格文件庫。本系統讓持卡人在信用卡消費時，自動將累積點數兌換為折抵券，並即時扣抵同筆消費金額（券加金模式）。
 
@@ -8,7 +8,7 @@
 
 | 文件 | 說明 |
 |------|------|
-| [PRD](docs/樹享券2.0_PRD.md) | 核心產品需求文件，涵蓋商業邏輯、狀態機與資訊流 |
+| [PRD](docs/樹配券2.0_PRD.md) | 核心產品需求文件，涵蓋商業邏輯、狀態機與資訊流 |
 | [背景說明](background.md) | 專案演進脈絡與「券加金」機制設計原由 |
 | [API 清單](api_list.md) | 全範圍 API 總表（前台、發卡主機、後台、批次） |
 | [API 規格索引](api-specs.md) | 各 API 詳細規格連結 |
@@ -22,7 +22,7 @@
 持卡人消費
     │
     ▼
-發卡主機 ──── create_order ────► 樹享券系統
+發卡主機 ──── create_order ────► 樹配券系統
                                     │
                          ┌──────────┴──────────┐
                          │                     │
@@ -62,7 +62,7 @@ AVAILABLE → CONSUMED → SETTLED
 | API | Method | 說明 |
 |-----|--------|------|
 | `get_current_rotation` | GET | 取得當前檔期設定及有效活動品牌列表 |
-| `activate_member` | POST | 會員同意啟用樹享券服務，更新授權狀態並寫入 log（原 `member_authorize`） |
+| `activate_member` | POST | 會員同意啟用樹配券服務，更新授權狀態並寫入 log（原 `member_authorize`） |
 | `deactivate_member` | POST | 會員主動解除服務，更新授權狀態並寫入 log（原 `member_unauthorize`） |
 | `get_member_settings` | GET | 取得會員完整設定狀態（品牌選擇、自動兌換啟用狀態，觸發懶惰清除） |
 | `update_member_selected_brands` | POST | 更新已選品牌清單（以完整清單覆蓋，後端計算 diff） |

@@ -23,12 +23,12 @@ permalink: /api-specs/get-coupons/
 # API: get_coupons
 
 ## 功能說明
-讓樹享券平台前台端以 API Key 依 `member_id` 查詢該用戶的券列表，支援依 `brand_id` 與單一 `status` 篩選，供前端呈現特定品牌下的可用券、處理中券與歷史券。
+讓樹配券平台前台端以 API Key 依 `member_id` 查詢該用戶的券列表，支援依 `brand_id` 與單一 `status` 篩選，供前端呈現特定品牌下的可用券、處理中券與歷史券。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`
 - 邊界檢查：
-  - API Key 須為樹享券平台前台端專屬授權，不接受其他呼叫方的 API Key
+  - API Key 須為樹配券平台前台端專屬授權，不接受其他呼叫方的 API Key
   - `member_id` 必須存在於神坊系統中
   - 呼叫前會員必須已啟用（`members.is_activated = TRUE`）
   - `brand_id` 若有帶入，必須存在於神坊系統中

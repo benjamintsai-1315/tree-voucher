@@ -18,12 +18,12 @@ permalink: /api-specs/update-member-selected-brands/
 # API: update_member_selected_brands
 
 ## 功能說明
-讓樹享券平台前台端以 API Key 更新該會員的已選品牌清單。以 `brand_ids` 作為更新後的完整結果，後端自行計算 diff 並寫入異動紀錄。
+讓樹配券平台前台端以 API Key 更新該會員的已選品牌清單。以 `brand_ids` 作為更新後的完整結果，後端自行計算 diff 並寫入異動紀錄。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`
 - 邊界檢查：
-  - API Key 須為樹享券平台前台端專屬授權，不接受其他呼叫方的 API Key
+  - API Key 須為樹配券平台前台端專屬授權，不接受其他呼叫方的 API Key
   - `member_id` 必須存在於神坊系統中
   - 呼叫前會員必須已啟用（`members.is_activated = TRUE`）
   - `brand_ids` 內所有 brand 都必須存在且目前具備 active auto campaign
