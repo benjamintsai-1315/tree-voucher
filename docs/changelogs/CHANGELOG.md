@@ -2,6 +2,11 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-14 — 收斂 last_brand_selection_changed_at 與 lazy cleanup 矛盾（AUD-036）
+
+- 既有矛盾：`get_member_settings.md` 明訂「lazy cleanup 不影響 `last_brand_selection_changed_at`」，但 PRD Flow 4 與 Flow 5-1 兩處寫「lazy cleanup 換檔清空時需更新此欄位為舊 rotation 的 `end_time`」——此矛盾先前已被 `docs/reviews/2026-07-06-spec-audit.md`（AUD-036）標記為待釐清
+- 決議定案：**lazy cleanup 不更新 `last_brand_selection_changed_at`**，此欄位僅於首次選牌、更換品牌時更新；PRD 兩處已同步修正，`get_member_settings.md` 維持原樣（本就正確）
+
 ## 2026-07-14 — get_member_orders coupon_usage_summary 新增新舊券區分
 
 - 新增 `is_new_issued`（Boolean）：`true` 為本次訂單即時發行的新券、`false` 為本次使用的既有舊券，供前端做差異顯示
