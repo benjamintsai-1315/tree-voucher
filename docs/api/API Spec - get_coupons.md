@@ -7,6 +7,7 @@ permalink: /api-specs/get-coupons/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-14 | 補上 `updated_at`：`SETTLED` bucket 排序依此欄位（finalize 時間），但先前 response 未實際回傳此欄位，說明與資料不一致，此次補齊 |
 | 2026-07-14 | 修正說明不清：`id`（券識別碼）型別補上 ULID 註記；sample 的 `CPN_001`/`CPN_002` 佔位字串改為 ULID 格式，避免誤導實際格式 |
 | 2026-07-13 | Response 精簡化：`coupons[]` 移除列表畫面不需要的 `brand`、`redeem_points`、`discount_rate`、`max_redemptions_per_order`、`created_at`，`campaign` 巢狀物件改為扁平 `campaign_name`；同時調整同一狀態 bucket 排序規則：`AVAILABLE`/`CONSUMED`/`EXPIRED` 改為 `expired_at DESC`、`id ASC`，`SETTLED` 改依 `updated_at DESC`（finalize 時間）、`id ASC` |
 | 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
@@ -78,15 +79,17 @@ Content-Type: `application/json`
       "campaign_name": "滿100折21",
       "min_order_amount": 100,
       "discount_amount": 21,
-      "expired_at": "2026-10-31T23:59:59.999+08:00"
+      "expired_at": "2026-10-31T23:59:59.999+08:00",
+      "updated_at": "2026-10-01T09:00:00.000+08:00"
     },
     {
       "id": "01HZYB2C3D4E5F6G7H8J9K0MNP",
-      "status": "CONSUMED",
+      "status": "SETTLED",
       "campaign_name": "滿100折21",
       "min_order_amount": 100,
       "discount_amount": 21,
-      "expired_at": "2026-10-31T23:59:59.999+08:00"
+      "expired_at": "2026-10-31T23:59:59.999+08:00",
+      "updated_at": "2026-10-05T10:00:00.000+08:00"
     }
   ]
 }
@@ -111,6 +114,7 @@ Content-Type: `application/json`
 | min_order_amount | Integer | 該券對應的消費門檻金額（元） |
 | discount_amount | Integer | 該券折抵金額（元） |
 | expired_at | String | 該券固定到期時間（UTC+8 ISO 8601，毫秒精度） |
+| updated_at | String | 該券最後更新時間（UTC+8 ISO 8601，毫秒精度）；狀態轉換時更新（如 `batch_finalize_orders` 核銷為 `SETTLED` 的 finalize 時間）；`SETTLED` bucket 依此欄位排序 |
 
 ### 邏輯說明
 - 預設回傳該用戶所有券狀態，不只 `AVAILABLE`
@@ -124,6 +128,7 @@ Content-Type: `application/json`
 - 無任何符合條件的券時，回傳 `coupons: []`，不報錯
 - 本 API 不回傳訂單關聯欄位，例如 `order_id`
 - 本 API 回傳精簡化券資訊，供列表畫面使用；不含 `brand`（已由 `brand_id` 篩選帶入）、`redeem_points`、`discount_rate`、`max_redemptions_per_order`、`created_at`。如需完整詳情請呼叫 `get_coupon_detail`
+- `updated_at` 為排序鍵之一（`SETTLED` bucket 依此排序），故納入 response 回傳，避免排序依據的欄位卻無法讓前端查驗
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 1. `member_id` 不存在：`MEMBER_NOT_FOUND`
