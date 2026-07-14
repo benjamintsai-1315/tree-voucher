@@ -2,6 +2,16 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-14 — 修正兩個邏輯錯誤：get_coupon_wallet 範圍、get_coupon_detail 點數拆分
+
+### get_coupon_wallet
+- 範圍錯誤修正：品牌清單改為回傳過去一年內（查詢當下 T-366 天，含）有 coupon 發行紀錄的所有品牌，不再限於「當前 rotation 曾選過」的品牌
+- 原範圍與 PRD 的 Coupon Wallet 定義（對 `coupons` 表的查詢投影，不綁定 rotation）互相矛盾，且會導致換檔後仍有可用舊券（FIFO 跨 rotation 可用）的品牌從券夾消失
+- `brands: []` 條件同步改為「過去一年內無任何品牌換券紀錄」
+
+### get_coupon_detail
+- 新增 `tree_points`/`cub_points` 兩種點數明細（取自 `treelife_use_point_log`），`redeem_points` 保留為合計；原本只回傳合計數，不足以呈現「這張券當初動用了哪兩種點數各多少」
+
 ## 2026-07-13 — 修正 create_order summary.existing 點數欄位誤植
 
 - 前次（本日稍早）將 `summary.existing.tree_points`/`cub_points` 定義為固定 `0`，理由是「舊券點數已於原始發行時扣除，非本次消耗」——這個理由沒錯，但不代表該顯示 `0`：`existing` 分組本身就已表明這不是本次新消耗，欄位應如實列出該些舊券**原始發行時**的歷史點數組成（取自 `treelife_use_point_log` 的 `used_tree_points`/`used_cub_points` 加總），而非強制歸零
