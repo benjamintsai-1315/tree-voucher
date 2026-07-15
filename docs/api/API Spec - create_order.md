@@ -7,6 +7,7 @@ permalink: /api-specs/create-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-14 | 修正扣點逾時處理與實際能力不符：點數系統目前無法查詢扣點結果與 tree/cub 細部拆分，故 timeout 時目前僅能一律呼叫退點、視新券段為失敗；原「用點結果確認＋每日 cronjob 對帳」設計移列為未來優化方向 |
 | 2026-07-14 | response 欄位 `summary` 更名為 `coupon_summary`，語意不變 |
 | 2026-07-13 | 修正前次誤植：`summary.existing.tree_points`/`cub_points` 不應強制為 `0`，應列出該分組舊券於其**原始發行時**所使用之點數（歷史組成，非本次消耗）；是否為本次新消耗已由 `new_issued`／`existing` 分組本身區分，無需另外歸零 |
 | 2026-07-13 | 新券段新增品牌入選前置條件：`member_selected_brands` 須存在 `member_id + brand_id + rotation_id`（當前 active rotation）完全符合之記錄才進入新券清算；未入選僅跳過新券段，舊券照常清算；未入選且無可用舊券歸入 `NO_ACTIVE_CAMPAIGN` |
@@ -143,18 +144,18 @@ Content-Type: `application/json`
 6. 執行扣點：依上一步決定的張數與總點數，呼叫 treelife-api 扣點（依 `brand.treepoint_merchant_provider_key` 作帳務歸屬）
 7. 扣點成功後即時建立對應張數新券，狀態為 `consumed`；`expired_at = (issued_at 所在 UTC+8 日期 + coupon_valid_days) 的 23:59:59.999`；`coupon_valid_days = 0` 代表當日到期（即 issued_at 當日 `23:59:59.999`）
    - **我方失敗**：若扣點已成功但此步發券寫入失敗，該批新券不計入折抵（產生孤兒點數），依「建單成敗判定」僅以舊券折抵決定訂單狀態，善後見下方兩種失敗類型表
-8. **扣點失敗或逾時（treelife-api error / timeout，屬點數端失敗）**：依下方「扣點逾時與 retry 機制」處理。最終無法完成扣點時跳過整個新券段（不發新券）；若既有券段已產生折抵（`discount_amount > 0`）→ `processing`；若既有券段亦無折抵→ `error`（`TREELIFE_ERROR`）
+8. **扣點失敗或逾時（treelife-api error / timeout，屬點數端失敗）**：依下方「扣點逾時處理」處理。最終無法完成扣點時跳過整個新券段（不發新券）；若既有券段已產生折抵（`discount_amount > 0`）→ `processing`；若既有券段亦無折抵→ `error`（`TREELIFE_ERROR`）
 
-**扣點逾時與 retry 機制：**
-- 發卡主機可接受 `create_order` 於 **15 秒內**回覆；樹配券與點數系統的 `order_id` 為**一對一關係**（同一 `order_id` 對應點數系統的扣點交易，供結果確認與退還使用）
-- **同步階段（15 秒內）**：呼叫 treelife-api 扣點後若 timeout，立即以同一 `order_id` 呼叫「用點結果確認」查詢扣點結果：
-  - 確認**成功** → 視同扣點成功，續行發券
-  - 確認**失敗** → 視同扣點失敗，走 step 8 失敗路徑
-  - 仍 **timeout** → 標記該 order 為「點數結果未定，待 cronjob 處理」，並依 step 8 失敗路徑回覆發卡主機（既有券段有折抵則視為成功、否則回 `TREELIFE_ERROR`）
-- **每日 cronjob 對帳**：對仍標記「點數結果未定」的 order，重新呼叫「用點結果確認」：
-  - 確認**成功** → 因先前已回覆發卡主機為失敗且未發券，呼叫點數系統**退還點數**
-  - 確認**失敗** → 不處理（點數未被扣，狀態一致）
-  - 仍 **timeout** → 標記為「有問題」，透過告警通知團隊人工介入
+**扣點逾時處理（目前實作）：**
+- 發卡主機可接受 `create_order` 於 **15 秒內**回覆；樹配券與點數系統的 `order_id` 為**一對一關係**
+- **同步階段（15 秒內）**：呼叫 treelife-api 扣點後若 timeout，因點數系統**目前無法查詢扣點結果、亦無法查詢 tree_points/cub_points 細部拆分**，暫時無法先確認結果再分流處理；因此立即以同一 `order_id` 呼叫點數系統的**退點動作**，將本次點數視為已扣除並全數退還會員（不論實際是否扣點成功），新券段本次視為失敗（不發新券）：既有券段已有折抵 → `processing`；否則 → `error`（`TREELIFE_ERROR`）
+- 退點動作本身若失敗（點數系統無回應等），標記為「有問題」，透過告警通知團隊人工介入
+
+**未來優化方向（原設計，待點數系統支援結果查詢後啟用）：**
+- 待點數系統支援「用點結果確認」查詢（含 tree_points/cub_points 細部拆分）後，可改為更精確的分流處理：
+  - 同步階段 timeout 後先以同一 `order_id` 呼叫「用點結果確認」查詢扣點結果：確認**成功** → 視同扣點成功，續行發券；確認**失敗** → 視同扣點失敗，走 step 8 失敗路徑；仍 **timeout** → 標記該 order 為「點數結果未定，待 cronjob 處理」
+  - **每日 cronjob 對帳**：對仍標記「點數結果未定」的 order，重新呼叫「用點結果確認」：確認**成功** → 因先前已回覆發卡主機為失敗且未發券，呼叫點數系統退還點數；確認**失敗** → 不處理（點數未被扣，狀態一致）；仍 **timeout** → 標記為「有問題」，人工介入
+  - 相較目前「timeout 一律全額退點」的保守做法，此機制可避免「扣點其實已成功、卻被保守退點」的誤退場景
 
 **折抵與扣點：**
 - `discount_amount` = Σ（本次所有 `consumed` coupon 的 `coupon_discount_amount`）（含既有券段與新券段）
