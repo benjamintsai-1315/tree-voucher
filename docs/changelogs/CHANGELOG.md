@@ -2,6 +2,12 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-14 — 修正扣點逾時處理與實際能力不符（create_order／CLAUDE.md／PRD）
+
+- 點數系統**目前**無法查詢扣點結果、也無法查詢 tree_points/cub_points 細部拆分，先前文件描述的「同步階段 timeout 後查詢確認、仍未定則交每日 cronjob 對帳」機制無法實作
+- **目前實作**：timeout 後直接呼叫點數系統退點，將本次點數視為已扣除並全數退還會員（不論實際是否扣點成功），新券段本次視為失敗（不發新券）
+- 原設計（用點結果確認＋cronjob 對帳）保留於文件中，改列為**未來優化方向**，待點數系統支援結果查詢後啟用
+
 ## 2026-07-14 — create_order response 欄位 summary 更名為 coupon_summary
 
 - 語意不變，僅更名：`summary` → `coupon_summary`（含 `new_issued`/`existing` 兩組彙總結構）
