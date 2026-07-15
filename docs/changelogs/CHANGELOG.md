@@ -2,6 +2,11 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-14 — create_order response 欄位 summary 更名為 coupon_summary
+
+- 語意不變，僅更名：`summary` → `coupon_summary`（含 `new_issued`/`existing` 兩組彙總結構）
+- 同步更新 `create_order.md` 與 PRD §5.2/§5.4/Flow 7a 對應段落
+
 ## 2026-07-14 — get_coupons 補上 updated_at 欄位
 
 - `SETTLED` bucket 的排序規則早已定義為依 `updated_at DESC`（finalize 時間），但 response schema 未實際回傳此欄位，說明與資料脫鉤
