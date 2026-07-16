@@ -2,6 +2,17 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-16 — PRD 新增第十二章「網路層 Timeout 因應原則」
+
+- 盤點系統中所有同步跨系統呼叫（create_order↔treelife、create_order 銀行↔神坊、batch_finalize_orders ack、activate_member/deactivate_member↔treelife、update_member_selected_brands）可能因網路層因素 timeout 的情境
+- 以「券、點、銀行、前端、營運、客服」六角色格式統一呈現因應做法：
+  - create_order→treelife 扣點逾時：既有機制（cronjob 對帳），內容自 §5.3 搬移過來改寫，銀行與客服皆定案為不需得知中間狀態
+  - batch_finalize_orders 等待 ack 逾時：定案為冪等重送，`BATCH_REQUEST_ALREADY_EXISTS` 視為受理確認
+  - activate_member/deactivate_member→treelife 逾時：定案為直接重試（授權/解除操作本身冪等），不需對帳機制
+  - update_member_selected_brands 逾時重送：建議前端先查證（重新呼叫 `get_member_settings`）再決定是否重送，避免誤判「每 N 天一次」額度已用
+  - create_order 銀行↔神坊連線層 timeout：待與銀行/SA 確認技術能力後定案，PRD 先留待確認段落
+- §5.3「點數端失敗」段落改為指向新章節的指路句
+
 ## 2026-07-16 — create_order response 新增 created_at
 
 - 新增 `created_at`：order 於神坊資料庫中的建立時間（stage 1 建單當下），供發卡主機做對帳參考
