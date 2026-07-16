@@ -7,6 +7,7 @@ permalink: /api-specs/create-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-16 | response 新增 `created_at`：order 於神坊資料庫中的建立時間（stage 1 建單當下），供發卡主機對帳參考 |
 | 2026-07-16 | 簡化扣點逾時處理：同步階段與 cronjob 階段對「確認成功」的處理動作原本完全相同（皆為呼叫返點退點），故移除同步階段的查詢步驟，改為 timeout 後直接標記「點數結果未定」交每日 cronjob 統一查詢與退點，避免重複查詢 |
 | 2026-07-14 | 修正前次誤植：點數系統其實仍可查詢「用點結果確認」（成功/失敗/timeout），只是確認成功時**目前無法同時取得** `tree_points`/`cub_points` 細部拆分，故此分支改為呼叫返點（`return_point`）退點，而非整段查詢機制都不可用；查詢＋每日 04:00 cronjob 對帳機制維持現行有效，僅「確認成功」分支的處理方式待未來支援拆分查詢後才改回續行發券 |
 | 2026-07-14 | 修正扣點逾時處理與實際能力不符：點數系統目前無法查詢扣點結果與 tree/cub 細部拆分，故 timeout 時目前僅能一律呼叫退點、視新券段為失敗；原「用點結果確認＋每日 cronjob 對帳」設計移列為未來優化方向 |
@@ -89,6 +90,7 @@ Content-Type: `application/json`
 ```json
 {
   "discount_amount": 109,
+  "created_at": "2026-07-16T14:30:05.123+08:00",
   "coupon_summary": {
     "new_issued": { "discount_amount": 46, "tree_points": 30, "cub_points": 10 },
     "existing": { "discount_amount": 63, "tree_points": 25, "cub_points": 38 }
@@ -101,6 +103,7 @@ Content-Type: `application/json`
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | discount_amount | Integer | 本次實際折抵總金額（元），成功建單時必 `> 0`；等於 `coupon_summary.new_issued.discount_amount + coupon_summary.existing.discount_amount` |
+| created_at | String | 該筆 order 於神坊資料庫中建立的時間（UTC+8 ISO 8601，毫秒精度），即 stage 1 建立 order 當下的時間；供發卡主機對帳參考，與 request 帶入的 `transaction_time`（刷卡時間）無關 |
 | coupon_summary | Object | 本次折抵金額與點數消耗，依新發券／既有券分組彙總，見下表 |
 
 ### coupon_summary
