@@ -100,7 +100,7 @@
 **Order 狀態 enum**（`order.status`，2026-07-13 起，五態）：
 `pending`（剛建立，涵蓋清算執行中；無獨立的「清算中」狀態值）→ `processing`（清算完成、待終結，`discount_amount > 0`）或 `error`（清算完成失敗，`discount_amount = 0`）→ `completed`（`batch_finalize_orders` action=COMPLETED）／`cancelled`（action=CANCELLED）
 - `create_order` 清算採兩段 DB transaction：stage 1（建單 + 既有券段清算）、stage 2（新券段扣點發券後 update 併回同筆 order）
-- 成敗回歸單一條件 `discount_amount > 0`；新券段失敗區分「點數端失敗」（treelife-api timeout；同步階段仍會查「用點結果確認」，但確認成功時因點數系統目前無法同時提供 tree/cub 拆分而無法正確發券記帳，故呼叫返點退點；查詢與每日 04:00 cronjob 對帳機制維持有效，待未來支援拆分查詢後即可改回續行發券）與「我方失敗」（扣點成功但發券失敗，孤兒點數、人工善後），兩者皆不改變成敗判定
+- 成敗回歸單一條件 `discount_amount > 0`；新券段失敗區分「點數端失敗」（treelife-api timeout；同步階段不查詢確認、直接標記「點數結果未定」交每日 04:00 cronjob 處理，確認成功時因點數系統目前無法同時提供 tree/cub 拆分而無法正確發券記帳，故呼叫返點退點；待未來支援拆分查詢後可改為同步階段即時查詢並續行發券）與「我方失敗」（扣點成功但發券失敗，孤兒點數、人工善後），兩者皆不改變成敗判定
 - 可查性：`get_member_orders` 剔除 `error`；admin 端 status filter 可查；`bank_get_order` 不分 status 全回
 
 **Member 啟用狀態**（2026-07-02 起之權威定義）：
