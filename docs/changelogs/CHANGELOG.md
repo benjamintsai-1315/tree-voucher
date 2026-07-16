@@ -2,6 +2,11 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-16 — create_order response 新增 created_at
+
+- 新增 `created_at`：order 於神坊資料庫中的建立時間（stage 1 建單當下），供發卡主機做對帳參考
+- 與 request 帶入的 `transaction_time`（刷卡交易時間）為不同欄位，互不影響
+
 ## 2026-07-16 — 簡化扣點逾時處理：移除重複的同步階段查詢
 
 - 發現同步階段與每日 cronjob 階段對「確認成功」的處理動作完全相同（皆為呼叫返點退點），沒有理由查兩次
