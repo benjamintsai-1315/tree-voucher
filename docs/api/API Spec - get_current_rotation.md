@@ -7,6 +7,7 @@ permalink: /api-specs/get-current-rotation/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-17 | 邏輯說明補充：`max_selectable_auto_brand_count` 現階段僅服務 `auto` campaign，`manual` 品牌選擇機制若未來需要納入此上限，須重新設計（回應 RD 對 DB 欄位命名對齊的提問） |
 | 2026-07-13 | 補跟已於 2026-07-06/07-08 定案的 quota 規則變更：移除 campaigns 下已廢棄的 `max_redemption_per_rotation`（campaign 屬性、計張數）；新增 rotation 層級的 `max_points_per_member`（同一用戶於此 rotation 內跨品牌合計可用點數上限，原名 `max_points_per_rotation`，此次一併更名） |
 | 2026-07-05 | 邏輯說明補充 active rotation 邊界判斷：`start_time <= now() <= end_time`（end_time 含邊界，原不含邊界）；`discount_rate` 補充 `coupon_redeem_points = 0` 時回傳 `null`、四捨五入採一般四捨五入 |
 | 2026-07-02 | campaigns 新增 `max_redemption_per_rotation` 欄位 |
@@ -178,6 +179,7 @@ Content-Type: `application/json`
 - 無任何符合條件的品牌時，回傳 `brands: []`，不報錯
 - `NO_ACTIVE_ROTATION` 僅代表當前**完全無 active rotation**（不在任何 rotation 的時間區間內）；若 active rotation 存在但無符合條件的品牌，屬於「有 rotation 但無 brand」情境，回傳 `brands: []`，非錯誤，兩者不可混用
 - `max_points_per_member` 為 rotation 屬性，非 campaign 屬性；實際清算時的 quota 檢查與扣減邏輯見 `create_order` spec
+- `max_selectable_auto_brand_count` 僅計入具備 active `auto` campaign 之品牌；`manual` campaign 目前無對應的品牌選擇／兌換執行機制（`member_selected_brands`、lazy cleanup、`create_order` 清算皆僅服務 `auto`），此欄位現階段可視為專屬 auto 使用。未來若需將 manual 品牌納入選擇上限，須另行設計（可能修改或新增 DB 欄位），非本欄位現有語意涵蓋範圍
 
 # Error Handling
 
