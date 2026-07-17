@@ -7,6 +7,7 @@ permalink: /api-specs/activate-member/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-17 | 補充失敗情境：點數系統失敗（含 timeout）直接回失敗、狀態不變，可安全重試；點數系統成功但樹配券本地寫入失敗屬非預期錯誤，回 5xx 並觸發 Sentry alert 人工介入 |
 | 2026-07-06 | log 表以 `member_event_logs`（統一會員事件表）為權威，釐清先前 changelog 誤植的 `member_activation_logs`；內文 `type` 值統一為 `activate_member`（原誤植 `active_member`） |
 | 2026-07-05 | response 改為 `200 OK`（無 body）；呼叫端不需回傳資訊，移除 `is_activated` / `last_activated_at` 欄位 |
 | 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
@@ -67,6 +68,10 @@ HTTP Status: `200 OK`（無 body）
       - 是：更新 `members.is_activated` = true、`members.updated_at`。
       - 否：新增 `members`
     - 寫入一筆 `member_event_logs`（type = `activate_member`，data = null）
+
+> **失敗情境補充：**
+> - **點數系統失敗（含 timeout）**：直接回失敗（`TREELIFE_ERROR`），樹配券狀態不變；此操作具冪等性，前端可直接重試同一 API，不需額外查詢確認
+> - **點數系統成功、樹配券平台後續寫入失敗**（`members` 更新/新增或 `member_event_logs` 寫入失敗）：屬**非預期錯誤**，回 5xx 並觸發 Sentry alert 通知工程團隊人工介入；此時點數系統端已完成啟用，但樹配券本地端狀態未同步，需人工確認並補正兩邊狀態一致，不列入下方 400 MESSAGE 清單
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 1. `member_id` 不存在於小樹生活：`MEMBER_NOT_FOUND_IN_TREELIFE`
