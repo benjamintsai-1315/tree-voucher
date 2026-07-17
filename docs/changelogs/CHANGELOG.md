@@ -2,6 +2,12 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-17 — 補充 max_selectable_auto_brand_count 僅服務 auto 的說明
+
+- RD 提問：DB 欄位是否可對齊 `max_selectable_auto_brand_count`、此值是否確定僅給 auto 使用
+- 確認：此命名已於 2026-07-02 定案（原名 `max_selectable_brand_count`），DB 欄位對齊屬追上既有 spec，非新決策；業務規則上此欄位現階段確實僅服務 `auto` campaign，`manual` 品牌選擇機制目前無對應執行流程
+- 於 `get_current_rotation.md` 邏輯說明與 PRD §4.4 補充：`manual` 品牌若未來需納入選擇上限，須重新設計（可能修改或新增 DB 欄位），非本欄位現有語意涵蓋範圍
+
 ## 2026-07-16 — PRD 新增第十二章「網路層 Timeout 因應原則」
 
 - 盤點系統中所有同步跨系統呼叫（create_order↔treelife、create_order 銀行↔神坊、batch_finalize_orders ack、activate_member/deactivate_member↔treelife、update_member_selected_brands）可能因網路層因素 timeout 的情境
