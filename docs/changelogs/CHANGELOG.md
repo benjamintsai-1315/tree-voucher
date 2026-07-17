@@ -2,6 +2,11 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-17 — activate_member/deactivate_member 補充失敗情境分類
+
+- 討論定論：API 上分兩種情境——(1) 點數系統失敗（含 timeout）：樹配券整筆失敗、狀態不變，此操作具冪等性，可安全重試；(2) 點數系統成功、樹配券本地端寫入失敗：屬非預期錯誤，回 5xx 並觸發 Sentry alert，走人工介入排查
+- 已同步更新 `activate_member.md`、`deactivate_member.md`、PRD §12.5、`docs/misc/2026-07-16-timeout-待確認事項.md`（供前端參考最新結論）
+
 ## 2026-07-17 — 補充 max_selectable_auto_brand_count 僅服務 auto 的說明
 
 - RD 提問：DB 欄位是否可對齊 `max_selectable_auto_brand_count`、此值是否確定僅給 auto 使用
