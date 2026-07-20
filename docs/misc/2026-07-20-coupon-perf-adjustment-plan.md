@@ -2,34 +2,46 @@
 
 > 承接 [2026-07-17 效能討論彙整](2026-07-17-coupon-wallet-get-coupons-效能討論.md)，前端溝通後已收斂三個方向。本文件列出對應要調整的文件/欄位，以及送到 SA 討論前建議先釐清的開放問題。**尚未定案，待 SA 討論後才進入實際編修。**
 
-## 1. get_coupon_wallet — 移除時間限制
+## 1. get_coupon_wallet — 重新定義為「所有操作過的品牌」（SA 已確認）
 
 **現況**：品牌需符合「過去 366 天（T-366，含）內有 coupon 發行紀錄」才列入清單；`available_coupon_count` 本身已不受此時間窗限制。
 
-**決議方向**：拿掉 366 天門檻，品牌清單改為「不限時間，只要曾經有過 coupon 發行紀錄即列出」；CR 會在 `get_coupons`（單一品牌券一覽）UI 加註文字「僅顯示近一年樹配券紀錄」，降低「券夾出現品牌、點進去卻無資料」的體感落差。
+**決議方向（SA 確認）**：拿掉 366 天門檻，重新定義為「所有操作過的品牌、對應可用券」——品牌清單不限時間，只要曾經有過 coupon 發行紀錄即列出；`available_coupon_count` 維持現行邏輯（僅聚合目前 `AVAILABLE` 張數）不變。
 
 **需要調整：**
 - `get_coupon_wallet.md`：功能說明／使用情境／邏輯說明中所有「過去一年內（T-366 天，含）」字眼移除；品牌入列條件改為「該品牌下存在任一 coupon（不限時間、不限狀態）」；`brands: []` 空清單條件說明由「過去一年內無任何品牌換券紀錄」改為「從未有過任何 coupon 發行紀錄」；查詢邏輯由「`member_id + created_at` 範圍過濾」簡化為「`member_id` 下 DISTINCT `brand_id`」等值查詢
 - PRD：§二 Coupon Wallet 概念/規則、Flow 6 品牌摘要段落（`docs/樹配券2.0_PRD.md:462`）同步移除「過去一年內」敘述
 - 兩份文件的 Changelog、共用 `CHANGELOG.md` 各補一筆
 
-**建議跟 SA 確認的問題：**
-1. 拿掉時間限制後，`brands` 清單理論上會隨會員使用年限單調增加、不會再縮減；即使查詢本身簡化為等值查詢，仍建議請 SA 確認實務資料量級（例如長年高頻換多品牌的會員）下是否有其他隱憂
-2. CR 的免責文字只解決「品牌不會從券夾消失」，**沒有解決「點進去可能是很久以前的舊資料」這個體感問題本身**——`get_coupons` 目前並未搭配任何時間窗（本次調整方向 2 也未涉及此點），這裡的落差是靠 UI 文案管理期待，而非資料一致；建議跟 SA 確認這樣的產品決策是否已經足夠，或者要不要在 `get_coupons` 也同步討論時間窗（此為 2026-07-17 文件中「加時間窗」選項，本次前端溝通並未提及是否採用）
+**⚠️ 重要修正（回應 SA 提出的體感衝突）：`get_coupons` 不應加任何時間窗，CR 原規劃的「僅顯示近一年樹配券紀錄」免責文字建議取消。**
 
-## 2. get_coupons — 拆成三個獨立列表
+理由：`get_coupon_wallet` 拿掉時間限制的目的，就是讓用戶能找到「很久以前操作過的品牌」；如果 `get_coupons` 卻用一年時間窗擋住，等於讓用戶點進去看到空列表，wallet 卡片的存在意義被架空，兩者互相矛盾。最初會想幫 `get_coupons` 加時間窗，是為了緩解「SETTLED 依 `updated_at`、EXPIRED 依 `expired_at` 排序鍵不同、索引無法滿足」的效能疑慮——但這個根本問題已經被下方第 2 點的新分組方式解決（見下），時間窗只是妥協手段，問題解決後就不再需要，也不該為了不存在的效能理由犧牲功能完整性。建議 `get_coupons` 維持真正不限時間，讓 wallet 內任何品牌點進去都保證看得到資料。
+
+## 2. get_coupons — status 重新分組為三態，禁止自由組合（SA 已確認，附排序鍵建議）
 
 **現況**：兩個頁籤——待折抵（`AVAILABLE` + `CONSUMED`）／紀錄（`SETTLED` + `EXPIRED`）。紀錄頁籤內 `SETTLED` 依 `updated_at DESC`、`EXPIRED` 依 `expired_at DESC`，排序欄位不同，是效能疑慮的根源。
 
-**決議方向**：CR 改為三個獨立列表——待折抵（`AVAILABLE` & `CONSUMED`）、已折抵（`SETTLED`）、已過期（`EXPIRED`），對應 2026-07-17 文件中的「拆子列表」選項。
+**決議方向（SA 確認，取代原本「拆三個列表」的分組方式）**：對前端回覆與查詢用的 `status` 重新定義為三態——`available`（原 `AVAILABLE`）、`used`（原 `CONSUMED` + `SETTLED` 合併）、`expired`（原 `EXPIRED`）；且**不能自由搭配組合**，每次呼叫只能指定其中一種，不再是可複選的 `status[]`。
+
+**建議的排序鍵設計（解決原本混合排序鍵問題的關鍵）：**
+- `available`：依 `expired_at DESC` 排序（沿用原 `AVAILABLE` 邏輯）
+- `used`（`CONSUMED` + `SETTLED`）：**統一依 `updated_at DESC` 排序**——對 `CONSUMED` 而言 `updated_at` 即「成立訂單、轉入使用中的時間」，對 `SETTLED` 而言即「核銷時間」，兩者語意上都是「這張券最近一次狀態變動的時間」，可視為同一概念，合併後不再有排序鍵不一致的問題
+- `expired`：依 `expired_at DESC` 排序（沿用原 `EXPIRED` 邏輯）
+
+三個 bucket 各自單一排序鍵，`(member_id, brand_id, status, sort_column)` 一組複合索引即可滿足查詢，不需要 filesort，原本的效能疑慮從根本解決（不是靠限制資料量，而是排序鍵本身不再衝突）。
 
 **需要調整：**
-- `get_coupons.md`：使用情境／邏輯說明中「前端以待折抵／紀錄兩頁籤呈現」改為「前端以待折抵、已折抵、已過期三個列表呈現，各自對應固定的 `status[]` 組合呼叫」；排序規則本身不需改變（各 bucket 排序邏輯已存在），但需補充「前端固定三個獨立呼叫，不會再出現 `status[]` 橫跨 `SETTLED` 與 `EXPIRED` 的查詢情境，混合排序鍵疑慮隨之解除」；`status[]` 參數定義本身不需變動
-- PRD：Flow 6 券列表段落（`docs/樹配券2.0_PRD.md:464`）「兩頁籤」敘述改為「三個列表」
+- `get_coupons.md`：
+  - `status[]`（可複選陣列）改為單值 `status`（`available` \| `used` \| `expired`），Request Parameters 表格同步修改
+  - Response 每筆券的 `status` 欄位回傳值同步改為這三個新值（不再回傳原始 `AVAILABLE`/`CONSUMED`/`SETTLED`/`EXPIRED`）
+  - 排序規則段落改為上述三態各自對應的排序鍵
+  - 使用情境／邏輯說明中「前端以待折抵／紀錄兩頁籤呈現」改為「前端以 `available`／`used`／`expired` 三個列表呈現，各自對應單一 `status` 值查詢」
+- PRD：Flow 6 券列表段落（`docs/樹配券2.0_PRD.md:464`）「兩頁籤」敘述改為新的三態定義
 - 兩份文件的 Changelog、共用 `CHANGELOG.md` 各補一筆
 
 **建議跟 SA 確認的問題：**
-1. `status[]` 參數本身是否要保留「可自由跨 bucket 組合」的彈性（含理論上仍可傳 `SETTLED,EXPIRED`），還是要在文件中明確限制/警示不建議這樣呼叫？若保留彈性但不限制，效能疑慮只是「前端目前不這樣用」，並未真正在 API 層解決，建議請 SA 定調文件要「建議」還是「強制」
+1. `get_coupon_detail.md`（單張券詳情）的 `status` 欄位是否也要跟著收斂成三態，還是維持原本 `AVAILABLE`/`CONSUMED`/`SETTLED`/`EXPIRED` 四態？單張詳情頁面使用者可能需要精確分辨「折抵處理中（CONSUMED）」vs「已核銷完成（SETTLED）」，建議維持原始四態，僅在**列表**層級做三態收斂，但需要跟 SA/前端確認這個顆粒度差異是否會造成困惑
+2. CLAUDE.md／PRD 目前定義的 coupon 狀態機是四態（`AVAILABLE`→`CONSUMED`→`SETTLED`/`EXPIRED`），這是系統內部與其他 API（如 `create_order`、`get_coupon_detail`）共用的權威定義；本次三態只限定在 `get_coupons` 這支 API 的呈現層，需要在文件中明確註明「僅此 API 的顯示層收斂，不影響底層狀態機」，避免未來誤植成全域改動
 
 ## 3. get_member_orders — 不拆 API，張數/點數加總交由前端處理
 
