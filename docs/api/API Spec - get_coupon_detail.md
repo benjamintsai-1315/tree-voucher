@@ -97,7 +97,7 @@ Content-Type: `application/json`
 | redeem_points | Integer | 兌換此券所花費的點數合計（coupon 建立時的快照）；等於 `tree_points + cub_points` |
 | tree_points | Integer | 兌換此券所使用的小樹點(生活)數量（coupon 建立時的快照） |
 | cub_points | Integer | 兌換此券所使用的小樹點(信用卡)數量（coupon 建立時的快照） |
-| discount_amount | Integer | 該券折抵金額（元） |
+| discount_amount | Integer | 該券折抵金額（元）（coupon 建立時的快照） |
 | discount_rate | Float | 每點折抵金額比率，`round(discount_amount / redeem_points, 2)`，純計算欄位 |
 | max_redemptions_per_order | Integer | 該券所屬 campaign **目前**定義的單筆交易 active campaign 券使用張數上限；**此欄位無快照**，即時讀取 campaign 當下設定值，若 campaign 事後調整此欄位，回傳的會是最新值，非該券發行當下生效的值 |
 | expired_at | String | 該券固定到期時間，即有效期間迄日（UTC+8 ISO 8601，毫秒精度） |
