@@ -94,9 +94,9 @@
 - `type` 一經建立不得更改
 - `get_current_rotation` 的 `brands` 清單僅回傳具備 active `auto` campaign 的品牌（純 `manual` campaign 品牌不列入，也不可被選入 `update_member_selected_brands` 的 `brand_ids`）；品牌一旦入選，其 `campaigns` 陣列仍回傳該品牌所有 active campaign（`auto` 與 `manual`），不受此篩選限制
 
-**Coupon 狀態 enum**（必須用這些，不得自造）：
-`AVAILABLE` → `CONSUMED`（授權中）→ `SETTLED`（請款完成）或 `EXPIRED`；DB 欄位為小寫 enum，API 層一律轉為大寫回傳
-- 系統無主動掃描機制批次回壓已過期券的狀態，DB 可能存在 `expired_at` 已過期、但 `status` 仍為 `AVAILABLE` 的券；任何 API 回傳或清算時判斷 `AVAILABLE`，須同時即時比對 `expired_at` 與當下時間（兩者為獨立條件，不可只信任 `status` 欄位），已過期者一律視為 `EXPIRED`
+**Coupon 狀態 enum**（必須用這些，不得自造；小寫，與 DB 欄位一致，API 不做大小寫轉換）：
+`available` → `consumed`（授權中）→ `settled`（請款完成）或 `expired`
+- 系統無主動掃描機制批次回壓已過期券的狀態，DB 可能存在 `expired_at` 已過期、但 `status` 仍為 `available` 的券；任何 API 回傳或清算時判斷 `available`，須同時即時比對 `expired_at` 與當下時間（兩者為獨立條件，不可只信任 `status` 欄位），已過期者一律視為 `expired`
 
 **Order 狀態 enum**（`order.status`，2026-07-13 起，五態）：
 `pending`（剛建立，涵蓋清算執行中；無獨立的「清算中」狀態值）→ `processing`（清算完成、待終結，`discount_amount > 0`）或 `error`（清算完成失敗，`discount_amount = 0`）→ `completed`（`batch_finalize_orders` action=COMPLETED）／`cancelled`（action=CANCELLED）
