@@ -2,6 +2,12 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-21 — get_coupon_detail 三點釐清（RD 提問）
+
+- `max_redemptions_per_order` 補註：無快照，即時讀取 campaign 當下設定值，與 `redeem_points`/`tree_points`/`cub_points` 等快照欄位不同
+- `status` 補註：DB 欄位為小寫 enum，API 層一律轉大寫回傳；同步補充到 CLAUDE.md 的 Coupon 狀態 enum 定義
+- 補上已過期但 DB 狀態未回壓時的顯示邏輯：系統無主動掃描機制批次更新過期券狀態，`status` 顯示須即時比對 `expired_at` 與當下時間，已過期者一律顯示 `EXPIRED`，與 `create_order` 既有券段查詢邏輯（`status = available` 且未過期為兩個獨立條件）保持一致；此原則同步寫入 CLAUDE.md 供全系統其他 API 參照
+
 ## 2026-07-17 — activate_member/deactivate_member 補充失敗情境分類
 
 - 討論定論：API 上分兩種情境——(1) 點數系統失敗（含 timeout）：樹配券整筆失敗、狀態不變，此操作具冪等性，可安全重試；(2) 點數系統成功、樹配券本地端寫入失敗：屬非預期錯誤，回 5xx 並觸發 Sentry alert，走人工介入排查
