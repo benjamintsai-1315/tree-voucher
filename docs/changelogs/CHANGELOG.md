@@ -2,6 +2,14 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-21 — batch_finalize_orders 改回 multipart/form-data + ndjson，移除筆數上限
+
+- 與銀行端溝通後確認：銀行端可在記憶體中逐行組出 JSON Lines（ndjson），不需落地實體檔案，因此同意將 Request 格式由 2026-06-24 定案的 JSON POST 改回 `multipart/form-data`——但這次資料內容改用 ndjson，而非 2026-06-16 曾採用、後於 2026-06-24 移除的 CSV 上傳設計
+- 移除單批 1000 筆上限，改以**檔案大小 < 10MB** 作為批次基準，`request_id` 對應同一份檔案固定不變，不再需要 500–1000 筆手動切批
+- API 同步驗證範圍限縮為三項：`request_id` 冪等驗證、file size 檢查、file 內容可解析性檢查（`FILE_SIZE_EXCEEDED`、`FILE_PARSE_ERROR`）；原本同步階段擋下整批的 `INVALID_ACTION`（`action` 值不合法）改列為非同步 item-level 錯誤，與 `ORDER_NOT_FOUND`、`ORDER_ALREADY_FINALIZED` 同層級處理
+- 已同步更新 `batch_finalize_orders.md`、PRD §6.2
+- Response 維持 `200 OK`（無 body）不變，語意上代表「已受理」，實際結果仍需透過 `get_finalize_batch_status` 查詢
+
 ## 2026-07-21 — coupon 狀態 enum 統一改為小寫（修正前次誤植）
 
 - 前次（本日稍早）針對 `get_coupon_detail` 的釐清誤把方向定為「DB 小寫、API 層轉大寫回傳」；RD 進一步確認後改為：**API 直接回傳與 DB 一致的小寫值，不做大小寫轉換**
