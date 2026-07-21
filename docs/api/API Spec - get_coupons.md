@@ -7,6 +7,7 @@ permalink: /api-specs/get-coupons/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-21 | coupon 狀態 enum 統一改為小寫（`available`/`consumed`/`settled`/`expired`），取代先前大寫值，與 DB 欄位一致，API 不做大小寫轉換；`status[]` 查詢參數、response `status` 欄位、排序規則說明皆同步修正 |
 | 2026-07-14 | 補上 `updated_at`：`SETTLED` bucket 排序依此欄位（finalize 時間），但先前 response 未實際回傳此欄位，說明與資料不一致，此次補齊 |
 | 2026-07-14 | 修正說明不清：`id`（券識別碼）型別補上 ULID 註記；sample 的 `CPN_001`/`CPN_002` 佔位字串改為 ULID 格式，避免誤導實際格式 |
 | 2026-07-13 | Response 精簡化：`coupons[]` 移除列表畫面不需要的 `brand`、`redeem_points`、`discount_rate`、`max_redemptions_per_order`、`created_at`，`campaign` 巢狀物件改為扁平 `campaign_name`；同時調整同一狀態 bucket 排序規則：`AVAILABLE`/`CONSUMED`/`EXPIRED` 改為 `expired_at DESC`、`id ASC`，`SETTLED` 改依 `updated_at DESC`（finalize 時間）、`id ASC` |
@@ -62,7 +63,7 @@ Content-Type: `application/json`
 | page | integer | FALSE | FALSE | 1 | > 0 |
 | limit | integer | FALSE | FALSE | 20 | > 0 |
 | brand_id | string | FALSE | FALSE | ❎ | ULID |
-| status[] | string | FALSE | FALSE | ❎ | 可重複帶入，每個值僅接受 `AVAILABLE` \| `CONSUMED` \| `SETTLED` \| `EXPIRED`；不帶表示回傳全部狀態 |
+| status[] | string | FALSE | FALSE | ❎ | 可重複帶入，每個值僅接受 `available` \| `consumed` \| `settled` \| `expired`；不帶表示回傳全部狀態 |
 
 # Response
 ## Sample（JSON）
@@ -75,7 +76,7 @@ Content-Type: `application/json`
   "coupons": [
     {
       "id": "01HZYA1B2C3D4E5F6G7H8J9K0M",
-      "status": "AVAILABLE",
+      "status": "available",
       "campaign_name": "滿100折21",
       "min_order_amount": 100,
       "discount_amount": 21,
@@ -84,7 +85,7 @@ Content-Type: `application/json`
     },
     {
       "id": "01HZYB2C3D4E5F6G7H8J9K0MNP",
-      "status": "SETTLED",
+      "status": "settled",
       "campaign_name": "滿100折21",
       "min_order_amount": 100,
       "discount_amount": 21,
@@ -109,26 +110,26 @@ Content-Type: `application/json`
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | id | String | 券識別碼（ULID） |
-| status | String | 券狀態：`AVAILABLE` \| `CONSUMED` \| `SETTLED` \| `EXPIRED` |
+| status | String | 券狀態：`available` \| `consumed` \| `settled` \| `expired` |
 | campaign_name | String | 該券所屬 campaign 名稱 |
 | min_order_amount | Integer | 該券對應的消費門檻金額（元） |
 | discount_amount | Integer | 該券折抵金額（元） |
 | expired_at | String | 該券固定到期時間（UTC+8 ISO 8601，毫秒精度） |
-| updated_at | String | 該券最後更新時間（UTC+8 ISO 8601，毫秒精度）；狀態轉換時更新（如 `batch_finalize_orders` 核銷為 `SETTLED` 的 finalize 時間）；`SETTLED` bucket 依此欄位排序 |
+| updated_at | String | 該券最後更新時間（UTC+8 ISO 8601，毫秒精度）；狀態轉換時更新（如 `batch_finalize_orders` 核銷為 `settled` 的 finalize 時間）；`settled` bucket 依此欄位排序 |
 
 ### 邏輯說明
-- 預設回傳該用戶所有券狀態，不只 `AVAILABLE`
-- 若帶 `status[]`，僅回傳指定狀態的券；可同時帶多個值（例如 `?status[]=AVAILABLE&status[]=CONSUMED`）
+- 預設回傳該用戶所有券狀態，不只 `available`
+- 若帶 `status[]`，僅回傳指定狀態的券；可同時帶多個值（例如 `?status[]=available&status[]=consumed`）
 - 若帶 `brand_id`，僅回傳該品牌底下的券
-- 預設排序先依狀態 bucket：`AVAILABLE` → `CONSUMED` → `SETTLED` → `EXPIRED`
+- 預設排序先依狀態 bucket：`available` → `consumed` → `settled` → `expired`
 - 同一狀態 bucket 內排序：
-  - `AVAILABLE`、`CONSUMED` bucket 依 `expired_at DESC`、`id ASC` 排序
-  - `SETTLED` bucket 依 `updated_at DESC`（finalize 的時間）、`id ASC` 排序
-  - `EXPIRED` bucket 依 `expired_at DESC`、`id ASC` 排序
+  - `available`、`consumed` bucket 依 `expired_at DESC`、`id ASC` 排序
+  - `settled` bucket 依 `updated_at DESC`（finalize 的時間）、`id ASC` 排序
+  - `expired` bucket 依 `expired_at DESC`、`id ASC` 排序
 - 無任何符合條件的券時，回傳 `coupons: []`，不報錯
 - 本 API 不回傳訂單關聯欄位，例如 `order_id`
 - 本 API 回傳精簡化券資訊，供列表畫面使用；不含 `brand`（已由 `brand_id` 篩選帶入）、`redeem_points`、`discount_rate`、`max_redemptions_per_order`、`created_at`。如需完整詳情請呼叫 `get_coupon_detail`
-- `updated_at` 為排序鍵之一（`SETTLED` bucket 依此排序），故納入 response 回傳，避免排序依據的欄位卻無法讓前端查驗
+- `updated_at` 為排序鍵之一（`settled` bucket 依此排序），故納入 response 回傳，避免排序依據的欄位卻無法讓前端查驗
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 1. `member_id` 不存在：`MEMBER_NOT_FOUND`
