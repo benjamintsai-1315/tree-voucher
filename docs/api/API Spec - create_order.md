@@ -7,6 +7,7 @@ permalink: /api-specs/create-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-21 | 效能討論定案：`get_member_orders` 的 `coupon_usage_summary`／`point_used` 改為建單當下即計算並寫入 order 記錄的快照，取代原本查詢當下即時 JOIN／GROUP BY 聚合，降低列表查詢運算成本並避免大量用券訂單的 response 過大；新增「`get_member_orders` 用券摘要快照」段落 |
 | 2026-07-21 | 訂單狀態生命週期表引用的 `batch_finalize_orders` action 值同步改為小寫 `complete`/`cancel`（原 `COMPLETED`/`CANCELLED`），與該 API spec 本次調整對齊 |
 | 2026-07-16 | response 新增 `created_at`：order 於神坊資料庫中的建立時間（stage 1 建單當下），供發卡主機對帳參考 |
 | 2026-07-16 | 簡化扣點逾時處理：同步階段與 cronjob 階段對「確認成功」的處理動作原本完全相同（皆為呼叫返點退點），故移除同步階段的查詢步驟，改為 timeout 後直接標記「點數結果未定」交每日 cronjob 統一查詢與退點，避免重複查詢 |
@@ -174,6 +175,11 @@ Content-Type: `application/json`
 - `existing` 分組列出的點數為該些舊券**原始發行時**的歷史點數組成，並非本次訂單新消耗；該分組是否為本次新消耗，由 `new_issued`／`existing` 兩個分組本身即可判斷，不需另外歸零
 - 對帳恆等式：`coupon_summary.new_issued.discount_amount + coupon_summary.existing.discount_amount == discount_amount`
 - `cub_points`（小樹點信用卡）為銀行發行點數，是發卡主機對帳的主要依據；`tree_points`（小樹點生活）為神坊端點數，一併列出供完整核對
+
+**`get_member_orders` 用券摘要快照（效能考量）：**
+- 建單完成時（既有券段與新券段皆處理完畢後），同步將依 `campaign_name` + `is_new_issued` 分組聚合的用券摘要（含 `discount_amount`、`quantity`）與 `point_used` 寫入該筆 order 記錄（例如 `orders.coupon_usage_summary` JSON 欄位），供 `get_member_orders` 直接讀取快照回傳，不需在列表查詢當下即時 JOIN／GROUP BY 聚合——降低列表查詢的即時運算成本，同時避免單筆訂單使用大量券（例如 20 張）時 response 資料量過大
+- 此快照與本 API 回應的 `coupon_summary`（`new_issued`／`existing` 兩組彙總，供發卡主機對帳）粒度不同：`coupon_usage_summary` 快照另依 `campaign_name` 進一步分組，供前台會員訂單列表顯示用途
+- 快照於建單當下寫入後即固定，不隨後續 coupon 狀態變化（如 `consumed → settled`）而更動，僅反映建單當下的用券結果
 
 **訂單狀態（`order.status`）生命週期：**
 
