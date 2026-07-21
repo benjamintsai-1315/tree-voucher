@@ -43,27 +43,25 @@
 1. `get_coupon_detail.md`（單張券詳情）的 `status` 欄位是否也要跟著收斂成三態，還是維持原本 `AVAILABLE`/`CONSUMED`/`SETTLED`/`EXPIRED` 四態？單張詳情頁面使用者可能需要精確分辨「折抵處理中（CONSUMED）」vs「已核銷完成（SETTLED）」，建議維持原始四態，僅在**列表**層級做三態收斂，但需要跟 SA/前端確認這個顆粒度差異是否會造成困惑
 2. CLAUDE.md／PRD 目前定義的 coupon 狀態機是四態（`AVAILABLE`→`CONSUMED`→`SETTLED`/`EXPIRED`），這是系統內部與其他 API（如 `create_order`、`get_coupon_detail`）共用的權威定義；本次三態只限定在 `get_coupons` 這支 API 的呈現層，需要在文件中明確註明「僅此 API 的顯示層收斂，不影響底層狀態機」，避免未來誤植成全域改動
 
-## 3. get_member_orders — 不拆 API，張數/點數加總交由前端處理
+## 3. get_member_orders — 維持 coupon_usage_summary，改為建單當下寫入快照（已定案並實作）
 
-**現況**：`coupon_usage_summary[]` 由後端依 `campaign_name` + `is_new_issued` 做 GROUP BY 聚合後回傳（分組後的摘要列，含 `quantity`）；另有訂單層級 `point_used` 彙總欄位（本次新發券消耗點數加總）。
+**現況（調整前）**：`coupon_usage_summary[]` 由後端依 `campaign_name` + `is_new_issued` 做 GROUP BY 聚合後回傳（分組後的摘要列，含 `quantity`）；另有訂單層級 `point_used` 彙總欄位（本次新發券消耗點數加總）；兩者皆於 `get_member_orders` 查詢當下即時運算。
 
-**決議方向**：不採用「拆成訂單列表 + 單筆用券明細」兩支 API 的方案；改為將 `coupon_usage_summary` 攤平成逐張券明細，由前端自行加總（張數、金額等），對應 2026-07-17 文件中的「攤平交前端彙總」選項。
+**決議方向（已定案，取代先前「拆成兩支 API」與「攤平交前端彙總」兩個選項）**：不拆 API、不攤平成逐張明細，`get_member_orders` 的 response 結構完全不變；改為在 `create_order` 建單完成當下，就把 `coupon_usage_summary`（依 `campaign_name` + `is_new_issued` 分組）與 `point_used` 計算好，寫入該筆 order 記錄（快照），`get_member_orders` 直接讀快照回傳，不再即時 JOIN／GROUP BY。
 
-**需要調整：**
-- `get_member_orders.md`：
-  - Response schema：`coupon_usage_summary[]`（分組彙總）改為逐張明細陣列（暫定命名 `coupons_used[]`），每筆對應一張券，欄位含 `campaign_name`、`is_new_issued`、`discount_amount`（該張）、`tree_points`/`cub_points`（該張；`is_new_issued = true` 為本次消耗，`false` 為該券**原始發行時**的歷史組成，比照 `create_order.md` 的 `existing` 欄位定義方式，需在 spec 中明確標註避免前端誤解為本次消耗）
-  - 訂單層級 `point_used` 彙總欄位：因前端現在可自行從逐張明細加總，是否還要保留這個方便欄位待 SA/前端確認（見下方開放問題）
-  - Sample JSON、Response items 表格、邏輯說明段落同步改寫
-  - Changelog 補一筆
-- PRD：目前 PRD 並未描述 `get_member_orders` 的 response 欄位細節（僅泛稱「摘要列表」），故不需要額外修改 PRD 本文
-- 共用 `CHANGELOG.md` 補一筆
+**這個方向同時解決了原本兩個顧慮：**
+- 效能：聚合運算從「每次列表查詢都算 20 筆訂單」搬到「每筆訂單建立時只算一次」，讀取路徑變成單表查詢
+- Payload 過大：維持分組後的彙總結構（而非逐張攤平），單筆訂單即使用了 20 張券，回傳的仍是精簡的分組列表，不會膨脹成逐張明細
 
-**建議跟 SA 確認的問題：**
-1. 逐張明細會讓單筆訂單的資料筆數變多（例如一張訂單用了 10 張同 campaign 的券，現在是 1 筆彙總列，之後變成 10 筆明細）；對單一會員訂單量大、每筆訂單又用很多張券的極端 case，需要請 SA 評估單頁 response payload 大小是否可接受
-2. 訂單層級 `point_used` 是否保留？保留的話後端仍需做一次簡單 `SUM`（並未完全去除聚合運算，只是從 GROUP BY 換成單純加總）；不保留則前端每個訂單都要自行跑一次加總邏輯——需要確認前端畫面是否真的需要顯示這個彙總數字
+**已完成調整：**
+- `create_order.md`：新增「`get_member_orders` 用券摘要快照」段落，說明建單完成時同步寫入 `coupon_usage_summary`／`point_used` 快照
+- `get_member_orders.md`：邏輯說明補充「讀取快照、不即時聚合」，response 結構不變
+- 兩份文件 Changelog、共用 `CHANGELOG.md` 已各補一筆
+- PRD 未描述這支 API 的 response 欄位細節，不需修改本文
 
 ---
 
-## 待辦（SA 討論後）
+## 待辦
 
-三個方向 SA 確認沒有疑慮後，再依上述「需要調整」清單逐一修改對應 API spec、PRD、changelog，並個別 commit。
+- 第 3 點（get_member_orders 快照）已定案並完成文件調整
+- 第 1、2 點（get_coupon_wallet 移除時間限制、get_coupons 三態收斂）待 SA 確認後，再依上述「需要調整」清單逐一修改對應 API spec、PRD、changelog，並個別 commit
