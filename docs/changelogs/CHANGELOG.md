@@ -2,6 +2,12 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-21 — get_member_orders 效能討論定案：coupon_usage_summary 改為建單快照
+
+- 取代先前討論的「拆成兩支 API」與「攤平成逐張明細交前端彙總」兩個選項，改為：`create_order` 建單完成當下就計算好 `coupon_usage_summary`（依 `campaign_name` + `is_new_issued` 分組）與 `point_used`，寫入該筆 order 記錄
+- `get_member_orders` 直接讀取快照回傳，不再於查詢當下即時 JOIN／GROUP BY，同時解決「列表查詢即時聚合成本」與「單筆訂單用券量大時 response 過大」兩個顧慮；response 結構本身不變
+- 已同步更新 `create_order.md`（新增「`get_member_orders` 用券摘要快照」段落）、`get_member_orders.md`、`docs/misc/2026-07-20-coupon-perf-adjustment-plan.md`
+
 ## 2026-07-21 — batch_finalize_orders 改回 multipart/form-data + ndjson，移除筆數上限
 
 - 與銀行端溝通後確認：銀行端可在記憶體中逐行組出 JSON Lines（ndjson），不需落地實體檔案，因此同意將 Request 格式由 2026-06-24 定案的 JSON POST 改回 `multipart/form-data`——但這次資料內容改用 ndjson，而非 2026-06-16 曾採用、後於 2026-06-24 移除的 CSV 上傳設計
