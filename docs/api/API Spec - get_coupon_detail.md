@@ -7,7 +7,8 @@ permalink: /api-specs/get-coupon-detail/
 
 | Date | Summary |
 | ---- | ------- |
-| 2026-07-21 | 三點釐清：(1) `max_redemptions_per_order` 補註無快照、即時讀取 campaign 當下值；(2) `status` 補註 DB 為小寫 enum、API 層轉大寫回傳；(3) 補上已過期但 DB 狀態未回壓時的顯示邏輯，須即時比對 `expired_at`，與 `create_order` 既有券段查詢邏輯一致 |
+| 2026-07-21 | 修正前次誤植：`status` 不做大小寫轉換，API 直接回傳與 DB 一致的小寫值（`available`/`consumed`/`settled`/`expired`），取代先前「API 層轉大寫回傳」的決定；全系統 coupon 狀態 enum 統一改為小寫（CLAUDE.md、`get_coupons.md`、`get_coupon_wallet.md` 等同步修正） |
+| 2026-07-21 | 三點釐清：(1) `max_redemptions_per_order` 補註無快照、即時讀取 campaign 當下值；(2) `status` 補註 DB 為小寫 enum；(3) 補上已過期但 DB 狀態未回壓時的顯示邏輯，須即時比對 `expired_at`，與 `create_order` 既有券段查詢邏輯一致 |
 | 2026-07-14 | 修正說明不清：`id`（券識別碼）型別補上 ULID 註記；sample 的 `CPN_001` 佔位字串改為 ULID 格式，避免誤導實際格式 |
 | 2026-07-14 | 新增 `tree_points`/`cub_points`：`redeem_points` 僅為合計，未拆分兩種點數組成，資訊不足；補上兩種點數明細，資料來源與 `create_order` 對帳一致（`treelife_use_point_log`） |
 | 2026-07-13 | 明確定義 `created_at` 即為券「有效期間」之起始時間，並補齊毫秒精度，與 `expired_at` 一致 |
@@ -61,7 +62,7 @@ Content-Type: `application/json`
 ```json
 {
   "id": "01HZYA1B2C3D4E5F6G7H8J9K0M",
-  "status": "AVAILABLE",
+  "status": "available",
   "brand": {
     "id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK",
     "name": "全家便利商店",
@@ -89,7 +90,7 @@ Content-Type: `application/json`
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | id | String | 券識別碼（ULID） |
-| status | String | 券狀態：`AVAILABLE` \| `CONSUMED` \| `SETTLED` \| `EXPIRED`（DB 欄位為小寫 enum，API 層統一轉為大寫回傳） |
+| status | String | 券狀態：`available` \| `consumed` \| `settled` \| `expired`（與 DB 欄位一致，皆為小寫，API 不做大小寫轉換） |
 | brand | Object | 對應品牌資訊，見下表 |
 | campaign | Object | 該券所屬 campaign 資訊，見下表 |
 | min_order_amount | Integer | 該券對應的消費門檻金額（元） |
@@ -123,7 +124,7 @@ Content-Type: `application/json`
 - `redeem_points`、`tree_points`、`cub_points` 皆為 coupon 建立時的快照值，不隨 campaign 規則變動；`tree_points`/`cub_points` 取自該券發行時寫入 `treelife_use_point_log` 的 `used_tree_points`/`used_cub_points`
 - `max_redemptions_per_order` **無快照**，為即時讀取該券所屬 campaign 當下設定值，與上述快照欄位不同，會隨 campaign 事後調整而變動
 - `created_at` 即該券有效期間之起始時間，與 `expired_at` 共同構成完整的有效期間起迄，兩者時間精度一致（毫秒）
-- `status` 顯示邏輯：系統無主動掃描機制將已過期券的 DB 狀態批次回壓為 `EXPIRED`，故 DB 可能存在 `expired_at` 已早於當下時間、但 `status` 仍為 `AVAILABLE` 的券。本 API 回傳 `status` 時，須即時比對 `expired_at` 與查詢當下時間：已過期者一律顯示為 `EXPIRED`，不直接回傳 DB 原始值；此判斷邏輯與 `create_order` 既有券段查詢一致（`status = available` 且 `expired_at` 尚未到期為兩個獨立條件，非單純信任 `status` 欄位）
+- `status` 顯示邏輯：系統無主動掃描機制將已過期券的 DB 狀態批次回壓為 `expired`，故 DB 可能存在 `expired_at` 已早於當下時間、但 `status` 仍為 `available` 的券。本 API 回傳 `status` 時，須即時比對 `expired_at` 與查詢當下時間：已過期者一律顯示為 `expired`，不直接回傳 DB 原始值；此判斷邏輯與 `create_order` 既有券段查詢一致（`status = available` 且 `expired_at` 尚未到期為兩個獨立條件，非單純信任 `status` 欄位）
 - 本 API 不回傳訂單關聯欄位，例如 `order_id`
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
