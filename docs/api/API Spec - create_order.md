@@ -7,6 +7,7 @@ permalink: /api-specs/create-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-21 | 訂單狀態生命週期表引用的 `batch_finalize_orders` action 值同步改為小寫 `complete`/`cancel`（原 `COMPLETED`/`CANCELLED`），與該 API spec 本次調整對齊 |
 | 2026-07-16 | response 新增 `created_at`：order 於神坊資料庫中的建立時間（stage 1 建單當下），供發卡主機對帳參考 |
 | 2026-07-16 | 簡化扣點逾時處理：同步階段與 cronjob 階段對「確認成功」的處理動作原本完全相同（皆為呼叫返點退點），故移除同步階段的查詢步驟，改為 timeout 後直接標記「點數結果未定」交每日 cronjob 統一查詢與退點，避免重複查詢 |
 | 2026-07-14 | 修正前次誤植：點數系統其實仍可查詢「用點結果確認」（成功/失敗/timeout），只是確認成功時**目前無法同時取得** `tree_points`/`cub_points` 細部拆分，故此分支改為呼叫返點（`return_point`）退點，而非整段查詢機制都不可用；查詢＋每日 04:00 cronjob 對帳機制維持現行有效，僅「確認成功」分支的處理方式待未來支援拆分查詢後才改回續行發券 |
@@ -181,8 +182,8 @@ Content-Type: `application/json`
 | `pending` | 剛建立，涵蓋清算執行中（既有券段 + 新券段），無獨立的「清算中」狀態值 | stage 1 一開始即建立 order（不論有無舊券） |
 | `processing` | 清算完成、待終結 | 清算完成且 `discount_amount > 0`，等待 `batch_finalize_orders` |
 | `error` | 清算完成、失敗 | 清算完成且 `discount_amount = 0` |
-| `completed` | 已終結 | `batch_finalize_orders` action=`COMPLETED` |
-| `cancelled` | 已終結（取消） | `batch_finalize_orders` action=`CANCELLED` |
+| `completed` | 已終結 | `batch_finalize_orders` action=`complete` |
+| `cancelled` | 已終結（取消） | `batch_finalize_orders` action=`cancel` |
 
 > ⚠️ `pending` 滯留：若 stage 2 執行中系統中斷，訂單將停留於 `pending`（不出現於 `get_member_orders`、亦不可終結）。目前**無自動收斂機制**，滯留訂單之處置方式由營運團隊另行討論後補充。
 
