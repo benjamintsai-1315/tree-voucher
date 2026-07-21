@@ -7,6 +7,7 @@ permalink: /api-specs/get-member-orders/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-21 | 效能討論定案：`coupon_usage_summary`／`point_used` 改為讀取 `create_order` 建單當下寫入的快照，不再於本 API 查詢當下即時 JOIN／GROUP BY 聚合，降低列表查詢運算成本並避免大量用券訂單的 response 過大；response 欄位結構不變 |
 | 2026-07-14 | `coupon_usage_summary[]` 新增 `is_new_issued`（是否為本次訂單即時發行的新券），供前端區分新／舊券做差異顯示；分組鍵同步調整為 `campaign_name` + `is_new_issued`（同一 campaign 若同時有新券與舊券，分兩組回傳） |
 | 2026-07-13 | `order.status` 實際 DB 欄位值校正為五態：`waiting_finalization` 更名為 `processing`、`failed` 更名為 `error`；本會員列表可見狀態改為 `processing` \| `completed` \| `cancelled` |
 | 2026-07-13 | 補齊前端列表畫面所需欄位：新增 `store_name`（`create_order` 已有此快照欄位，此前漏未於本 API 回傳）；新增 `coupon_usage_summary[]`（依 campaign 分組聚合的券使用摘要，非逐張明細）與 `point_used`（本次新發券消耗點數） |
@@ -189,6 +190,7 @@ Content-Type: `application/json`
 
 ### 邏輯說明
 - 列表為摘要資訊，`coupon_usage_summary` 為依 `campaign_name` + `is_new_issued` 分組的聚合統計，非逐張券明細；本 API 仍不含逐張 `coupons_used` 明細與 `events` 歷程，前台端不另提供單筆完整明細查詢
+- `coupon_usage_summary`／`point_used` 為 **`create_order` 建單當下即計算完成並寫入 order 記錄的快照**（詳見 `create_order.md`「`get_member_orders` 用券摘要快照」段落），本 API 直接讀取該快照回傳，不於查詢當下即時 JOIN／GROUP BY 聚合——藉此降低列表查詢的即時運算成本，並避免單筆訂單使用大量券（例如 20 張）時 response 資料量過大；快照寫入後不隨後續 coupon 狀態變化（如轉為 `settled`）而更動
 - 同一 campaign 若同時有新券與舊券於本次訂單被使用，分為兩組回傳（`is_new_issued` 不同即不合併），確保前端能正確做新／舊券差異顯示
 - **`order.status = error` 的訂單（`create_order` 清算後折抵為 0）不列入本列表**；清算中的暫態（`pending`）亦不會出現於已成立的訂單列表
 - `items` 內的 `card_last_four_digits`、`store_name` 為建單時由發卡主機提供，供前台端在訂單列表顯示辨識資訊
