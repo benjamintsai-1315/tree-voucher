@@ -2,6 +2,13 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-21 — coupon 狀態 enum 統一改為小寫（修正前次誤植）
+
+- 前次（本日稍早）針對 `get_coupon_detail` 的釐清誤把方向定為「DB 小寫、API 層轉大寫回傳」；RD 進一步確認後改為：**API 直接回傳與 DB 一致的小寫值，不做大小寫轉換**
+- 影響範圍：CLAUDE.md（權威 enum 定義）、`get_coupon_detail.md`、`get_coupons.md`、`get_coupon_wallet.md`、`deactivate_member.md`、`update_member_auto_redeem_settings.md`、PRD（§二 Coupon 規則／Point Balance 規則／Flow 2／Flow 6）
+- 這次調整也順便修正了 PRD 內部原有的不一致：§三 Coupon 狀態機表格本來就是小寫，但 §二 用的是大寫，兩處對不上；統一為小寫後此矛盾一併消除
+- 錯誤碼（如 `NO_AVAILABLE_COUPON_AND_POINT`、`TREELIFE_ERROR` 等）不在此次調整範圍內，維持既有 SCREAMING_SNAKE_CASE 慣例
+
 ## 2026-07-21 — get_coupon_detail 三點釐清（RD 提問）
 
 - `max_redemptions_per_order` 補註：無快照，即時讀取 campaign 當下設定值，與 `redeem_points`/`tree_points`/`cub_points` 等快照欄位不同
