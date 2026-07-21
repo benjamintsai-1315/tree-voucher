@@ -7,6 +7,7 @@ permalink: /api-specs/get-finalize-batch-status/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-21 | `orders[].action` 回傳值同步改為小寫 `complete`/`cancel`（原 `COMPLETED`/`CANCELLED`），與 `batch_finalize_orders` 本次調整對齊；Item Error Code 補上 `INVALID_ACTION`（該檢查已改列 `batch_finalize_orders` 非同步 item-level 錯誤） |
 | 2026-06-23 | `items` 改名為 `orders`；`orders` 欄位說明獨立為子表格；移除 `order_` prefix |
 | 2026-06-16 | 新增 API，供發卡主機查詢批次 finalize 請求的執行進度 |
 
@@ -56,14 +57,14 @@ Endpoint: `/bank/get_finalize_batch_status`
   "orders": [
     {
       "id": "ORD_20261001_00001",
-      "action": "COMPLETED",
+      "action": "complete",
       "status": "SUCCESS",
       "finalized_at": "2026-10-03T10:00:05+08:00",
       "error_code": null
     },
     {
       "id": "ORD_20261001_00002",
-      "action": "CANCELLED",
+      "action": "cancel",
       "status": "PENDING",
       "finalized_at": null,
       "error_code": null
@@ -91,7 +92,7 @@ Endpoint: `/bank/get_finalize_batch_status`
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | id | String | 訂單識別碼 |
-| action | String | `COMPLETED` \| `CANCELLED` |
+| action | String | `complete` \| `cancel` |
 | status | String | 單筆處理狀態，見下表 |
 | finalized_at | Datetime \| null | 單筆處理成功時間（UTC+8 ISO 8601）；尚未完成或失敗時為 `null` |
 | error_code | String \| null | 失敗原因代碼；成功或待處理時為 `null` |
@@ -116,6 +117,7 @@ Endpoint: `/bank/get_finalize_batch_status`
 
 | error_code | 說明 |
 | ---------- | ---- |
+| `INVALID_ACTION` | `action` 值不合法（非 `complete`/`cancel`） |
 | `ORDER_NOT_FOUND` | `order_id` 不存在於神坊系統 |
 | `ORDER_ALREADY_FINALIZED` | 訂單已完成最終化，不可重複執行 |
 
