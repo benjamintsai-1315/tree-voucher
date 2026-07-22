@@ -2,6 +2,13 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-22 — deactivate_member 改為本地寫入成功即完成，與 activate_member 不再對稱
+
+- 決議：`deactivate_member` 只要樹配券平台本身成功寫入本地狀態（`members.is_activated = FALSE` + `member_event_logs`）即回覆成功，不需等待點數系統（`member_unauthorize`）成功；點數系統呼叫改為 best-effort，失敗時觸發告警通知工程團隊另行補正，不影響本次 API 回應
+- 移除 `TREELIFE_ERROR` 錯誤碼（不再是 `deactivate_member` 的失敗情境）
+- **此調整僅適用 `deactivate_member`**；`activate_member` 維持原設計（點數系統成功才寫入本地），兩者風險方向不同（deactivate 就算點數系統端未同步，本地已擋下新交易，較安全；activate 若點數系統端授權失敗但本地已開通，之後 `create_order` 扣點可能失敗）
+- 已同步更新 `deactivate_member.md`、PRD §12.5（拆分為 activate/deactivate 兩個獨立六角色表格）、`docs/misc/2026-07-16-timeout-待確認事項.md`
+
 ## 2026-07-21 — get_member_orders 效能討論定案：coupon_usage_summary 改為建單快照
 
 - 取代先前討論的「拆成兩支 API」與「攤平成逐張明細交前端彙總」兩個選項，改為：`create_order` 建單完成當下就計算好 `coupon_usage_summary`（依 `campaign_name` + `is_new_issued` 分組）與 `point_used`，寫入該筆 order 記錄
