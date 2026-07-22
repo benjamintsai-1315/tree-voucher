@@ -1,47 +1,38 @@
 # 券夾/券列表/訂單列表 效能調整方向 — SA 討論用 Plan
 
-> 承接 [2026-07-17 效能討論彙整](2026-07-17-coupon-wallet-get-coupons-效能討論.md)，前端溝通後已收斂三個方向。本文件列出對應要調整的文件/欄位，以及送到 SA 討論前建議先釐清的開放問題。**尚未定案，待 SA 討論後才進入實際編修。**
+> 承接 [2026-07-17 效能討論彙整](2026-07-17-coupon-wallet-get-coupons-效能討論.md)，前端溝通後收斂三個方向，經 SA 討論後於 2026-07-22 完成最終定案與文件調整。
 
-## 1. get_coupon_wallet — 重新定義為「所有操作過的品牌」（SA 已確認）
+## 1. get_coupon_wallet — 重新定義為「所有操作過的品牌」（已定案並實作，2026-07-22）
 
-**現況**：品牌需符合「過去 366 天（T-366，含）內有 coupon 發行紀錄」才列入清單；`available_coupon_count` 本身已不受此時間窗限制。
+**現況（調整前）**：品牌需符合「過去 366 天（T-366，含）內有 coupon 發行紀錄」才列入清單；`available_coupon_count` 僅聚合 `available` 張數。
 
-**決議方向（SA 確認）**：拿掉 366 天門檻，重新定義為「所有操作過的品牌、對應可用券」——品牌清單不限時間，只要曾經有過 coupon 發行紀錄即列出；`available_coupon_count` 維持現行邏輯（僅聚合目前 `AVAILABLE` 張數）不變。
+**最終決議**：
+- 拿掉 366 天門檻，品牌清單不限時間，只要曾經有過 coupon 發行紀錄即列出
+- `available_coupon_count` 聚合口徑擴大為 `available` + `consumed`（尚可用或使用中皆計入），取代原本僅計 `available` 的邏輯
+- `get_coupons` **不加任何時間窗**，維持不限時間；不採用先前規劃的「僅顯示近一年」免責文字（見下方原因）——因為 `get_coupon_wallet` 拿掉時間限制的目的就是讓用戶找到「很久以前操作過的品牌」，若 `get_coupons` 卻用時間窗擋住會讓用戶點進去看到空列表，兩者矛盾
 
-**需要調整：**
-- `get_coupon_wallet.md`：功能說明／使用情境／邏輯說明中所有「過去一年內（T-366 天，含）」字眼移除；品牌入列條件改為「該品牌下存在任一 coupon（不限時間、不限狀態）」；`brands: []` 空清單條件說明由「過去一年內無任何品牌換券紀錄」改為「從未有過任何 coupon 發行紀錄」；查詢邏輯由「`member_id + created_at` 範圍過濾」簡化為「`member_id` 下 DISTINCT `brand_id`」等值查詢
-- PRD：§二 Coupon Wallet 概念/規則、Flow 6 品牌摘要段落（`docs/樹配券2.0_PRD.md:462`）同步移除「過去一年內」敘述
-- 兩份文件的 Changelog、共用 `CHANGELOG.md` 各補一筆
+**已完成調整：**
+- `get_coupon_wallet.md`：功能說明／使用情境／邏輯說明移除所有「過去一年內」字眼；品牌入列條件改為「該品牌下存在任一 coupon（不限時間、不限狀態）」；`available_coupon_count` 說明改為聚合 `available` + `consumed`
+- PRD：§二 Coupon Wallet 規則、Flow 6 品牌摘要段落同步修正
+- 兩份文件 Changelog、共用 `CHANGELOG.md` 已各補一筆
 
-**⚠️ 重要修正（回應 SA 提出的體感衝突）：`get_coupons` 不應加任何時間窗，CR 原規劃的「僅顯示近一年樹配券紀錄」免責文字建議取消。**
+## 2. get_coupons — 改為三個獨立列表，維持四態不變（已定案並實作，2026-07-22）
 
-理由：`get_coupon_wallet` 拿掉時間限制的目的，就是讓用戶能找到「很久以前操作過的品牌」；如果 `get_coupons` 卻用一年時間窗擋住，等於讓用戶點進去看到空列表，wallet 卡片的存在意義被架空，兩者互相矛盾。最初會想幫 `get_coupons` 加時間窗，是為了緩解「SETTLED 依 `updated_at`、EXPIRED 依 `expired_at` 排序鍵不同、索引無法滿足」的效能疑慮——但這個根本問題已經被下方第 2 點的新分組方式解決（見下），時間窗只是妥協手段，問題解決後就不再需要，也不該為了不存在的效能理由犧牲功能完整性。建議 `get_coupons` 維持真正不限時間，讓 wallet 內任何品牌點進去都保證看得到資料。
+**現況（調整前）**：兩個頁籤——待折抵（`AVAILABLE` + `CONSUMED`）／紀錄（`SETTLED` + `EXPIRED`）。紀錄頁籤內 `SETTLED` 依 `updated_at DESC`、`EXPIRED` 依 `expired_at DESC`，排序欄位不同，是效能疑慮的根源。
 
-## 2. get_coupons — status 重新分組為三態，禁止自由組合（SA 已確認，附排序鍵建議）
+> ⚠️ 本節先前曾記錄「SA 建議收斂為三態 `available`/`used`/`expired`，禁止自由組合」的方向，**最終未採用**，改為維持原始四態、僅調整前端呈現方式（見下）。
 
-**現況**：兩個頁籤——待折抵（`AVAILABLE` + `CONSUMED`）／紀錄（`SETTLED` + `EXPIRED`）。紀錄頁籤內 `SETTLED` 依 `updated_at DESC`、`EXPIRED` 依 `expired_at DESC`，排序欄位不同，是效能疑慮的根源。
+**最終決議**：狀態 enum 維持四態不變（`available`/`consumed`/`settled`/`expired`），`status[]` 維持可複選陣列，不限制自由組合。前端呈現方式改為三個獨立列表：
+- **待折抵**：查詢 `status[]=available,consumed`——兩者排序欄位相同（皆為 `expired_at`），合併查詢不影響效能
+- **已折抵**：查詢 `status[]=settled`（單一狀態，依 `updated_at DESC` 排序）
+- **已過期**：查詢 `status[]=expired`（單一狀態，依 `expired_at DESC` 排序）
 
-**決議方向（SA 確認，取代原本「拆三個列表」的分組方式）**：對前端回覆與查詢用的 `status` 重新定義為三態——`available`（原 `AVAILABLE`）、`used`（原 `CONSUMED` + `SETTLED` 合併）、`expired`（原 `EXPIRED`）；且**不能自由搭配組合**，每次呼叫只能指定其中一種，不再是可複選的 `status[]`。
+因為 `settled` 與 `expired` 現在分屬不同列表、各自單獨查詢，**不需要**強制統一排序鍵——排序鍵不同的問題本質上是「兩個原本合併查詢的狀態改成分開查詢」自然解決的，不需要靠合併狀態值或限制參數組合來處理。
 
-**建議的排序鍵設計（解決原本混合排序鍵問題的關鍵）：**
-- `available`：依 `expired_at DESC` 排序（沿用原 `AVAILABLE` 邏輯）
-- `used`（`CONSUMED` + `SETTLED`）：**統一依 `updated_at DESC` 排序**——對 `CONSUMED` 而言 `updated_at` 即「成立訂單、轉入使用中的時間」，對 `SETTLED` 而言即「核銷時間」，兩者語意上都是「這張券最近一次狀態變動的時間」，可視為同一概念，合併後不再有排序鍵不一致的問題
-- `expired`：依 `expired_at DESC` 排序（沿用原 `EXPIRED` 邏輯）
-
-三個 bucket 各自單一排序鍵，`(member_id, brand_id, status, sort_column)` 一組複合索引即可滿足查詢，不需要 filesort，原本的效能疑慮從根本解決（不是靠限制資料量，而是排序鍵本身不再衝突）。
-
-**需要調整：**
-- `get_coupons.md`：
-  - `status[]`（可複選陣列）改為單值 `status`（`available` \| `used` \| `expired`），Request Parameters 表格同步修改
-  - Response 每筆券的 `status` 欄位回傳值同步改為這三個新值（不再回傳原始 `AVAILABLE`/`CONSUMED`/`SETTLED`/`EXPIRED`）
-  - 排序規則段落改為上述三態各自對應的排序鍵
-  - 使用情境／邏輯說明中「前端以待折抵／紀錄兩頁籤呈現」改為「前端以 `available`／`used`／`expired` 三個列表呈現，各自對應單一 `status` 值查詢」
-- PRD：Flow 6 券列表段落（`docs/樹配券2.0_PRD.md:464`）「兩頁籤」敘述改為新的三態定義
-- 兩份文件的 Changelog、共用 `CHANGELOG.md` 各補一筆
-
-**建議跟 SA 確認的問題：**
-1. `get_coupon_detail.md`（單張券詳情）的 `status` 欄位是否也要跟著收斂成三態，還是維持原本 `AVAILABLE`/`CONSUMED`/`SETTLED`/`EXPIRED` 四態？單張詳情頁面使用者可能需要精確分辨「折抵處理中（CONSUMED）」vs「已核銷完成（SETTLED）」，建議維持原始四態，僅在**列表**層級做三態收斂，但需要跟 SA/前端確認這個顆粒度差異是否會造成困惑
-2. CLAUDE.md／PRD 目前定義的 coupon 狀態機是四態（`AVAILABLE`→`CONSUMED`→`SETTLED`/`EXPIRED`），這是系統內部與其他 API（如 `create_order`、`get_coupon_detail`）共用的權威定義；本次三態只限定在 `get_coupons` 這支 API 的呈現層，需要在文件中明確註明「僅此 API 的顯示層收斂，不影響底層狀態機」，避免未來誤植成全域改動
+**已完成調整：**
+- `get_coupons.md`：使用情境新增三個獨立列表的說明與對應查詢方式；邏輯說明補充「`settled`／`expired` 排序欄位不同，前端不應合併查詢」提醒
+- PRD：Flow 6 券列表段落同步修正
+- 兩份文件 Changelog、共用 `CHANGELOG.md` 已各補一筆
 
 ## 3. get_member_orders — 維持 coupon_usage_summary，改為建單當下寫入快照（已定案並實作）
 
@@ -63,5 +54,4 @@
 
 ## 待辦
 
-- 第 3 點（get_member_orders 快照）已定案並完成文件調整
-- 第 1、2 點（get_coupon_wallet 移除時間限制、get_coupons 三態收斂）待 SA 確認後，再依上述「需要調整」清單逐一修改對應 API spec、PRD、changelog，並個別 commit
+三點皆已定案並完成文件調整，無待辦事項。
