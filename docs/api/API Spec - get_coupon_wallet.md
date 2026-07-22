@@ -7,6 +7,7 @@ permalink: /api-specs/get-coupon-wallet/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-22 | 效能討論定案：(1) 移除 366 天時間限制，品牌清單改為回傳所有曾經產生 coupon 發行紀錄的品牌（不限時間）；(2) `available_coupon_count` 改為聚合 `available` + `consumed`（尚可用或使用中皆計入），不再僅計 `available` |
 | 2026-07-21 | coupon 狀態 enum 統一改為小寫（`available` 等），與 DB 一致，API 不做大小寫轉換 |
 | 2026-07-14 | 修正範圍錯誤：品牌清單改為回傳過去一年內（查詢當下 T-366 天，含）有 coupon 發行紀錄的所有品牌，不再限於「當前 rotation 曾選過」；`brands: []` 條件同步改為「過去一年內無任何品牌換券紀錄」。原範圍會導致換檔後仍有可用舊券的品牌從券夾消失，屬邏輯錯誤 |
 | 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
@@ -18,7 +19,7 @@ permalink: /api-specs/get-coupon-wallet/
 # API: get_coupon_wallet
 
 ## 功能說明
-查詢用戶券夾的品牌摘要。回傳該用戶過去一年內（查詢當下 T-366 天，含）曾經產生 coupon 發行紀錄的所有品牌，以及各品牌目前可用券（`available`）的張數，供前端呈現品牌卡片列表（券夾首頁）。
+查詢用戶券夾的品牌摘要。回傳該用戶所有曾經產生 coupon 發行紀錄的品牌（不限時間），以及各品牌目前尚可用／使用中券（`available` + `consumed`）的張數，供前端呈現品牌卡片列表（券夾首頁）。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`
@@ -33,7 +34,7 @@ permalink: /api-specs/get-coupon-wallet/
 ## 使用情境
 前台端帶入 `member_id`，取得用戶目前券夾的品牌卡片摘要。前端可由此進入各品牌的券列表（`get_coupons`）。
 
-若使用者過去一年內（T-366 天）沒有任何品牌的換券紀錄，回傳 `brands: []`，不視為錯誤。
+若使用者從未有任何品牌的換券紀錄，回傳 `brands: []`，不視為錯誤。
 
 # Request
 HTTP method: `GET`
@@ -79,7 +80,7 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| brands | Array | 用戶過去一年內（T-366 天）曾經產生 coupon 發行紀錄的品牌列表 |
+| brands | Array | 用戶所有曾經產生 coupon 發行紀錄的品牌列表（不限時間） |
 
 ### brands
 
@@ -88,13 +89,13 @@ Content-Type: `application/json`
 | id | String | 品牌識別碼（ULID） |
 | name | String | 品牌名稱 |
 | logo | String | 品牌 logo 圖片 URL |
-| available_coupon_count | Integer | 該品牌目前狀態為 `available` 的券張數 |
+| available_coupon_count | Integer | 該品牌目前狀態為 `available` 或 `consumed` 的券張數（尚可用或使用中皆計入） |
 
 ### 邏輯說明
-- 回傳用戶**過去一年內（查詢當下 T-366 天，含）**有 coupon 發行紀錄的所有品牌，不限於當前 rotation 或當前已選品牌清單；包含 `available_coupon_count = 0` 的品牌（券已全部用完或尚未發券）
-- 品牌入列條件：該品牌下存在 `created_at` 落在過去 366 天內的 coupon（不限狀態）
-- `available_coupon_count` 只聚合 `status = available` 的券張數，不受上述一年時間窗限制（只要券本身仍為 `available` 即計入）
-- 若用戶過去一年內無任何品牌的 coupon 發行紀錄，回傳 `brands: []`，不報錯
+- 回傳用戶**所有**曾經產生 coupon 發行紀錄的品牌，不限時間、不限於當前 rotation 或當前已選品牌清單；包含 `available_coupon_count = 0` 的品牌（券已全部用完或尚未發券）
+- 品牌入列條件：該品牌下存在任一 coupon（不限時間、不限狀態）
+- `available_coupon_count` 聚合 `status IN (available, consumed)` 的券張數（尚可用或使用中皆計入，不受時間窗限制）
+- 若用戶從未有任何品牌的 coupon 發行紀錄，回傳 `brands: []`，不報錯
 - 排序依 `brand_name ASC`
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
