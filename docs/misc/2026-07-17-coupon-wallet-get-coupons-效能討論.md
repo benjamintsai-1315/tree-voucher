@@ -16,3 +16,16 @@
 ---
 
 **共通脈絡**：所有項目的邏輯一致——透過「限縮查詢範圍」「省略提前聚合」「拆分關注點」換取查詢效能，但代價分別是：產品功能縮減（歷史瀏覽入口、既有排序語意）、多一次 API 呼叫、或把彙總邏輯與維護責任轉移到前端。需要在會議上逐項確認能否接受對應代價。
+
+---
+
+## 最終決議（2026-07-22）
+
+- **get_coupons 紀錄頁籤拆成兩個子列表** → ✅ 採用，實際定案為改成三個獨立列表（待折抵／已折抵／已過期）；因 `settled`／`expired` 各自單一查詢、單一排序欄位，**不需要**額外統一排序鍵
+- **get_coupons 排序欄位統一** → ❌ 不採用，維持各狀態原本排序欄位（`settled` 依 `updated_at`、其餘依 `expired_at`）
+- **get_coupons 加時間窗** → ❌ 不採用，維持不限時間
+- **get_coupon_wallet 拿掉 366 天限制** → ✅ 採用，品牌清單不限時間
+- **get_coupon_wallet 只呈現有 available 的品牌** → ❌ 不採用；品牌清單維持顯示所有曾操作過的品牌（含 0 張可用），改為 `available_coupon_count` 聚合口徑擴大為 `available` + `consumed`
+- **get_coupon_wallet 依 brands 分拆的必要性** → ❌ 不採用，維持獨立 API
+- **get_member_orders 拆分 API** → ❌ 不採用
+- **get_member_orders 攤平交前端彙總** → ❌ 不採用；最終改為「`create_order` 建單當下計算並寫入快照，`get_member_orders` 直接讀取」（2026-07-21 另行定案），非本文件原列的兩個選項
