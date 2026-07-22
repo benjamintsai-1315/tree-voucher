@@ -7,6 +7,7 @@ permalink: /api-specs/get-coupons/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-22 | 效能討論定案：前端改以三個獨立列表呈現（待折抵 `available`+`consumed`／已折抵 `settled`／已過期 `expired`），取代原本兩頁籤（待折抵／紀錄）設計；不採用先前討論的「三態收斂（available/used/expired）」方案，狀態 enum 與排序規則維持四態不變；補充說明 `settled`／`expired` 排序欄位不同，前端不應合併查詢 |
 | 2026-07-21 | coupon 狀態 enum 統一改為小寫（`available`/`consumed`/`settled`/`expired`），取代先前大寫值，與 DB 欄位一致，API 不做大小寫轉換；`status[]` 查詢參數、response `status` 欄位、排序規則說明皆同步修正 |
 | 2026-07-14 | 補上 `updated_at`：`SETTLED` bucket 排序依此欄位（finalize 時間），但先前 response 未實際回傳此欄位，說明與資料不一致，此次補齊 |
 | 2026-07-14 | 修正說明不清：`id`（券識別碼）型別補上 ULID 註記；sample 的 `CPN_001`/`CPN_002` 佔位字串改為 ULID 格式，避免誤導實際格式 |
@@ -39,7 +40,7 @@ permalink: /api-specs/get-coupons/
 > **注意：** `API Key` 與來源 IP 白名單皆存於 AWS Parameter Store。
 
 ## 使用情境
-前台端由品牌卡片（`get_coupon_wallet`）進入後，帶入 `member_id` 與 `brand_id` 查詢該品牌下的券列表。若前端只想看特定券狀態，可搭配 `status` 進行篩選。
+前台端由品牌卡片（`get_coupon_wallet`）進入後，帶入 `member_id` 與 `brand_id` 查詢該品牌下的券列表。前端以三個列表呈現：**待折抵**（`status[]=available,consumed`）、**已折抵**（`status[]=settled`）、**已過期**（`status[]=expired`），各自獨立查詢、獨立分頁，不合併呈現。
 
 若使用者在該品牌目前沒有任何券，回傳 `coupons: []`，不視為錯誤。
 
@@ -130,6 +131,7 @@ Content-Type: `application/json`
 - 本 API 不回傳訂單關聯欄位，例如 `order_id`
 - 本 API 回傳精簡化券資訊，供列表畫面使用；不含 `brand`（已由 `brand_id` 篩選帶入）、`redeem_points`、`discount_rate`、`max_redemptions_per_order`、`created_at`。如需完整詳情請呼叫 `get_coupon_detail`
 - `updated_at` 為排序鍵之一（`settled` bucket 依此排序），故納入 response 回傳，避免排序依據的欄位卻無法讓前端查驗
+- 前端固定以三個獨立查詢對應三個列表（見上方使用情境），`available`＋`consumed` 兩者排序欄位相同（皆為 `expired_at`），合併查詢不影響排序效能；`settled`（`updated_at`）與 `expired`（`expired_at`）排序欄位不同，前端**不應**合併查詢這兩個狀態，以維持各自單一排序鍵可直接命中索引
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 1. `member_id` 不存在：`MEMBER_NOT_FOUND`
