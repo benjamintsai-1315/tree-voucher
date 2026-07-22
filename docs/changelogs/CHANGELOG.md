@@ -2,6 +2,13 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-22 — get_coupon_wallet/get_coupons 效能討論最終定案
+
+- `get_coupon_wallet`：移除 366 天時間限制，品牌清單改為顯示所有曾操作過的品牌（不限時間）；`available_coupon_count` 聚合口徑擴大為 `available` + `consumed`
+- `get_coupons`：**不採用**先前 SA 建議的「三態收斂（`available`/`used`/`expired`，禁止自由組合）」方案，維持原始四態（`available`/`consumed`/`settled`/`expired`）與可複選 `status[]`；前端改為三個獨立列表呈現——待折抵（`available`+`consumed`）、已折抵（`settled`）、已過期（`expired`），因排序鍵不同的兩個狀態（`settled`/`expired`）現在分開查詢，不需要額外統一排序鍵即可解決原本的效能疑慮
+- `get_coupons` 維持不限時間，取消原本 CR 規劃的「僅顯示近一年」免責文字，避免與 `get_coupon_wallet` 顯示所有品牌的邏輯互相矛盾
+- 已同步更新 `get_coupon_wallet.md`、`get_coupons.md`、PRD（§二 Coupon Wallet 規則、Flow 6）、`docs/misc/2026-07-17-...效能討論.md`、`docs/misc/2026-07-20-...perf-adjustment-plan.md`
+
 ## 2026-07-22 — create_order 銀行↔神坊連線層 timeout 定案：改為非同步 bank_get_order 查詢
 
 - 取代先前待與銀行/SA 確認的兩個前提問題（同 `order_id` 重送機制、bank_get_order 比對後的取消流程），改以「銀行端非同步透過 `bank_get_order` 查詢該筆訂單實際結果，據以更新銀行內部折抵資料」為主要做法，不採用同 `order_id` 重送
