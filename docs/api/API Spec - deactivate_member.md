@@ -7,6 +7,7 @@ permalink: /api-specs/deactivate-member/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-22 | 決議調整成敗判定：改為樹配券本地寫入成功即回覆成功，點數系統呼叫（`member_unauthorize`）改為 best-effort，失敗不影響回應、改觸發告警處理；移除 `TREELIFE_ERROR` 錯誤碼（不再是本 API 失敗情境）；此調整**僅適用 deactivate_member**，`activate_member` 維持原設計（點數系統成功才寫入本地，兩者不對稱） |
 | 2026-07-21 | coupon 狀態 enum 統一改為小寫（`available`/`consumed`），與 DB 一致 |
 | 2026-07-17 | 補充失敗情境：點數系統失敗（含 timeout）直接回失敗、狀態不變，可安全重試；點數系統成功但樹配券本地寫入失敗屬非預期錯誤，回 5xx 並觸發 Sentry alert 人工介入 |
 | 2026-07-06 | log 表以 `member_event_logs`（統一會員事件表）為權威，釐清先前 changelog 誤植的 `member_activation_logs` |
@@ -20,7 +21,7 @@ permalink: /api-specs/deactivate-member/
 # API: deactivate_member
 
 ## 功能說明
-用戶在 CR 前台主動解除樹配券服務。樹配券平台收到請求後，主動呼叫點數系統 API 完成取消授權（`member_unauthorize`）；點數系統成功後，神坊更新 `members.is_activated = FALSE` 並寫入一筆 `member_event_logs`（type = `deactivate_member`，data = null）。兩邊皆成功才視為完成，任一失敗則整筆失敗。
+用戶在 CR 前台主動解除樹配券服務。樹配券平台收到請求後，更新 `members.is_activated = FALSE` 並寫入一筆 `member_event_logs`（type = `deactivate_member`，data = null），**樹配券本地寫入成功即視為本次請求成功**；同時呼叫點數系統 API 取消授權（`member_unauthorize`），此呼叫為 best-effort，其成功與否不影響本次 API 回應結果——若點數系統呼叫失敗，觸發告警通知工程團隊另行處理，不需等待點數系統成功才回覆成功。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{treecoupon_frontend_api_key}}`
@@ -65,15 +66,16 @@ HTTP Status: `200 OK`（無 body）
 ### 邏輯說明
 - 樹配券收到請求後，先檢查會員當前是否已為停用狀態（`members.is_activated = false`）
   - 是：直接回傳 `200 OK`，不重複寫 log，不呼叫點數系統
-  - 否：先呼叫點數系統 API（`member_unauthorize`）取消授權；點數系統失敗則直接回失敗，樹配券狀態不變
-    - 點數系統成功後，更新 `members.is_activated = false`、`members.updated_at`，並寫入一筆 `member_event_logs`（type=deactivate_member，data=null）
+  - 否：更新 `members.is_activated = false`、`members.updated_at`，並寫入一筆 `member_event_logs`（type=deactivate_member，data=null）；本地寫入成功即回傳 `200 OK`
+    - 同時呼叫點數系統 API（`member_unauthorize`）取消授權，此呼叫為 best-effort，不影響本次回應結果
 
 > **失敗情境補充：**
-> - **點數系統失敗（含 timeout）**：直接回失敗（`TREELIFE_ERROR`），樹配券狀態不變；此操作具冪等性，前端可直接重試同一 API，不需額外查詢確認
-> - **點數系統成功、樹配券平台後續寫入失敗**（`members` 更新或 `member_event_logs` 寫入失敗）：屬**非預期錯誤**，回 5xx 並觸發 Sentry alert 通知工程團隊人工介入；此時點數系統端已完成解除授權，但樹配券本地端狀態未同步，需人工確認並補正兩邊狀態一致，不列入下方 400 MESSAGE 清單
+> - **樹配券本地寫入失敗**（`members` 更新或 `member_event_logs` 寫入失敗）：屬**非預期錯誤**，回 5xx；此為唯一影響本次 API 成敗判定的情境
+> - **點數系統呼叫失敗（含 timeout）**：**不影響本次 API 回應**，仍回 `200 OK`；觸發告警通知工程團隊，另行確認並補正點數系統端的授權狀態，使其與樹配券本地狀態一致；不列入下方 400 MESSAGE 清單
 - 停用後，用戶錢包中 `available` 的 coupon 保留但不可用於新交易；`consumed` 狀態的 order 繼續走完原流程
 - 重新啟用（呼叫 `activate_member`）後，原有 `available` coupon 自動恢復可用，無需額外操作
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 1. `member_id` 不存在：`MEMBER_NOT_FOUND`
-2. 小樹生活點數系統呼叫失敗：`TREELIFE_ERROR`
+
+> `TREELIFE_ERROR` 已移除：點數系統呼叫失敗不再是本 API 的失敗情境，改以告警處理（見上「失敗情境補充」）。
