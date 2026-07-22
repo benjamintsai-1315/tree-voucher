@@ -2,6 +2,12 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-22 — create_order 銀行↔神坊連線層 timeout 定案：改為非同步 bank_get_order 查詢
+
+- 取代先前待與銀行/SA 確認的兩個前提問題（同 `order_id` 重送機制、bank_get_order 比對後的取消流程），改以「銀行端非同步透過 `bank_get_order` 查詢該筆訂單實際結果，據以更新銀行內部折抵資料」為主要做法，不採用同 `order_id` 重送
+- 若查詢結果顯示該筆折抵不應存在（例如銀行端已判定該筆刷卡應取消），仍可透過既有 `batch_finalize_orders`（action=`cancel`）取消／回沖已入帳的折抵
+- 已同步更新 PRD §12.3（六角色表格）、`docs/misc/2026-07-16-timeout-待確認事項.md`（第 1 項改為請銀行確認此設計的可行性，而非開放式問題）
+
 ## 2026-07-22 — deactivate_member 改為本地寫入成功即完成，與 activate_member 不再對稱
 
 - 決議：`deactivate_member` 只要樹配券平台本身成功寫入本地狀態（`members.is_activated = FALSE` + `member_event_logs`）即回覆成功，不需等待點數系統（`member_unauthorize`）成功；點數系統呼叫改為 best-effort，失敗時觸發告警通知工程團隊另行補正，不影響本次 API 回應
