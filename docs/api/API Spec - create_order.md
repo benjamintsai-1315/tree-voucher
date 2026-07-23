@@ -7,6 +7,7 @@ permalink: /api-specs/create-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-23 | 「`get_member_orders` 用券摘要快照」段落調整：分組鍵由 `campaign_name` + `is_new_issued` 改為 `campaign_id`（新增此欄位），同一 campaign 的新／舊券合併為一筆，改用巢狀 `coupon_usage.new_issued` / `coupon_usage.existing` 呈現各自張數、金額與點數消耗；明訂 `point_used` 為各 campaign `new_issued.used_points` 的衍生加總 |
 | 2026-07-21 | 效能討論定案：`get_member_orders` 的 `coupon_usage_summary`／`point_used` 改為建單當下即計算並寫入 order 記錄的快照，取代原本查詢當下即時 JOIN／GROUP BY 聚合，降低列表查詢運算成本並避免大量用券訂單的 response 過大；新增「`get_member_orders` 用券摘要快照」段落 |
 | 2026-07-21 | 訂單狀態生命週期表引用的 `batch_finalize_orders` action 值同步改為小寫 `complete`/`cancel`（原 `COMPLETED`/`CANCELLED`），與該 API spec 本次調整對齊 |
 | 2026-07-16 | response 新增 `created_at`：order 於神坊資料庫中的建立時間（stage 1 建單當下），供發卡主機對帳參考 |
@@ -177,8 +178,10 @@ Content-Type: `application/json`
 - `cub_points`（小樹點信用卡）為銀行發行點數，是發卡主機對帳的主要依據；`tree_points`（小樹點生活）為神坊端點數，一併列出供完整核對
 
 **`get_member_orders` 用券摘要快照（效能考量）：**
-- 建單完成時（既有券段與新券段皆處理完畢後），同步將依 `campaign_name` + `is_new_issued` 分組聚合的用券摘要（含 `discount_amount`、`quantity`）與 `point_used` 寫入該筆 order 記錄（例如 `orders.coupon_usage_summary` JSON 欄位），供 `get_member_orders` 直接讀取快照回傳，不需在列表查詢當下即時 JOIN／GROUP BY 聚合——降低列表查詢的即時運算成本，同時避免單筆訂單使用大量券（例如 20 張）時 response 資料量過大
-- 此快照與本 API 回應的 `coupon_summary`（`new_issued`／`existing` 兩組彙總，供發卡主機對帳）粒度不同：`coupon_usage_summary` 快照另依 `campaign_name` 進一步分組，供前台會員訂單列表顯示用途
+- 建單完成時（既有券段與新券段皆處理完畢後），同步將依 `campaign_id` 分組聚合的用券摘要寫入該筆 order 記錄（例如 `orders.coupon_usage_summary` JSON 欄位），供 `get_member_orders` 直接讀取快照回傳，不需在列表查詢當下即時 JOIN／GROUP BY 聚合——降低列表查詢的即時運算成本，同時避免單筆訂單使用大量券（例如 20 張）時 response 資料量過大
+- 每筆快照含 `campaign_id`、`campaign_name`，並依券來源拆分為 `coupon_usage.new_issued` / `coupon_usage.existing` 兩個子物件（各含 `quantity`、`total_discount_amount`、`used_points.{tree_points,cub_points}`）；同一 campaign 若同時有新券與舊券使用，仍合併為同一筆，不再依新舊券拆成兩筆
+- `point_used`（訂單層級，`tree_points`/`cub_points`）同步寫入，其值等於所有 campaign 之 `coupon_usage.new_issued.used_points` 加總，屬衍生於同一快照的彙總欄位，供前台端不需自行迭代加總即可顯示點數總計
+- 此快照與本 API 回應的 `coupon_summary`（`new_issued`／`existing` 兩組彙總，供發卡主機對帳）粒度不同：`coupon_usage_summary` 快照另依 `campaign_id` 進一步分組，供前台會員訂單列表顯示用途
 - 快照於建單當下寫入後即固定，不隨後續 coupon 狀態變化（如 `consumed → settled`）而更動，僅反映建單當下的用券結果
 
 **訂單狀態（`order.status`）生命週期：**
