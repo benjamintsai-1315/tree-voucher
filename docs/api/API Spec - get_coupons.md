@@ -7,6 +7,7 @@ permalink: /api-specs/get-coupons/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-23 | Response 陣列欄位由 `coupons` 更名為 `items`；Sample JSON、使用情境、邏輯說明同步修正 |
 | 2026-07-23 | `status` 查詢參數由可複選 `status[]` 改回單選 `status`，enum 改為 `unsettled`／`available`／`consumed`／`settled`／`expired` 五選一；`unsettled` 為 API 查詢層級的別名（等同 `available`+`consumed`），非 coupon 狀態機的一員，不會出現在 response 的 `status` 欄位 |
 | 2026-07-23 | `status[]` 查詢參數新增 `unsettled` 別名值，等同 `available`+`consumed`，供前端「待折抵」列表查詢時免帶兩個值；`unsettled` 僅為 API 查詢層級的翻譯，不進入 coupon 狀態機、不會出現在 response 的 `status` 欄位 |
 | 2026-07-22 | 效能討論定案：前端改以三個獨立列表呈現（待折抵 `available`+`consumed`／已折抵 `settled`／已過期 `expired`），取代原本兩頁籤（待折抵／紀錄）設計；不採用先前討論的「三態收斂（available/used/expired）」方案，狀態 enum 與排序規則維持四態不變；補充說明 `settled`／`expired` 排序欄位不同，前端不應合併查詢 |
@@ -44,7 +45,7 @@ permalink: /api-specs/get-coupons/
 ## 使用情境
 前台端由品牌卡片（`get_coupon_wallet`）進入後，帶入 `member_id` 與 `brand_id` 查詢該品牌下的券列表。前端以三個列表呈現：**待折抵**（`status=unsettled`，等同 `available`+`consumed`）、**已折抵**（`status=settled`）、**已過期**（`status=expired`），各自獨立查詢、獨立分頁，不合併呈現。
 
-若使用者在該品牌目前沒有任何券，回傳 `coupons: []`，不視為錯誤。
+若使用者在該品牌目前沒有任何券，回傳 `items: []`，不視為錯誤。
 
 # Request
 HTTP method: `GET`
@@ -76,7 +77,7 @@ Content-Type: `application/json`
   "page": 1,
   "limit": 20,
   "total": 3,
-  "coupons": [
+  "items": [
     {
       "id": "01HZYA1B2C3D4E5F6G7H8J9K0M",
       "status": "available",
@@ -106,9 +107,9 @@ Content-Type: `application/json`
 | page | Integer | 當前頁碼，從 1 開始 |
 | limit | Integer | 每頁筆數 |
 | total | Integer | 符合條件的總筆數 |
-| coupons | Array | 該用戶符合篩選條件的券列表 |
+| items | Array | 該用戶符合篩選條件的券列表 |
 
-### coupons
+### items
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
@@ -130,7 +131,7 @@ Content-Type: `application/json`
   - `available`、`consumed` bucket 依 `expired_at DESC`、`id ASC` 排序
   - `settled` bucket 依 `updated_at DESC`（finalize 的時間）、`id ASC` 排序
   - `expired` bucket 依 `expired_at DESC`、`id ASC` 排序
-- 無任何符合條件的券時，回傳 `coupons: []`，不報錯
+- 無任何符合條件的券時，回傳 `items: []`，不報錯
 - 本 API 不回傳訂單關聯欄位，例如 `order_id`
 - 本 API 回傳精簡化券資訊，供列表畫面使用；不含 `brand`（已由 `brand_id` 篩選帶入）、`redeem_points`、`discount_rate`、`max_redemptions_per_order`、`created_at`。如需完整詳情請呼叫 `get_coupon_detail`
 - `updated_at` 為排序鍵之一（`settled` bucket 依此排序），故納入 response 回傳，避免排序依據的欄位卻無法讓前端查驗
