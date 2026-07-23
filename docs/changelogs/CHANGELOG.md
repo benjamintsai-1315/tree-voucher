@@ -2,6 +2,11 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-23 — get_coupon_wallet 欄位更名：available_coupon_count → unsettled_coupon_count
+
+- 欄位名稱與 `available` 狀態值容易混淆（該欄位實際聚合 `available` + `consumed` 兩種狀態，並非只計 `available`），更名為 `unsettled_coupon_count`，語意改為「尚未走完流程（尚未進入 `settled`/`expired` 終態）的券」
+- 已同步更新 `get_coupon_wallet.md`（Response sample、Response items、邏輯說明）、PRD（§二 Coupon Wallet 規則、Flow 6）
+
 ## 2026-07-22 — get_coupon_wallet/get_coupons 效能討論最終定案
 
 - `get_coupon_wallet`：移除 366 天時間限制，品牌清單改為顯示所有曾操作過的品牌（不限時間）；`available_coupon_count` 聚合口徑擴大為 `available` + `consumed`
