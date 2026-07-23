@@ -2,6 +2,13 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-23 — 新增客服/營運人工注銷 Coupon 機制（CLI 暫行）
+
+- `coupons.status` 新增第 5 個終態 `voided`，僅可由 `available` 轉入（限未過期），不可逆；重複注銷、狀態不符一律拒絕並報錯
+- 新增兩張表：`coupon_manual_actions`（稽核表，記錄操作者 `admin_user_id`、必填 reason、選填 ticket_reference）、`coupon_event_log`（比照 `member_event_logs` 精神新建的 coupon 層級事件表）
+- 現階段無後台 CRUD API，由 RD 依規格以 CLI 執行（`coupon_id` + `member_id` 交叉確認 + 單一 DB transaction），僅支援單筆；`voided` 完全不對前台 `get_coupons`/`get_coupon_wallet` 顯示，僅 `get_coupon_detail` 直接查詢時誠實回傳
+- 完整資料流規格見新文件 `docs/misc/2026-07-23-coupon-manual-void-mechanism.md`；已同步更新 CLAUDE.md（Coupon 狀態 enum）、PRD（§二 Coupon 規則、§三 狀態機）、`get_coupon_detail.md`（`status` 可回傳值）
+
 ## 2026-07-23 — get_member_orders：coupon_usage_summary 改為依 campaign_id 分組，新舊券合併呈現
 
 - 分組鍵由 `campaign_name` + `is_new_issued` 改為 `campaign_id`（新增此欄位）；同一 campaign 若同時有新券與舊券使用，合併為一筆，透過巢狀 `coupon_usage.new_issued` / `coupon_usage.existing` 分別呈現各自的 `quantity`、`total_discount_amount`（原 `discount_amount` 更名）、`used_points`（點數消耗下放至各類別）
