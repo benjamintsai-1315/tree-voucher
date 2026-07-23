@@ -7,6 +7,7 @@ permalink: /api-specs/get-coupon-detail/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-23 | `status` 可回傳值新增 `voided`（客服/營運人工注銷專用終態，詳見 `docs/misc/2026-07-23-coupon-manual-void-mechanism.md`）；本 API 誠實回傳實際狀態，不做特殊隱藏 |
 | 2026-07-21 | 修正前次誤植：`status` 不做大小寫轉換，API 直接回傳與 DB 一致的小寫值（`available`/`consumed`/`settled`/`expired`），取代先前「API 層轉大寫回傳」的決定；全系統 coupon 狀態 enum 統一改為小寫（CLAUDE.md、`get_coupons.md`、`get_coupon_wallet.md` 等同步修正） |
 | 2026-07-21 | 三點釐清：(1) `max_redemptions_per_order` 補註無快照、即時讀取 campaign 當下值；(2) `status` 補註 DB 為小寫 enum；(3) 補上已過期但 DB 狀態未回壓時的顯示邏輯，須即時比對 `expired_at`，與 `create_order` 既有券段查詢邏輯一致 |
 | 2026-07-14 | 修正說明不清：`id`（券識別碼）型別補上 ULID 註記；sample 的 `CPN_001` 佔位字串改為 ULID 格式，避免誤導實際格式 |
@@ -90,7 +91,7 @@ Content-Type: `application/json`
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | id | String | 券識別碼（ULID） |
-| status | String | 券狀態：`available` \| `consumed` \| `settled` \| `expired`（與 DB 欄位一致，皆為小寫，API 不做大小寫轉換） |
+| status | String | 券狀態：`available` \| `consumed` \| `settled` \| `expired` \| `voided`（與 DB 欄位一致，皆為小寫，API 不做大小寫轉換）；`voided` 為客服/營運人工注銷（詳見 `docs/misc/2026-07-23-coupon-manual-void-mechanism.md`），本 API 誠實回傳實際狀態，不做特殊隱藏 |
 | brand | Object | 對應品牌資訊，見下表 |
 | campaign | Object | 該券所屬 campaign 資訊，見下表 |
 | min_order_amount | Integer | 該券對應的消費門檻金額（元） |
