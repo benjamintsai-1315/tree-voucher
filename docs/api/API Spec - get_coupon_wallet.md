@@ -7,6 +7,7 @@ permalink: /api-specs/get-coupon-wallet/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-23 | `available_coupon_count` 更名為 `unsettled_coupon_count`，避免欄位名稱與 `available` 狀態值混淆（此欄位實際聚合 `available` + `consumed`，語意為「尚未走完流程（尚未 settled/expired）的券」） |
 | 2026-07-22 | 效能討論定案：(1) 移除 366 天時間限制，品牌清單改為回傳所有曾經產生 coupon 發行紀錄的品牌（不限時間）；(2) `available_coupon_count` 改為聚合 `available` + `consumed`（尚可用或使用中皆計入），不再僅計 `available` |
 | 2026-07-21 | coupon 狀態 enum 統一改為小寫（`available` 等），與 DB 一致，API 不做大小寫轉換 |
 | 2026-07-14 | 修正範圍錯誤：品牌清單改為回傳過去一年內（查詢當下 T-366 天，含）有 coupon 發行紀錄的所有品牌，不再限於「當前 rotation 曾選過」；`brands: []` 條件同步改為「過去一年內無任何品牌換券紀錄」。原範圍會導致換檔後仍有可用舊券的品牌從券夾消失，屬邏輯錯誤 |
@@ -64,13 +65,13 @@ Content-Type: `application/json`
       "id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK",
       "name": "全家便利商店",
       "logo": "https://cdn.example.com/logos/familymart.png",
-      "available_coupon_count": 3
+      "unsettled_coupon_count": 3
     },
     {
       "id": "01HZYAWD1V0N5V7X9Z2A4C6DHM",
       "name": "7-ELEVEN",
       "logo": "https://cdn.example.com/logos/711.png",
-      "available_coupon_count": 0
+      "unsettled_coupon_count": 0
     }
   ]
 }
@@ -89,12 +90,12 @@ Content-Type: `application/json`
 | id | String | 品牌識別碼（ULID） |
 | name | String | 品牌名稱 |
 | logo | String | 品牌 logo 圖片 URL |
-| available_coupon_count | Integer | 該品牌目前狀態為 `available` 或 `consumed` 的券張數（尚可用或使用中皆計入） |
+| unsettled_coupon_count | Integer | 該品牌目前狀態為 `available` 或 `consumed` 的券張數（尚可用或使用中皆計入；即尚未走完流程、未進入 `settled`/`expired` 終態的券） |
 
 ### 邏輯說明
-- 回傳用戶**所有**曾經產生 coupon 發行紀錄的品牌，不限時間、不限於當前 rotation 或當前已選品牌清單；包含 `available_coupon_count = 0` 的品牌（券已全部用完或尚未發券）
+- 回傳用戶**所有**曾經產生 coupon 發行紀錄的品牌，不限時間、不限於當前 rotation 或當前已選品牌清單；包含 `unsettled_coupon_count = 0` 的品牌（券已全部用完或尚未發券）
 - 品牌入列條件：該品牌下存在任一 coupon（不限時間、不限狀態）
-- `available_coupon_count` 聚合 `status IN (available, consumed)` 的券張數（尚可用或使用中皆計入，不受時間窗限制）
+- `unsettled_coupon_count` 聚合 `status IN (available, consumed)` 的券張數（尚可用或使用中皆計入，不受時間窗限制）
 - 若用戶從未有任何品牌的 coupon 發行紀錄，回傳 `brands: []`，不報錯
 - 排序依 `brand_name ASC`
 
