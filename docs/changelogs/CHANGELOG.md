@@ -2,6 +2,12 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-23 — get_coupons status 查詢參數改回單選，enum 納入 unsettled
+
+- `status` 查詢參數由可複選 `status[]` 改回單選 `status`，enum 改為 `unsettled`／`available`／`consumed`／`settled`／`expired` 五選一
+- `unsettled` 為 API 查詢層級的別名，等同同時查詢 `available` + `consumed`；非 coupon 狀態機（`available`/`consumed`/`settled`/`expired`）的一員，不會出現在 response 的 `status` 欄位
+- 已同步更新 `get_coupons.md`（Request Parameters、使用情境、邏輯說明）、PRD（Flow 6）
+
 ## 2026-07-23 — get_coupon_wallet 欄位更名：available_coupon_count → unsettled_coupon_count
 
 - 欄位名稱與 `available` 狀態值容易混淆（該欄位實際聚合 `available` + `consumed` 兩種狀態，並非只計 `available`），更名為 `unsettled_coupon_count`，語意改為「尚未走完流程（尚未進入 `settled`/`expired` 終態）的券」
