@@ -7,6 +7,7 @@ permalink: /api-specs/get-coupons/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-23 | `status[]` 查詢參數新增 `unsettled` 別名值，等同 `available`+`consumed`，供前端「待折抵」列表查詢時免帶兩個值；`unsettled` 僅為 API 查詢層級的翻譯，不進入 coupon 狀態機、不會出現在 response 的 `status` 欄位 |
 | 2026-07-22 | 效能討論定案：前端改以三個獨立列表呈現（待折抵 `available`+`consumed`／已折抵 `settled`／已過期 `expired`），取代原本兩頁籤（待折抵／紀錄）設計；不採用先前討論的「三態收斂（available/used/expired）」方案，狀態 enum 與排序規則維持四態不變；補充說明 `settled`／`expired` 排序欄位不同，前端不應合併查詢 |
 | 2026-07-21 | coupon 狀態 enum 統一改為小寫（`available`/`consumed`/`settled`/`expired`），取代先前大寫值，與 DB 欄位一致，API 不做大小寫轉換；`status[]` 查詢參數、response `status` 欄位、排序規則說明皆同步修正 |
 | 2026-07-14 | 補上 `updated_at`：`SETTLED` bucket 排序依此欄位（finalize 時間），但先前 response 未實際回傳此欄位，說明與資料不一致，此次補齊 |
@@ -40,7 +41,7 @@ permalink: /api-specs/get-coupons/
 > **注意：** `API Key` 與來源 IP 白名單皆存於 AWS Parameter Store。
 
 ## 使用情境
-前台端由品牌卡片（`get_coupon_wallet`）進入後，帶入 `member_id` 與 `brand_id` 查詢該品牌下的券列表。前端以三個列表呈現：**待折抵**（`status[]=available,consumed`）、**已折抵**（`status[]=settled`）、**已過期**（`status[]=expired`），各自獨立查詢、獨立分頁，不合併呈現。
+前台端由品牌卡片（`get_coupon_wallet`）進入後，帶入 `member_id` 與 `brand_id` 查詢該品牌下的券列表。前端以三個列表呈現：**待折抵**（`status[]=unsettled`，等同 `available`+`consumed`）、**已折抵**（`status[]=settled`）、**已過期**（`status[]=expired`），各自獨立查詢、獨立分頁，不合併呈現。
 
 若使用者在該品牌目前沒有任何券，回傳 `coupons: []`，不視為錯誤。
 
@@ -64,7 +65,7 @@ Content-Type: `application/json`
 | page | integer | FALSE | FALSE | 1 | > 0 |
 | limit | integer | FALSE | FALSE | 20 | > 0 |
 | brand_id | string | FALSE | FALSE | ❎ | ULID |
-| status[] | string | FALSE | FALSE | ❎ | 可重複帶入，每個值僅接受 `available` \| `consumed` \| `settled` \| `expired`；不帶表示回傳全部狀態 |
+| status[] | string | FALSE | FALSE | ❎ | 可重複帶入，每個值接受 `available` \| `consumed` \| `settled` \| `expired` \| `unsettled`；不帶表示回傳全部狀態。`unsettled` 為 API 查詢層級的別名，等同同時查詢 `available` + `consumed`，**非** coupon 狀態機的實際狀態值，不會出現在 response 的 `status` 欄位 |
 
 # Response
 ## Sample（JSON）
@@ -121,6 +122,7 @@ Content-Type: `application/json`
 ### 邏輯說明
 - 預設回傳該用戶所有券狀態，不只 `available`
 - 若帶 `status[]`，僅回傳指定狀態的券；可同時帶多個值（例如 `?status[]=available&status[]=consumed`）
+- `status[]=unsettled` 為 API 查詢層級的別名，接收後在 API 內部展開為 `available` + `consumed` 兩個 DB 狀態值再查詢；`unsettled` 僅存在於這支 API 的查詢參數翻譯層，不是 coupon 狀態機（`available`/`consumed`/`settled`/`expired`）的一員，DB 欄位與 response 的 `status` 不會有此值
 - 若帶 `brand_id`，僅回傳該品牌底下的券
 - 預設排序先依狀態 bucket：`available` → `consumed` → `settled` → `expired`
 - 同一狀態 bucket 內排序：
