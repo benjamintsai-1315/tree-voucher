@@ -2,6 +2,12 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-23 — get_member_orders：coupon_usage_summary 改為依 campaign_id 分組，新舊券合併呈現
+
+- 分組鍵由 `campaign_name` + `is_new_issued` 改為 `campaign_id`（新增此欄位）；同一 campaign 若同時有新券與舊券使用，合併為一筆，透過巢狀 `coupon_usage.new_issued` / `coupon_usage.existing` 分別呈現各自的 `quantity`、`total_discount_amount`（原 `discount_amount` 更名）、`used_points`（點數消耗下放至各類別）
+- 訂單層級 `point_used` 明訂為各 campaign `coupon_usage.new_issued.used_points` 的加總，屬衍生欄位，非獨立來源
+- 已同步更新 `get_member_orders.md`（Sample、Response items、邏輯說明）、`create_order.md`（「`get_member_orders` 用券摘要快照」段落）；PRD 未描述此 API 的 response 欄位細節，無需修改
+
 ## 2026-07-23 — get_coupons status 查詢參數改回單選，enum 納入 unsettled
 
 - `status` 查詢參數由可複選 `status[]` 改回單選 `status`，enum 改為 `unsettled`／`available`／`consumed`／`settled`／`expired` 五選一
