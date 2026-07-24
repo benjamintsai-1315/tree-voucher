@@ -5,6 +5,7 @@ permalink: /api-specs/create-order/
 
 ## Changelog
 
+| 2026-07-24 | `coupon_summary.new_issued`/`existing` 新增 `quantity`（該分組券張數），與 `get_member_orders` 的 `coupon_usage_summary.coupon_usage.new_issued`/`existing` 欄位組成對齊 |
 | 2026-07-24（訂正） | 「`get_member_orders` 用券摘要快照」段落修正前次改動：改回巢狀設計（分組鍵為 `campaign_id`+`campaign_name`，同組合下新舊券合併為一筆、透過 `coupon_usage.new_issued`/`existing` 呈現），欄位維持 `coupon_usage_summary`（不更名為 `coupon_summary`，避免與本 API 既有的物件型 `coupon_summary` 同名混淆） |
 | 2026-07-24 | 本 API 的 `discount_amount` 更名為 `total_discount_amount`（含 `coupon_summary.new_issued`/`existing` 內同名欄位），與「加總」/「單張券」欄位命名規則統一；「`get_member_orders` 用券摘要快照」段落改回攤平陣列設計（`campaign_id`+`campaign_name`+`is_new_issued` 三者組合為一筆，取代上次的 `campaign_id` 巢狀合併方案），並新增 `campaign_name` 快照相關說明與同名異構欄位提醒 |
 | 2026-07-23 | 「`get_member_orders` 用券摘要快照」段落調整：分組鍵由 `campaign_name` + `is_new_issued` 改為 `campaign_id`（新增此欄位），同一 campaign 的新／舊券合併為一筆，改用巢狀 `coupon_usage.new_issued` / `coupon_usage.existing` 呈現各自張數、金額與點數消耗；明訂 `point_used` 為各 campaign `new_issued.used_points` 的衍生加總 |
@@ -95,8 +96,8 @@ Content-Type: `application/json`
   "total_discount_amount": 109,
   "created_at": "2026-07-16T14:30:05.123+08:00",
   "coupon_summary": {
-    "new_issued": { "total_discount_amount": 46, "tree_points": 30, "cub_points": 10 },
-    "existing": { "total_discount_amount": 63, "tree_points": 25, "cub_points": 38 }
+    "new_issued": { "quantity": 2, "total_discount_amount": 46, "tree_points": 30, "cub_points": 10 },
+    "existing": { "quantity": 3, "total_discount_amount": 63, "tree_points": 25, "cub_points": 38 }
   }
 }
 ```
@@ -120,6 +121,7 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
+| quantity | Integer | 該分組使用的券張數 |
 | total_discount_amount | Integer | 該分組本次折抵金額合計（元） |
 | tree_points | Integer | `new_issued`：本次訂單消耗的小樹點(生活)總數；`existing`：該分組舊券於其**原始發行時**所使用的小樹點(生活)總數（非本次消耗，僅呈現歷史組成，是否為本次消耗以所屬分組區分） |
 | cub_points | Integer | `new_issued`：本次訂單消耗的小樹點(信用卡)總數；`existing`：該分組舊券於其**原始發行時**所使用的小樹點(信用卡)總數（原因同上） |
