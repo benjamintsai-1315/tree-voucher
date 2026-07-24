@@ -2,6 +2,16 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-24（訂正）— get_member_orders 改回巢狀設計，取代同日稍早的攤平陣列改動
+
+- 前一則變更記錄（見下方同日條目）將 `get_member_orders` 的用券摘要改為攤平陣列並更名 `coupon_summary`，過早定案；討論後最終結論改回**巢狀設計**：
+  - 欄位名維持 `coupon_usage_summary`（不更名為 `coupon_summary`），避免與 `create_order` 既有的物件型 `coupon_summary` 同名混淆
+  - 分組鍵為 `campaign_id`+`campaign_name`（沿用同日稍早已定案的 campaign 改名修正），同一組合下的新舊券合併為一筆，透過 `coupon_usage.new_issued`/`coupon_usage.existing` 兩個子物件呈現，前端不需自行合併同 campaign 的多筆資料
+  - `tree_points`/`cub_points` 攤平為 `new_issued`/`existing` 內的同層欄位（不額外包一層 `used_points`）
+  - 保留「`existing` 應呈現該券原始發行時的歷史點數、非恆零」的修正
+  - 命名統一（`total_discount_amount`）、`campaign_name` 快照化等其餘決議不受影響，維持不變
+- 已同步更新 `create_order.md`（「`get_member_orders` 用券摘要快照」段落）、`get_member_orders.md`
+
 ## 2026-07-24 — create_order/get_member_orders 回應結構定案：命名統一、campaign_name 快照化、get_member_orders 改回攤平陣列
 
 - **命名統一**：`discount_amount` 在代表「加總」語意時一律更名為 `total_discount_amount`（`create_order`、`bank_get_order`、`get_member_orders` 頂層與 `coupon_summary` 內同步），「單張券」的 `discount_amount`（如 `get_coupons`/`get_coupon_detail`/`bank_get_order.coupons_used[]`）維持不變
