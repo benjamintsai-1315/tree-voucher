@@ -7,6 +7,7 @@ permalink: /api-specs/get-coupons/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-24 | `campaign_name` 補註為 coupon 建立時的快照值（非即時 join campaign 表），campaign 事後改名不會回溯變動已發行券的顯示名稱 |
 | 2026-07-23 | Response 陣列欄位由 `coupons` 更名為 `items`；Sample JSON、使用情境、邏輯說明同步修正 |
 | 2026-07-23 | `status` 查詢參數由可複選 `status[]` 改回單選 `status`，enum 改為 `unsettled`／`available`／`consumed`／`settled`／`expired` 五選一；`unsettled` 為 API 查詢層級的別名（等同 `available`+`consumed`），非 coupon 狀態機的一員，不會出現在 response 的 `status` 欄位 |
 | 2026-07-23 | `status[]` 查詢參數新增 `unsettled` 別名值，等同 `available`+`consumed`，供前端「待折抵」列表查詢時免帶兩個值；`unsettled` 僅為 API 查詢層級的翻譯，不進入 coupon 狀態機、不會出現在 response 的 `status` 欄位 |
@@ -115,7 +116,7 @@ Content-Type: `application/json`
 | ---- | ---- | ---- |
 | id | String | 券識別碼（ULID） |
 | status | String | 券狀態：`available` \| `consumed` \| `settled` \| `expired` |
-| campaign_name | String | 該券所屬 campaign 名稱 |
+| campaign_name | String | 該券所屬 campaign 名稱（coupon 建立時的快照，非即時 join campaign 表；campaign 事後改名不影響已發行券的顯示名稱） |
 | min_order_amount | Integer | 該券對應的消費門檻金額（元） |
 | discount_amount | Integer | 該券折抵金額（元） |
 | expired_at | String | 該券固定到期時間（UTC+8 ISO 8601，毫秒精度） |
