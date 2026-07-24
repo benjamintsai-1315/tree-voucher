@@ -7,6 +7,7 @@ permalink: /api-specs/create-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-24 | 本 API 的 `discount_amount` 更名為 `total_discount_amount`（含 `coupon_summary.new_issued`/`existing` 內同名欄位），與「加總」/「單張券」欄位命名規則統一；「`get_member_orders` 用券摘要快照」段落改回攤平陣列設計（`campaign_id`+`campaign_name`+`is_new_issued` 三者組合為一筆，取代上次的 `campaign_id` 巢狀合併方案），並新增 `campaign_name` 快照相關說明與同名異構欄位提醒 |
 | 2026-07-23 | 「`get_member_orders` 用券摘要快照」段落調整：分組鍵由 `campaign_name` + `is_new_issued` 改為 `campaign_id`（新增此欄位），同一 campaign 的新／舊券合併為一筆，改用巢狀 `coupon_usage.new_issued` / `coupon_usage.existing` 呈現各自張數、金額與點數消耗；明訂 `point_used` 為各 campaign `new_issued.used_points` 的衍生加總 |
 | 2026-07-21 | 效能討論定案：`get_member_orders` 的 `coupon_usage_summary`／`point_used` 改為建單當下即計算並寫入 order 記錄的快照，取代原本查詢當下即時 JOIN／GROUP BY 聚合，降低列表查詢運算成本並避免大量用券訂單的 response 過大；新增「`get_member_orders` 用券摘要快照」段落 |
 | 2026-07-21 | 訂單狀態生命週期表引用的 `batch_finalize_orders` action 值同步改為小寫 `complete`/`cancel`（原 `COMPLETED`/`CANCELLED`），與該 API spec 本次調整對齊 |
@@ -43,7 +44,7 @@ permalink: /api-specs/create-order/
 ## 功能說明
 讓發卡主機以 API Key 於信用卡授權後建立折抵訂單。神坊依 `order_id`、`member_id`、`brand_id`、`order_amount`、`card_last_four_digits` 與 `store_name` 執行 coupon 清算，扣點時依 `brand.treepoint_merchant_provider_key` 帶入點數帳務通路。
 
-清算分兩段：**既有券段**（使用既有 `available` 舊券、轉 `consumed`、建立訂單與事件）與**新券段**（扣點、即時發新券）。唯有本次實際折抵金額 `discount_amount > 0` 才算建單成功（訂單進入 `processing`）並回傳折抵金額；折抵金額為 0 則訂單標記 `error` 並回對應失敗碼。
+清算分兩段：**既有券段**（使用既有 `available` 舊券、轉 `consumed`、建立訂單與事件）與**新券段**（扣點、即時發新券）。唯有本次實際折抵金額 `total_discount_amount > 0` 才算建單成功（訂單進入 `processing`）並回傳折抵金額；折抵金額為 0 則訂單標記 `error` 並回對應失敗碼。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{issuer_api_key}}`
@@ -92,11 +93,11 @@ Content-Type: `application/json`
 
 ```json
 {
-  "discount_amount": 109,
+  "total_discount_amount": 109,
   "created_at": "2026-07-16T14:30:05.123+08:00",
   "coupon_summary": {
-    "new_issued": { "discount_amount": 46, "tree_points": 30, "cub_points": 10 },
-    "existing": { "discount_amount": 63, "tree_points": 25, "cub_points": 38 }
+    "new_issued": { "total_discount_amount": 46, "tree_points": 30, "cub_points": 10 },
+    "existing": { "total_discount_amount": 63, "tree_points": 25, "cub_points": 38 }
   }
 }
 ```
@@ -105,7 +106,7 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| discount_amount | Integer | 本次實際折抵總金額（元），成功建單時必 `> 0`；等於 `coupon_summary.new_issued.discount_amount + coupon_summary.existing.discount_amount` |
+| total_discount_amount | Integer | 本次實際折抵總金額（元），成功建單時必 `> 0`；等於 `coupon_summary.new_issued.total_discount_amount + coupon_summary.existing.total_discount_amount` |
 | created_at | String | 該筆 order 於神坊資料庫中建立的時間（UTC+8 ISO 8601，毫秒精度），即 stage 1 建立 order 當下的時間；供發卡主機對帳參考，與 request 帶入的 `transaction_time`（刷卡時間）無關 |
 | coupon_summary | Object | 本次折抵金額與點數消耗，依新發券／既有券分組彙總，見下表 |
 
@@ -120,7 +121,7 @@ Content-Type: `application/json`
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| discount_amount | Integer | 該分組本次折抵金額合計（元） |
+| total_discount_amount | Integer | 該分組本次折抵金額合計（元） |
 | tree_points | Integer | `new_issued`：本次訂單消耗的小樹點(生活)總數；`existing`：該分組舊券於其**原始發行時**所使用的小樹點(生活)總數（非本次消耗，僅呈現歷史組成，是否為本次消耗以所屬分組區分） |
 | cub_points | Integer | `new_issued`：本次訂單消耗的小樹點(信用卡)總數；`existing`：該分組舊券於其**原始發行時**所使用的小樹點(信用卡)總數（原因同上） |
 
@@ -135,7 +136,7 @@ Content-Type: `application/json`
 1. 取出用戶在此 brand 下所有 `status = available` 且尚未過期的 coupons，依 `expired_at ASC`、`created_at ASC`、`coupon_id ASC` 排序（FIFO）
 2. 逐張檢查：若單張券 `coupon_min_order_amount` 大於當下剩餘消費額，則跳過該券，繼續檢查下一張
    - `coupon_min_order_amount`：門檻值，用來決定「共能使用幾張券」（累減剩餘消費額）
-   - `coupon_discount_amount`：該券實際折抵金額，計入 `discount_amount`；兩者為不同概念，不相等屬正常設計
+   - `coupon_discount_amount`：該券實際折抵金額，計入 `total_discount_amount`；兩者為不同概念，不相等屬正常設計
 3. 若該舊券 `campaign_id` 對應當前 active campaign，僅在本次已使用的 active-campaign 券數 `< max_redemptions_per_order`（`max_redemptions_per_order = 0` 代表無上限）時才可使用；一旦達上限，後續同 active campaign 舊券全部跳過
 4. 若舊券屬於歷史 campaign，則不受 `max_redemptions_per_order` 限制，仍照 FIFO 與金額門檻規則使用
 5. 所有被使用的既有券狀態改為 `consumed`
@@ -152,7 +153,7 @@ Content-Type: `application/json`
 6. 執行扣點：依上一步決定的張數與總點數，呼叫 treelife-api 扣點（依 `brand.treepoint_merchant_provider_key` 作帳務歸屬）
 7. 扣點成功後即時建立對應張數新券，狀態為 `consumed`；`expired_at = (issued_at 所在 UTC+8 日期 + coupon_valid_days) 的 23:59:59.999`；`coupon_valid_days = 0` 代表當日到期（即 issued_at 當日 `23:59:59.999`）
    - **我方失敗**：若扣點已成功但此步發券寫入失敗，該批新券不計入折抵（產生孤兒點數），依「建單成敗判定」僅以舊券折抵決定訂單狀態，善後見下方兩種失敗類型表
-8. **扣點失敗或逾時（treelife-api error / timeout，屬點數端失敗）**：依下方「扣點逾時處理」處理。最終無法完成扣點時跳過整個新券段（不發新券）；若既有券段已產生折抵（`discount_amount > 0`）→ `processing`；若既有券段亦無折抵→ `error`（`TREELIFE_ERROR`）
+8. **扣點失敗或逾時（treelife-api error / timeout，屬點數端失敗）**：依下方「扣點逾時處理」處理。最終無法完成扣點時跳過整個新券段（不發新券）；若既有券段已產生折抵（`total_discount_amount > 0`）→ `processing`；若既有券段亦無折抵→ `error`（`TREELIFE_ERROR`）
 
 **扣點逾時處理：**
 - 發卡主機可接受 `create_order` 於 **15 秒內**回覆；樹配券與點數系統的 `order_id` 為**一對一關係**（同一 `order_id` 對應點數系統的扣點交易，供結果確認與退還使用）
@@ -166,7 +167,7 @@ Content-Type: `application/json`
 - 待點數系統的「用點結果確認」可同步回傳 `tree_points`/`cub_points` 細部拆分後，可改為同步階段 timeout 後立即查詢確認：確認**成功**時視同扣點成功，續行發券，並將 `tree_points`/`cub_points` 等資料回寫樹配券平台（不再需要退點、也不需等待 cronjob）
 
 **折抵與扣點：**
-- `discount_amount` = Σ（本次所有 `consumed` coupon 的 `coupon_discount_amount`）（含既有券段與新券段）
+- `total_discount_amount` = Σ（本次所有 `consumed` coupon 的 `coupon_discount_amount`）（含既有券段與新券段）
 - 扣點時呼叫 treelife-api，treelife-api 回傳本批次實際使用的 `tree_points`（小樹點生活）與 `cub_points`（小樹點信用卡）**總數**；由神坊定義各券分配多少 cub/tree
 - 點數按券分配並寫入 `treelife_use_point_log`：cub_points 優先分配給先發行的券；分配規則為每張券消耗 `coupon_redeem_points` 點，先由 cub_points 填滿，不足時才使用 tree_points；`used_tree_points + used_cub_points` = 該券的 `coupon_redeem_points`，且各券加總須等於 treelife-api 回傳之總數
 - `coupon_summary.new_issued.tree_points` / `coupon_summary.new_issued.cub_points` 為 treelife-api 回傳的全批次總數，直接轉入 response；`coupon_summary.existing.tree_points`/`cub_points` 則取自該分組每張舊券於其原始發行訂單寫入 `treelife_use_point_log` 的 `used_tree_points`/`used_cub_points` 加總（歷史值，非本次消耗）
@@ -174,14 +175,16 @@ Content-Type: `application/json`
 **`coupon_summary` 對帳彙總（供發卡主機）：**
 - `coupon_summary` 依新券段／既有券段分組彙總，非逐張券明細；`new_issued` 對應本次即時發行的新券，`existing` 對應本次使用的既有舊券
 - `existing` 分組列出的點數為該些舊券**原始發行時**的歷史點數組成，並非本次訂單新消耗；該分組是否為本次新消耗，由 `new_issued`／`existing` 兩個分組本身即可判斷，不需另外歸零
-- 對帳恆等式：`coupon_summary.new_issued.discount_amount + coupon_summary.existing.discount_amount == discount_amount`
+- 對帳恆等式：`coupon_summary.new_issued.total_discount_amount + coupon_summary.existing.total_discount_amount == total_discount_amount`
 - `cub_points`（小樹點信用卡）為銀行發行點數，是發卡主機對帳的主要依據；`tree_points`（小樹點生活）為神坊端點數，一併列出供完整核對
 
 **`get_member_orders` 用券摘要快照（效能考量）：**
-- 建單完成時（既有券段與新券段皆處理完畢後），同步將依 `campaign_id` 分組聚合的用券摘要寫入該筆 order 記錄（例如 `orders.coupon_usage_summary` JSON 欄位），供 `get_member_orders` 直接讀取快照回傳，不需在列表查詢當下即時 JOIN／GROUP BY 聚合——降低列表查詢的即時運算成本，同時避免單筆訂單使用大量券（例如 20 張）時 response 資料量過大
-- 每筆快照含 `campaign_id`、`campaign_name`，並依券來源拆分為 `coupon_usage.new_issued` / `coupon_usage.existing` 兩個子物件（各含 `quantity`、`total_discount_amount`、`used_points.{tree_points,cub_points}`）；同一 campaign 若同時有新券與舊券使用，仍合併為同一筆，不再依新舊券拆成兩筆
-- `point_used`（訂單層級，`tree_points`/`cub_points`）同步寫入，其值等於所有 campaign 之 `coupon_usage.new_issued.used_points` 加總，屬衍生於同一快照的彙總欄位，供前台端不需自行迭代加總即可顯示點數總計
-- 此快照與本 API 回應的 `coupon_summary`（`new_issued`／`existing` 兩組彙總，供發卡主機對帳）粒度不同：`coupon_usage_summary` 快照另依 `campaign_id` 進一步分組，供前台會員訂單列表顯示用途
+- 建單完成時（既有券段與新券段皆處理完畢後），同步將用券摘要以攤平陣列寫入該筆 order 記錄（例如 `orders.coupon_summary` JSON 欄位），供 `get_member_orders` 直接讀取快照回傳，不需在列表查詢當下即時 JOIN／GROUP BY 聚合——降低列表查詢的即時運算成本，同時避免單筆訂單使用大量券（例如 20 張）時 response 資料量過大
+- 每筆快照列為 `campaign_id` + `campaign_name` + `is_new_issued` 三者組合的聚合統計，含 `quantity`、`total_discount_amount`、`tree_points`、`cub_points`；只有實際被使用到的組合才輸出一筆，不為未使用的類別（例如某 campaign 本次未發新券）強制輸出全零 row
+- `campaign_name` 為 coupon 建立時凍結的快照值（見 §二 Coupon 規則 1），不隨 campaign 事後改名回溯變動；若 campaign 曾經改名，同一 `campaign_id` 底下不同批次發行的券可能對應不同的 `campaign_name`，會各自成一筆、不合併
+- 同一 campaign（同 `campaign_id`+`campaign_name`）若同時有新券與舊券使用，依 `is_new_issued` 拆成**兩筆**回傳，不合併為一筆——前端如需該 campaign 這筆訂單的合計，需自行加總同 `campaign_id`+`campaign_name` 的多筆 row
+- `point_used`（訂單層級，`tree_points`/`cub_points`）同步寫入，其值等於快照陣列中所有 `is_new_issued=true` 列的 `tree_points`/`cub_points` 加總，屬衍生於同一快照的彙總欄位，供前台端不需自行迭代加總即可顯示點數總計
+- ⚠️ **此快照欄位與本 API 回應的 `coupon_summary` 同名但結構不同**：本 API 回應的 `coupon_summary` 是物件（`new_issued`／`existing` 兩組彙總，供發卡主機對帳，不分 campaign）；`get_member_orders` 讀取的快照雖然也存放於／命名為 `coupon_summary`，但其值為**陣列**（依 campaign 進一步拆分，供前台會員訂單列表顯示用途）。兩者粒度與型別皆不同，僅欄位命名巧合相同，實作與串接時需特別注意不要混淆
 - 快照於建單當下寫入後即固定，不隨後續 coupon 狀態變化（如 `consumed → settled`）而更動，僅反映建單當下的用券結果
 
 **訂單狀態（`order.status`）生命週期：**
@@ -189,8 +192,8 @@ Content-Type: `application/json`
 | 狀態 | 意義 | 進入時機 |
 | ---- | ---- | ---- |
 | `pending` | 剛建立，涵蓋清算執行中（既有券段 + 新券段），無獨立的「清算中」狀態值 | stage 1 一開始即建立 order（不論有無舊券） |
-| `processing` | 清算完成、待終結 | 清算完成且 `discount_amount > 0`，等待 `batch_finalize_orders` |
-| `error` | 清算完成、失敗 | 清算完成且 `discount_amount = 0` |
+| `processing` | 清算完成、待終結 | 清算完成且 `total_discount_amount > 0`，等待 `batch_finalize_orders` |
+| `error` | 清算完成、失敗 | 清算完成且 `total_discount_amount = 0` |
 | `completed` | 已終結 | `batch_finalize_orders` action=`complete` |
 | `cancelled` | 已終結（取消） | `batch_finalize_orders` action=`cancel` |
 
@@ -199,12 +202,12 @@ Content-Type: `application/json`
 **兩段 DB transaction 邊界：**
 - **stage 1（既有券段）**：於單一 transaction 內建立 order（狀態維持 `pending`）、既有券段清算（舊券轉 `consumed`）、建立 order event 後 commit
 - **stage 2（新券段）**：另一 transaction 執行扣點、發新券；完成後將新券的折抵與點數 **update 併回同一筆 order**
-- 兩段皆於 15 秒同步窗內跑完才回覆發卡主機；response 的 `discount_amount` 為兩段合計
+- 兩段皆於 15 秒同步窗內跑完才回覆發卡主機；response 的 `total_discount_amount` 為兩段合計
 
 **成敗判定（單一條件，不受新券段失敗種類影響）：**
-- 清算完成後 `discount_amount = Σ（既有券折抵 + 成功發出新券折抵）`
-- **`discount_amount > 0` → `processing`**（成功），等待後續 `batch_finalize_orders`
-- **`discount_amount = 0` → `error`**，記錄對應 `error_type`（見下方 400 清單 4～8），API 回傳該失敗碼
+- 清算完成後 `total_discount_amount = Σ（既有券折抵 + 成功發出新券折抵）`
+- **`total_discount_amount > 0` → `processing`**（成功），等待後續 `batch_finalize_orders`
+- **`total_discount_amount = 0` → `error`**，記錄對應 `error_type`（見下方 400 清單 4～8），API 回傳該失敗碼
 
 **新券段失敗的兩種類型（皆不改變上述判定，只影響善後）：**
 
@@ -221,7 +224,7 @@ Content-Type: `application/json`
 - 券的 `issued_at` / `expired_at` 均以神坊**收到 request 的實際時間**為準，與 `transaction_time` 無關；`expired_at` 的日界（`23:59:59.999` UTC+8、含邊界）與 rotation active 判定採相同精度與邊界規則
 - **rotation 邊界暫定：** 若 `transaction_time` 早於 `rotation.end_time`（交易發生在舊檔期內），但神坊收到 request 時當下時間已超過 `rotation.end_time`，**暫定仍以收到 request 時間為準**執行清算（不回溯舊 rotation）
 - `max_points_per_member`：定義於 **rotation 屬性**（非 campaign）；語意為「同一用戶於此 rotation 內、跨所有品牌與 campaign 合計可用的點數上限」；計數條件為同一 `member_id + rotation_id` 下已發行 coupon 的 `coupon_redeem_points` 加總；`0` 代表無上限
-- `create_order` response 回傳 `discount_amount` 與 `coupon_summary`（新券段／既有券段彙總）；發卡主機若需事後重查訂單狀態與折抵金額，應另呼叫 `bank_get_order`（前台端不提供單筆訂單明細查詢）
+- `create_order` response 回傳 `total_discount_amount` 與 `coupon_summary`（新券段／既有券段彙總）；發卡主機若需事後重查訂單狀態與折抵金額，應另呼叫 `bank_get_order`（前台端不提供單筆訂單明細查詢）
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 
