@@ -2,6 +2,16 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-24 — create_order/get_member_orders 回應結構定案：命名統一、campaign_name 快照化、get_member_orders 改回攤平陣列
+
+- **命名統一**：`discount_amount` 在代表「加總」語意時一律更名為 `total_discount_amount`（`create_order`、`bank_get_order`、`get_member_orders` 頂層與 `coupon_summary` 內同步），「單張券」的 `discount_amount`（如 `get_coupons`/`get_coupon_detail`/`bank_get_order.coupons_used[]`）維持不變
+- **`campaign_name` 新增為 coupon 建立時的快照欄位**（PRD §二 Coupon 規則 1）：快照後不隨 campaign 事後改名回溯變動；`get_coupons.md`、`get_coupon_detail.md` 同步補註
+- **`get_member_orders` 的 `coupon_usage_summary` 重新設計為攤平陣列**，更名為 `coupon_summary`（⚠️ 與 `create_order` 的 `coupon_summary` 同名但結構不同：前者為陣列、後者為物件，兩者粒度不同，僅欄位命名巧合相同）：
+  - 分組鍵改為 `campaign_id`+`campaign_name`+`is_new_issued` 三者組合，取代上次（2026-07-23）的 `campaign_id` 巢狀合併設計；只有實際使用到的組合才輸出一筆，不強制輸出全零 row
+  - `tree_points`/`cub_points` 攤平為同層欄位，取代巢狀 `used_points`；同時修正先前「`existing` 恆為 0」的錯誤——`is_new_issued=false` 應呈現該券原始發行時的歷史點數組成，與 `create_order.coupon_summary.existing` 語意一致
+  - 新增範例說明 campaign 改名情境：同一 `campaign_id` 若歷經改名，不同批次發行的券可能對應不同的 `campaign_name`，各自成一筆、不合併
+- 已同步更新 `create_order.md`（含「`get_member_orders` 用券摘要快照」段落）、`get_member_orders.md`、`bank_get_order.md`、`get_coupons.md`、`get_coupon_detail.md`、PRD（§二 Coupon 規則）
+
 ## 2026-07-23 — 新增客服/營運人工注銷 Coupon 機制（CLI 暫行）
 
 - `coupons.status` 新增第 5 個終態 `voided`，僅可由 `available` 轉入（限未過期），不可逆；重複注銷、狀態不符一律拒絕並報錯
