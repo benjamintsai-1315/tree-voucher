@@ -7,6 +7,7 @@ permalink: /api-specs/get-coupon-detail/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-24 | `campaign.name` 補註為 coupon 建立時的快照值（非即時 join campaign 表），campaign 事後改名不會回溯變動已發行券的顯示名稱 |
 | 2026-07-23 | `status` 可回傳值新增 `voided`（客服/營運人工注銷專用終態，詳見 `docs/misc/2026-07-23-coupon-manual-void-mechanism.md`）；本 API 誠實回傳實際狀態，不做特殊隱藏 |
 | 2026-07-21 | 修正前次誤植：`status` 不做大小寫轉換，API 直接回傳與 DB 一致的小寫值（`available`/`consumed`/`settled`/`expired`），取代先前「API 層轉大寫回傳」的決定；全系統 coupon 狀態 enum 統一改為小寫（CLAUDE.md、`get_coupons.md`、`get_coupon_wallet.md` 等同步修正） |
 | 2026-07-21 | 三點釐清：(1) `max_redemptions_per_order` 補註無快照、即時讀取 campaign 當下值；(2) `status` 補註 DB 為小寫 enum；(3) 補上已過期但 DB 狀態未回壓時的顯示邏輯，須即時比對 `expired_at`，與 `create_order` 既有券段查詢邏輯一致 |
@@ -117,7 +118,7 @@ Content-Type: `application/json`
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | id | String | Campaign 識別碼（ULID） |
-| name | String | Campaign 名稱 |
+| name | String | Campaign 名稱（coupon 建立時的快照，非即時 join campaign 表；campaign 事後改名不影響已發行券的顯示名稱） |
 | type | String | Campaign 類型：`auto`（系統自動兌換）\| `manual`（用戶手動兌換） |
 
 ### 邏輯說明
