@@ -303,7 +303,7 @@ Content-Type: `application/json`
 - **`order.status = error` 的訂單（`create_order` 清算後折抵為 0）不列入本列表**；清算中的暫態（`pending`）亦不會出現於已成立的訂單列表
 - `items` 內的 `card_last_four_digits`、`store_name` 為建單時由發卡主機提供，供前台端在訂單列表顯示辨識資訊
 - 訂單取消時，`total_discount_amount` 與 `coupon_usage_summary[].coupon_usage.{new_issued|existing}.total_discount_amount` 皆維持既有欄位語意（前者歸零、後者為原始計算值），前端純依 `status = cancelled` 判斷顯示邏輯，不需額外欄位
-- 固定以 `transaction_time DESC` 排序
+- 固定以 `transaction_time DESC` 排序，時間相同時以 `id ASC` 排序
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 1. member_id 不存在：`MEMBER_NOT_FOUND`
