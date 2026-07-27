@@ -2,6 +2,14 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-27 — Coupon 狀態機新增 consuming 中間態（create_order 一致性修正）
+
+- **背景**：`create_order` 既有券於流程一開始即被 FIFO 選定，但扣點需呼叫外部 treelife-api（無法納入 DB transaction rollback），新券也是扣點成功後才建立。若選定當下就直接標記 `consumed`，後續扣點或建券發生非預期錯誤時，會產生「訂單未完成、券卻已被視為用掉」的不一致
+- **設計**：新增 `consuming` 為 coupon 狀態機的內部中間態：既有券於 FIFO 選定時、新券於扣點成功建立時，皆先標記 `consuming`；待新券段結果確定後，stage 2 結尾執行**最終 transaction**，將涉及的既有券＋新券一併由 `consuming` 轉為 `consumed`，同時 `order.status` 由 `pending` 轉為 `processing`/`error`，確保「券被視為用掉」與「訂單被視為成功」永遠綁定同一次 commit
+- **前台可見性**：`consuming` 純屬內部狀態，`get_coupons`／`get_coupon_detail`／`get_coupon_wallet` 一律將其顯示/計入為 `consumed`，不對前端揭露
+- **已知缺口（待補充，不在本次範圍）**：若流程於最終 transaction 前中斷，`consuming` 的券將卡在該狀態，回收/收斂機制待補充，與既有的 `order.status = pending` 滯留問題（同樣缺乏自動收斂機制）屬同一類失敗視窗，將一併處理
+- 已同步更新 CLAUDE.md（Coupon／Order 狀態 enum）、PRD（§二 Coupon 規則與狀態機表、§三 清算邏輯、§四 訂單生命週期，並補上先前遺漏的 `discount_amount`→`total_discount_amount` 命名統一）、`create_order.md`（既有券段／新券段步驟、兩段 transaction 邊界、changelog 表頭修復）、`get_coupons.md`、`get_coupon_detail.md`、`get_coupon_wallet.md`
+
 ## 2026-07-24（訂正）— get_member_orders 改回巢狀設計，取代同日稍早的攤平陣列改動
 
 - 前一則變更記錄（見下方同日條目）將 `get_member_orders` 的用券摘要改為攤平陣列並更名 `coupon_summary`，過早定案；討論後最終結論改回**巢狀設計**：

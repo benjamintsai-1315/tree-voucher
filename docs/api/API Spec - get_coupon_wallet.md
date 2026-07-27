@@ -7,6 +7,7 @@ permalink: /api-specs/get-coupon-wallet/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-27 | 補註 `unsettled_coupon_count`：DB 內部中間態 `consuming`（`create_order` 清算過程中）比照 `consumed` 一併計入聚合，不對前端另外揭露 |
 | 2026-07-23 | `available_coupon_count` 更名為 `unsettled_coupon_count`，避免欄位名稱與 `available` 狀態值混淆（此欄位實際聚合 `available` + `consumed`，語意為「尚未走完流程（尚未 settled/expired）的券」） |
 | 2026-07-22 | 效能討論定案：(1) 移除 366 天時間限制，品牌清單改為回傳所有曾經產生 coupon 發行紀錄的品牌（不限時間）；(2) `available_coupon_count` 改為聚合 `available` + `consumed`（尚可用或使用中皆計入），不再僅計 `available` |
 | 2026-07-21 | coupon 狀態 enum 統一改為小寫（`available` 等），與 DB 一致，API 不做大小寫轉換 |
@@ -95,7 +96,7 @@ Content-Type: `application/json`
 ### 邏輯說明
 - 回傳用戶**所有**曾經產生 coupon 發行紀錄的品牌，不限時間、不限於當前 rotation 或當前已選品牌清單；包含 `unsettled_coupon_count = 0` 的品牌（券已全部用完或尚未發券）
 - 品牌入列條件：該品牌下存在任一 coupon（不限時間、不限狀態）
-- `unsettled_coupon_count` 聚合 `status IN (available, consumed)` 的券張數（尚可用或使用中皆計入，不受時間窗限制）
+- `unsettled_coupon_count` 聚合 `status IN (available, consumed)` 的券張數（尚可用或使用中皆計入，不受時間窗限制）；DB 內部中間態 `consuming`（2026-07-27 起，`create_order` 清算過程中）比照 `consumed` 一併計入，不對前端另外揭露
 - 若用戶從未有任何品牌的 coupon 發行紀錄，回傳 `brands: []`，不報錯
 - 排序依 `brand_name ASC`
 

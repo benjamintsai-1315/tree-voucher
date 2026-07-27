@@ -7,6 +7,7 @@ permalink: /api-specs/get-coupon-detail/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-27 | 補註 `status`：`create_order` 清算過程中 DB 可能存在內部中間態 `consuming`，本 API 一律顯示為 `consumed`，不對前端揭露 |
 | 2026-07-24 | `campaign.name` 補註為 coupon 建立時的快照值（非即時 join campaign 表），campaign 事後改名不會回溯變動已發行券的顯示名稱 |
 | 2026-07-23 | `status` 可回傳值新增 `voided`（客服/營運人工注銷專用終態，詳見 `docs/misc/2026-07-23-coupon-manual-void-mechanism.md`）；本 API 誠實回傳實際狀態，不做特殊隱藏 |
 | 2026-07-21 | 修正前次誤植：`status` 不做大小寫轉換，API 直接回傳與 DB 一致的小寫值（`available`/`consumed`/`settled`/`expired`），取代先前「API 層轉大寫回傳」的決定；全系統 coupon 狀態 enum 統一改為小寫（CLAUDE.md、`get_coupons.md`、`get_coupon_wallet.md` 等同步修正） |
@@ -92,7 +93,7 @@ Content-Type: `application/json`
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | id | String | 券識別碼（ULID） |
-| status | String | 券狀態：`available` \| `consumed` \| `settled` \| `expired` \| `voided`（與 DB 欄位一致，皆為小寫，API 不做大小寫轉換）；`voided` 為客服/營運人工注銷（詳見 `docs/misc/2026-07-23-coupon-manual-void-mechanism.md`），本 API 誠實回傳實際狀態，不做特殊隱藏 |
+| status | String | 券狀態：`available` \| `consumed` \| `settled` \| `expired` \| `voided`（與 DB 欄位一致，皆為小寫，API 不做大小寫轉換）；`voided` 為客服/營運人工注銷（詳見 `docs/misc/2026-07-23-coupon-manual-void-mechanism.md`），本 API 誠實回傳實際狀態，不做特殊隱藏。DB 於 `create_order` 清算過程中可能存在內部中間態 `consuming`（2026-07-27 起），本 API 一律將其顯示為 `consumed`，此為唯一對前端隱藏／轉換的狀態值 |
 | brand | Object | 對應品牌資訊，見下表 |
 | campaign | Object | 該券所屬 campaign 資訊，見下表 |
 | min_order_amount | Integer | 該券對應的消費門檻金額（元） |

@@ -7,6 +7,7 @@ permalink: /api-specs/get-coupons/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-27 | 補註 `status`：`create_order` 清算過程中 DB 可能存在內部中間態 `consuming`，本 API 一律顯示為 `consumed`，不對前端揭露 |
 | 2026-07-24 | `campaign_name` 補註為 coupon 建立時的快照值（非即時 join campaign 表），campaign 事後改名不會回溯變動已發行券的顯示名稱 |
 | 2026-07-23 | Response 陣列欄位由 `coupons` 更名為 `items`；Sample JSON、使用情境、邏輯說明同步修正 |
 | 2026-07-23 | `status` 查詢參數由可複選 `status[]` 改回單選 `status`，enum 改為 `unsettled`／`available`／`consumed`／`settled`／`expired` 五選一；`unsettled` 為 API 查詢層級的別名（等同 `available`+`consumed`），非 coupon 狀態機的一員，不會出現在 response 的 `status` 欄位 |
@@ -115,7 +116,7 @@ Content-Type: `application/json`
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | id | String | 券識別碼（ULID） |
-| status | String | 券狀態：`available` \| `consumed` \| `settled` \| `expired` |
+| status | String | 券狀態：`available` \| `consumed` \| `settled` \| `expired`。DB 於 `create_order` 清算過程中可能存在內部中間態 `consuming`（2026-07-27 起，詳見 CLAUDE.md「Coupon 狀態 enum」），本 API 一律將其顯示為 `consumed`，不對前端揭露 `consuming` |
 | campaign_name | String | 該券所屬 campaign 名稱（coupon 建立時的快照，非即時 join campaign 表；campaign 事後改名不影響已發行券的顯示名稱） |
 | min_order_amount | Integer | 該券對應的消費門檻金額（元） |
 | discount_amount | Integer | 該券折抵金額（元） |
@@ -123,11 +124,9 @@ Content-Type: `application/json`
 | updated_at | String | 該券最後更新時間（UTC+8 ISO 8601，毫秒精度）；狀態轉換時更新（如 `batch_finalize_orders` 核銷為 `settled` 的 finalize 時間）；`settled` bucket 依此欄位排序 |
 
 ### 邏輯說明
-- 預設回傳該用戶所有券狀態，不只 `available`
 - `status` 為單選參數，僅能帶一個值；若帶入，僅回傳該狀態的券
 - `status=unsettled` 為 API 查詢層級的別名，接收後在 API 內部展開為 `available` + `consumed` 兩個 DB 狀態值再查詢；`unsettled` 僅存在於這支 API 的查詢參數翻譯層，不是 coupon 狀態機（`available`/`consumed`/`settled`/`expired`）的一員，DB 欄位與 response 的 `status` 不會有此值
 - 若帶 `brand_id`，僅回傳該品牌底下的券
-- 預設排序先依狀態 bucket：`available` → `consumed` → `settled` → `expired`
 - 同一狀態 bucket 內排序：
   - `available`、`consumed` bucket 依 `expired_at DESC`、`id ASC` 排序
   - `settled` bucket 依 `updated_at DESC`（finalize 的時間）、`id ASC` 排序

@@ -5,6 +5,9 @@ permalink: /api-specs/create-order/
 
 ## Changelog
 
+| Date | Summary |
+| ---- | ------- |
+| 2026-07-27 | Coupon 狀態機新增 `consuming` 中間態：既有券於 stage 1 選定時、新券於扣點成功建立時，皆先標記 `consuming`（非直接 `consumed`），待 stage 2 結尾最終 transaction 確認新券段結果後，才將涉及的既有券＋新券一併轉為 `consumed`，同時 `order.status` 由 `pending` 轉 `processing`/`error`；解決「扣點呼叫外部服務無法納入 DB rollback」與「訂單未完成、券卻已視為用掉」的一致性問題；`consuming` 卡住的回收機制待補充，與 `pending` 滯留同批次處理 |
 | 2026-07-24 | `coupon_summary.new_issued`/`existing` 新增 `quantity`（該分組券張數），與 `get_member_orders` 的 `coupon_usage_summary.coupon_usage.new_issued`/`existing` 欄位組成對齊 |
 | 2026-07-24（訂正） | 「`get_member_orders` 用券摘要快照」段落修正前次改動：改回巢狀設計（分組鍵為 `campaign_id`+`campaign_name`，同組合下新舊券合併為一筆、透過 `coupon_usage.new_issued`/`existing` 呈現），欄位維持 `coupon_usage_summary`（不更名為 `coupon_summary`，避免與本 API 既有的物件型 `coupon_summary` 同名混淆） |
 | 2026-07-24 | 本 API 的 `discount_amount` 更名為 `total_discount_amount`（含 `coupon_summary.new_issued`/`existing` 內同名欄位），與「加總」/「單張券」欄位命名規則統一；「`get_member_orders` 用券摘要快照」段落改回攤平陣列設計（`campaign_id`+`campaign_name`+`is_new_issued` 三者組合為一筆，取代上次的 `campaign_id` 巢狀合併方案），並新增 `campaign_name` 快照相關說明與同名異構欄位提醒 |
@@ -44,7 +47,7 @@ permalink: /api-specs/create-order/
 ## 功能說明
 讓發卡主機以 API Key 於信用卡授權後建立折抵訂單。神坊依 `order_id`、`member_id`、`brand_id`、`order_amount`、`card_last_four_digits` 與 `store_name` 執行 coupon 清算，扣點時依 `brand.treepoint_merchant_provider_key` 帶入點數帳務通路。
 
-清算分兩段：**既有券段**（使用既有 `available` 舊券、轉 `consumed`、建立訂單與事件）與**新券段**（扣點、即時發新券）。唯有本次實際折抵金額 `total_discount_amount > 0` 才算建單成功（訂單進入 `processing`）並回傳折抵金額；折抵金額為 0 則訂單標記 `error` 並回對應失敗碼。
+清算分兩段：**既有券段**（使用既有 `available` 舊券、選定後先轉 `consuming`、建立訂單與事件）與**新券段**（扣點、即時發新券、亦先為 `consuming`）；兩段結果確定後，最終 transaction 將涉及的既有券＋新券一併由 `consuming` 轉為 `consumed`。唯有本次實際折抵金額 `total_discount_amount > 0` 才算建單成功（訂單進入 `processing`）並回傳折抵金額；折抵金額為 0 則訂單標記 `error` 並回對應失敗碼。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{issuer_api_key}}`
@@ -133,14 +136,14 @@ Content-Type: `application/json`
 - 同理，若該**會員**已暫停自動兌換服務（`members.auto_redeem_enabled = false`，會員層級單一開關，非品牌層級），僅跳過新券發行步驟，既有 `available` 舊券仍照常清算
 - 同理，若該品牌**未入選**（`member_selected_brands` 中不存在 `member_id + brand_id + rotation_id`〔當前 active rotation〕完全符合之記錄，含 lazy cleanup 清空後的狀態），僅跳過新券發行步驟，既有 `available` 舊券仍照常清算
 
-**既有券段（清算成功即 commit）：**
+**既有券段（FIFO 選定候選券，標記 `consuming`；真正轉為 `consumed` 於 stage 2 結尾最終 transaction 一併處理）：**
 1. 取出用戶在此 brand 下所有 `status = available` 且尚未過期的 coupons，依 `expired_at ASC`、`created_at ASC`、`coupon_id ASC` 排序（FIFO）
 2. 逐張檢查：若單張券 `coupon_min_order_amount` 大於當下剩餘消費額，則跳過該券，繼續檢查下一張
    - `coupon_min_order_amount`：門檻值，用來決定「共能使用幾張券」（累減剩餘消費額）
    - `coupon_discount_amount`：該券實際折抵金額，計入 `total_discount_amount`；兩者為不同概念，不相等屬正常設計
 3. 若該舊券 `campaign_id` 對應當前 active campaign，僅在本次已使用的 active-campaign 券數 `< max_redemptions_per_order`（`max_redemptions_per_order = 0` 代表無上限）時才可使用；一旦達上限，後續同 active campaign 舊券全部跳過
 4. 若舊券屬於歷史 campaign，則不受 `max_redemptions_per_order` 限制，仍照 FIFO 與金額門檻規則使用
-5. 所有被使用的既有券狀態改為 `consumed`
+5. 所有被選定使用的既有券狀態改為 `consuming`（**非** `consumed`）：既有券於流程一開始即被選定，但要等扣點與新券建立皆確認完成後才算真正用掉；若先直接標記 `consumed`，後續扣點或建新券發生非預期錯誤時會產生「訂單未完成、券卻已被視為用掉」的不一致。`consuming` 於此 stage 內 commit，避免同一批候選券被其他並發訂單重複選取
 
 **新券段（best effort，失敗不推翻既有券段）：**
 1. 計算剩餘消費額：`order_amount - Σ（已使用既有券的 coupon_min_order_amount）`
@@ -152,9 +155,14 @@ Content-Type: `application/json`
 4. 取會員點數餘額 `point_balance`
 5. **依序發券**（不需先算 min 再一次發行）：自第一張起，逐張檢查以下條件是否**同時成立**——(a) 剩餘消費額 ≥ `coupon_min_order_amount`；(b) 剩餘點數 ≥ `coupon_redeem_points`；(c) `remaining_rotation_point_budget ≥ coupon_redeem_points`（無上限則略過 c）。成立則計入一張並自剩餘消費額、剩餘點數、`remaining_rotation_point_budget` 各扣減對應值，重複至任一條件不成立為止
 6. 執行扣點：依上一步決定的張數與總點數，呼叫 treelife-api 扣點（依 `brand.treepoint_merchant_provider_key` 作帳務歸屬）
-7. 扣點成功後即時建立對應張數新券，狀態為 `consumed`；`expired_at = (issued_at 所在 UTC+8 日期 + coupon_valid_days) 的 23:59:59.999`；`coupon_valid_days = 0` 代表當日到期（即 issued_at 當日 `23:59:59.999`）
+7. 扣點成功後即時建立對應張數新券，狀態為 `consuming`（**非** `consumed`，理由同既有券段）；`expired_at = (issued_at 所在 UTC+8 日期 + coupon_valid_days) 的 23:59:59.999`；`coupon_valid_days = 0` 代表當日到期（即 issued_at 當日 `23:59:59.999`）
    - **我方失敗**：若扣點已成功但此步發券寫入失敗，該批新券不計入折抵（產生孤兒點數），依「建單成敗判定」僅以舊券折抵決定訂單狀態，善後見下方兩種失敗類型表
 8. **扣點失敗或逾時（treelife-api error / timeout，屬點數端失敗）**：依下方「扣點逾時處理」處理。最終無法完成扣點時跳過整個新券段（不發新券）；若既有券段已產生折抵（`total_discount_amount > 0`）→ `processing`；若既有券段亦無折抵→ `error`（`TREELIFE_ERROR`）
+
+**最終 transaction（`consuming` → `consumed`，與 `order.status` 轉換一併處理）：**
+- 新券段的結果確定後（成功建立新券、被跳過、或失敗），執行**單一** transaction：將本次涉及的既有券（stage 1 標記 `consuming` 者）與新券（若有，step 7 標記 `consuming` 者）**一併**由 `consuming` 轉為 `consumed`，同時將 `order.status` 由 `pending` 轉為 `processing`（`total_discount_amount > 0`）或 `error`（`total_discount_amount = 0`，此時通常代表既有券段本身也無候選券，無券被標記 `consuming`）
+- 此為 stage 2 的收尾動作，確保「券被視為用掉」與「訂單被視為成功」永遠綁定同一次 commit，不會出現訂單成功但券未轉正、或反之的不一致
+- ⚠️ 若流程在此最終 transaction 之前中斷（例如扣點已成功，但系統在建新券或執行最終 transaction 前意外中止），已標記 `consuming` 的既有券將卡在該狀態。此回收/收斂機制**待補充**，與下方「`pending` 滯留」屬同一類問題，將一併處理
 
 **扣點逾時處理：**
 - 發卡主機可接受 `create_order` 於 **15 秒內**回覆；樹配券與點數系統的 `order_id` 為**一對一關係**（同一 `order_id` 對應點數系統的扣點交易，供結果確認與退還使用）
@@ -197,11 +205,11 @@ Content-Type: `application/json`
 | `completed` | 已終結 | `batch_finalize_orders` action=`complete` |
 | `cancelled` | 已終結（取消） | `batch_finalize_orders` action=`cancel` |
 
-> ⚠️ `pending` 滯留：若 stage 2 執行中系統中斷，訂單將停留於 `pending`（不出現於 `get_member_orders`、亦不可終結）。目前**無自動收斂機制**，滯留訂單之處置方式由營運團隊另行討論後補充。
+> ⚠️ `pending` 滯留：若 stage 2 執行中系統中斷，訂單將停留於 `pending`（不出現於 `get_member_orders`、亦不可終結）。目前**無自動收斂機制**，滯留訂單之處置方式由營運團隊另行討論後補充。此問題與「既有券／新券卡在 `consuming`」屬同一類失敗視窗（皆發生於最終 transaction 執行之前中斷），待一併補充回收機制。
 
 **兩段 DB transaction 邊界：**
-- **stage 1（既有券段）**：於單一 transaction 內建立 order（狀態維持 `pending`）、既有券段清算（舊券轉 `consumed`）、建立 order event 後 commit
-- **stage 2（新券段）**：另一 transaction 執行扣點、發新券；完成後將新券的折抵與點數 **update 併回同一筆 order**
+- **stage 1（既有券段）**：於單一 transaction 內建立 order（狀態維持 `pending`）、既有券段候選券標記 `consuming`（**非** `consumed`）、建立 order event 後 commit
+- **stage 2（新券段 + 最終收尾）**：另一 transaction 執行扣點、發新券（標記 `consuming`）；確定新券段結果後，再執行前述「最終 transaction」，將既有券＋新券（若有）一併由 `consuming` 轉 `consumed`，並將新券的折抵與點數連同 `order.status`（`pending → processing`/`error`）**update 併回同一筆 order**
 - 兩段皆於 15 秒同步窗內跑完才回覆發卡主機；response 的 `total_discount_amount` 為兩段合計
 
 **成敗判定（單一條件，不受新券段失敗種類影響）：**

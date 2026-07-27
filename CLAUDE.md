@@ -95,13 +95,14 @@
 - `get_current_rotation` 的 `brands` 清單僅回傳具備 active `auto` campaign 的品牌（純 `manual` campaign 品牌不列入，也不可被選入 `update_member_selected_brands` 的 `brand_ids`）；品牌一旦入選，其 `campaigns` 陣列仍回傳該品牌所有 active campaign（`auto` 與 `manual`），不受此篩選限制
 
 **Coupon 狀態 enum**（必須用這些，不得自造；小寫，與 DB 欄位一致，API 不做大小寫轉換）：
-`available` → `consumed`（授權中）→ `settled`（請款完成）或 `expired`；`available` → `voided`（人工注銷，2026-07-23 起）
+`available` → `consuming`（`create_order` 清算中間態，2026-07-27 起）→ `consumed`（授權中）→ `settled`（請款完成）或 `expired`；`available` → `voided`（人工注銷，2026-07-23 起）
 - 系統無主動掃描機制批次回壓已過期券的狀態，DB 可能存在 `expired_at` 已過期、但 `status` 仍為 `available` 的券；任何 API 回傳或清算時判斷 `available`，須同時即時比對 `expired_at` 與當下時間（兩者為獨立條件，不可只信任 `status` 欄位），已過期者一律視為 `expired`
+- `consuming`：`create_order` 內部中間態，解決「既有券在流程一開始即被 FIFO 選定、但扣點（呼叫 treelife-api，無法納入 DB transaction rollback）與新券建立皆成功後才算真正用掉」的一致性問題——既有券於選定當下先標記 `consuming`（非 `available` 亦非 `consumed`，避免被其他並發訂單重複選取），待扣點與新券建立皆成功，才在最後一筆 transaction 內將本次涉及的既有券＋新券**一併**由 `consuming` 轉為 `consumed`，同時把 `order.status` 由 `pending` 轉為 `processing`；`consuming` 純屬內部中間態，**前台 API 一律顯示為 `consumed`**，不對前端揭露此狀態的存在。⚠️ 若流程在最後這筆 transaction 之前中斷（例如扣點已成功但建新券前系統意外中止），既有券將卡在 `consuming`——此回收/收斂機制目前**待補充**，與 `order.status = pending` 滯留問題同性質同批次處理（見下方 Order 狀態 enum 說明）
 - `voided`：客服／營運人工注銷專用終態，僅可由 `available` 轉入，且與 `settled`／`expired` 一樣不可逆（無「撤銷注銷」機制）；僅限尚未過期的 `available` 券可注銷。現階段由 RD 依 `docs/misc/2026-07-23-coupon-manual-void-mechanism.md` 規格以 CLI 執行（未來待後台 CRUD API 完成後包裝為正式 API）；`voided` 完全不對前台 `get_coupons`／`get_coupon_wallet` 顯示，僅 `get_coupon_detail` 直接查詢時誠實回傳
 
 **Order 狀態 enum**（`order.status`，2026-07-13 起，五態）：
 `pending`（剛建立，涵蓋清算執行中；無獨立的「清算中」狀態值）→ `processing`（清算完成、待終結，`discount_amount > 0`）或 `error`（清算完成失敗，`discount_amount = 0`）→ `completed`（`batch_finalize_orders` action=COMPLETED）／`cancelled`（action=CANCELLED）
-- `create_order` 清算採兩段 DB transaction：stage 1（建單 + 既有券段清算）、stage 2（新券段扣點發券後 update 併回同筆 order）
+- `create_order` 清算採兩段 DB transaction：stage 1（建單、`order.status = pending`；既有券段 FIFO 選定候選券並標記 `consuming`，非直接 `consumed`）、stage 2（呼叫 treelife-api 扣點；成功則建立新券並標記 `consuming`）；stage 2 結尾另有一筆**最終 transaction**，將本次涉及的既有券＋新券（若有）一併由 `consuming` 轉為 `consumed`，同時把 `order.status` 由 `pending` 轉為 `processing`（`discount_amount > 0`）或 `error`（`discount_amount = 0`，此時無任何券被標記 `consuming` 或全數未能轉正）；詳見 Coupon 狀態 enum 的 `consuming` 說明
 - 成敗回歸單一條件 `discount_amount > 0`；新券段失敗區分「點數端失敗」（treelife-api timeout；同步階段不查詢確認、直接標記「點數結果未定」交每日 04:00 cronjob 處理，確認成功時因點數系統目前無法同時提供 tree/cub 拆分而無法正確發券記帳，故呼叫返點退點；待未來支援拆分查詢後可改為同步階段即時查詢並續行發券）與「我方失敗」（扣點成功但發券失敗，孤兒點數、人工善後），兩者皆不改變成敗判定
 - 可查性：`get_member_orders` 剔除 `error`；admin 端 status filter 可查；`bank_get_order` 不分 status 全回
 
