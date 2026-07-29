@@ -2,6 +2,13 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-29 — get_member_orders 新增 campaign_discount_amount，分組鍵擴充
+
+- `coupon_usage_summary[]` 新增 `campaign_discount_amount`（該 campaign 定義之單張券折抵金額，coupon 建立時快照，語意與 `get_coupon_detail.discount_amount` 一致）
+- `campaign_name` 範例值改為不含金額的泛用名稱（如「樹配券」），實際折抵金額由 `campaign_discount_amount` 另外提供，由前端自行組成顯示字串（如「樹配券 20」）
+- 分組鍵由 `campaign_id`+`campaign_name` 擴充為 `campaign_id`+`campaign_name`+`campaign_discount_amount`：`campaign_discount_amount` 與 `campaign_name` 同為 coupon 建立時的快照值，若 campaign 事後調整折抵金額，同一 `campaign_id` 底下不同批次發行的券可能對應不同的 `campaign_discount_amount`，需一併納入分組鍵才不會被誤合併成一筆
+- 已同步更新 `get_member_orders.md`（Sample、Response items、邏輯說明）、`create_order.md`（「`get_member_orders` 用券摘要快照」段落）
+
 ## 2026-07-27 — Coupon 狀態機新增 consuming 中間態（create_order 一致性修正）
 
 - **背景**：`create_order` 既有券於流程一開始即被 FIFO 選定，但扣點需呼叫外部 treelife-api（無法納入 DB transaction rollback），新券也是扣點成功後才建立。若選定當下就直接標記 `consumed`，後續扣點或建券發生非預期錯誤時，會產生「訂單未完成、券卻已被視為用掉」的不一致
