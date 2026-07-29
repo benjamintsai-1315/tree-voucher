@@ -7,6 +7,7 @@ permalink: /api-specs/get-member-settings/
 
 | Date | Summary |
 | --- | --- |
+| 2026-07-29 | 全系統時間精度盤點：`last_brand_selection_changed_at` 補註「毫秒精度」，Sample 補上 `.000` 精度 |
 | 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
 | 2026-07-02 | 新增邊界檢查與 400 錯誤：會員須已啟用（`MEMBER_NOT_ACTIVATED`） |
 | 2026-07-02 | `selected_brand_ids` 欄位說明補上 `auto` 限定詞，與邏輯說明一致（僅回傳具備 active `auto` campaign 的品牌） |
@@ -66,7 +67,7 @@ Content-Type: `application/json`
 {  
 		"member_id": "17e26fe8-2bf4-4fbc-996f-f17b90fac683",  
 		"auto_redeem_enabled": true,  
-		"last_brand_selection_changed_at": "2026-10-15T20:30:00+08:00",  
+		"last_brand_selection_changed_at": "2026-10-15T20:30:00.000+08:00",  
 		"selected_brand_ids": ["01HZY9VC0T9M4T6W8Y1Z3B5CGK", "01HZYAWD1V0N5V7X9Z2A4C6DHM"]
 }
 ```
@@ -77,7 +78,7 @@ Content-Type: `application/json`
 | --- | --- | --- |
 | member_id | UUID | 神坊用戶識別碼 |
 | auto_redeem_enabled | Boolean | 使用者自動兌換服務是否啟用；`false` 表示目前為暫停用券狀態 |
-| last_brand_selection_changed_at | Datetime | 該用戶最近一次品牌選擇異動時間（UTC+8 ISO 8601）；僅首次選牌或更換品牌時更新；若從未選牌則為 `null` |
+| last_brand_selection_changed_at | Datetime | 該用戶最近一次品牌選擇異動時間（UTC+8 ISO 8601，毫秒精度）；僅首次選牌或更換品牌時更新；若從未選牌則為 `null` |
 | selected_brand_ids | Array | 該用戶目前已選擇、且當前仍具備 active `auto` campaign 的品牌 `id`（ULID）清單 |
 
 ### 邏輯說明

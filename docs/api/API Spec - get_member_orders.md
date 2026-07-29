@@ -7,6 +7,7 @@ permalink: /api-specs/get-member-orders/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-29 | 全系統時間精度盤點：`finalized_at`／`created_at` 補註「毫秒精度」，Sample 補上 `.000` 精度；`transaction_time` 為發卡主機提供之原樣值，明訂不強制補齊毫秒，排除於本次盤點範圍外 |
 | 2026-07-29 | `coupon_usage_summary[]` 新增 `campaign_discount_amount`（該 campaign 定義之單張券折抵金額，coupon 建立時快照）；`campaign_name` 範例值改為不含金額的泛用名稱（如「樹配券」），實際金額由 `campaign_discount_amount` 提供，前端自行組成顯示字串；分組鍵同步擴充為 `campaign_id`+`campaign_name`+`campaign_discount_amount`，避免同一 `campaign_id` 下不同折抵金額的批次被誤合併 |
 | 2026-07-24 | 修正 `used_points` 子表格說明歧義：訂單層級 `used_points` 維持僅計新發券本次消耗（與主表格說明一致），既有券原始發行時的歷史點數**不**計入此欄位，改為註明其實際呈現位置（`coupon_usage_summary[].coupon_usage.existing.tree_points`/`cub_points`） |
 | 2026-07-24（訂正） | 修正前次改動：改回**巢狀**設計（`coupon_usage_summary`，維持此欄位名，不更名為 `coupon_summary`，避免與 `create_order` 的物件型 `coupon_summary` 同名混淆），分組鍵為 `campaign_id`+`campaign_name`（修正改名情境下的正確性），同一組合下的新舊券合併為一筆、透過 `coupon_usage.new_issued`/`existing` 呈現；`tree_points`/`cub_points` 攤平為 `new_issued`/`existing` 內的同層欄位（不再額外包一層 `used_points`）；保留「`existing` 應呈現歷史點數、非恆零」的修正 |
@@ -111,7 +112,7 @@ Content-Type: `application/json`
       "status": "processing",
       "transaction_time": "2026-09-20T23:59:59+08:00",
       "finalized_at": null,
-      "created_at": "2026-09-20T23:59:59+08:00"
+      "created_at": "2026-09-20T23:59:59.000+08:00"
     },
     {
       "id": "ORD_20260919_00005",
@@ -169,8 +170,8 @@ Content-Type: `application/json`
       },
       "status": "completed",
       "transaction_time": "2026-09-19T23:59:59+08:00",
-      "finalized_at": "2026-09-20T02:00:00+08:00",
-      "created_at": "2026-09-19T23:59:59+08:00"
+      "finalized_at": "2026-09-20T02:00:00.000+08:00",
+      "created_at": "2026-09-19T23:59:59.000+08:00"
     },
     {
       "id": "ORD_20260917_00002",
@@ -228,8 +229,8 @@ Content-Type: `application/json`
       },
       "status": "cancelled",
       "transaction_time": "2026-09-17T23:59:59+08:00",
-      "finalized_at": "2026-09-18T02:00:00+08:00",
-      "created_at": "2026-09-17T23:59:59+08:00"
+      "finalized_at": "2026-09-18T02:00:00.000+08:00",
+      "created_at": "2026-09-17T23:59:59.000+08:00"
     }
   ]
 }
@@ -257,9 +258,9 @@ Content-Type: `application/json`
 | coupon_usage_summary | Array | 本次訂單所用券，依 `campaign_id`+`campaign_name`+`campaign_discount_amount` 分組聚合的使用摘要（拆分新發券／既有券兩類），見下表 |
 | used_points | Object | 本次訂單**新發券**消耗的點數總計；等於 `coupon_usage_summary[].coupon_usage.new_issued` 各筆的 `tree_points`/`cub_points` 加總（沿用既有券不消耗點數），見下表 |
 | status | String | 訂單當前狀態，取自 `order.status` 五態；本會員列表**剔除 `error`**，實際僅出現 `processing` \| `completed` \| `cancelled` |
-| transaction_time | String | 發卡主機傳入的刷卡交易時間（UTC+8 ISO 8601）；列表依此欄位排序（DESC） |
-| finalized_at | String \| null | 訂單終結時間；未終結（`processing`）時為 `null`，`completed` / `cancelled` 時為終結時間 |
-| created_at | String | 訂單建立時間（UTC+8 ISO 8601） |
+| transaction_time | String | 發卡主機傳入的刷卡交易時間（UTC+8 ISO 8601）；由發卡主機提供並原樣保存，精度依發卡主機提供之原始值，本系統不另外補齊毫秒；列表依此欄位排序（DESC） |
+| finalized_at | String \| null | 訂單終結時間（UTC+8 ISO 8601，毫秒精度）；未終結（`processing`）時為 `null`，`completed` / `cancelled` 時為終結時間 |
+| created_at | String | 訂單建立時間（UTC+8 ISO 8601，毫秒精度） |
 
 ### brand
 

@@ -2,6 +2,13 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-29 — 全系統 API response 時間精度盤點：統一補齊毫秒精度
+
+- 盤點所有現行 API spec（`docs/api/`，排除已廢除的 `get_order.md`/`finalize_order.md`/`update_member_settings.md`）的 response 時間欄位，統一補上「毫秒精度」說明與 Sample 的 `.000`（或既有 `.999` 日界值不變）
+- 修正欄位涵蓋：`bank_get_order.md`（`finalized_at`/`created_at`）、`get_current_rotation.md`（`start_time`/`end_time`、品牌與 campaign 的 `created_at`/`updated_at`；`end_time` 確認為日界，維持 `23:59:59.999` 與 `expired_at` 精度規則一致）、`get_finalize_batch_status.md`（`submitted_at`/`completed_at`/`finalized_at`）、`get_member_orders.md`（`finalized_at`/`created_at`）、`get_member_settings.md`（`last_brand_selection_changed_at`）、`get_member_settings_change_logs.md`（`created_at`）
+- **例外**：`get_member_orders.md`／`create_order.md` 的 `transaction_time` 為發卡主機提供之原樣值（passthrough，不參與清算），精度依發卡主機原始輸入，本系統不強制補齊毫秒，排除於本次盤點範圍
+- `get_coupons.md`、`get_coupon_detail.md`、`create_order.md`（既有的 `created_at`/`expired_at`）先前已具備正確的毫秒精度，本次未變動
+
 ## 2026-07-29 — get_member_orders 新增 campaign_discount_amount，分組鍵擴充
 
 - `coupon_usage_summary[]` 新增 `campaign_discount_amount`（該 campaign 定義之單張券折抵金額，coupon 建立時快照，語意與 `get_coupon_detail.discount_amount` 一致）

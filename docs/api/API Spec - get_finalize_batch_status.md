@@ -7,6 +7,7 @@ permalink: /api-specs/get-finalize-batch-status/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-29 | 全系統時間精度盤點：`submitted_at`／`completed_at`／`finalized_at` 補註「毫秒精度」，Sample 補上 `.000` 精度 |
 | 2026-07-21 | `orders[].action` 回傳值同步改為小寫 `complete`/`cancel`（原 `COMPLETED`/`CANCELLED`），與 `batch_finalize_orders` 本次調整對齊；Item Error Code 補上 `INVALID_ACTION`（該檢查已改列 `batch_finalize_orders` 非同步 item-level 錯誤） |
 | 2026-06-23 | `items` 改名為 `orders`；`orders` 欄位說明獨立為子表格；移除 `order_` prefix |
 | 2026-06-16 | 新增 API，供發卡主機查詢批次 finalize 請求的執行進度 |
@@ -48,7 +49,7 @@ Endpoint: `/bank/get_finalize_batch_status`
 {
   "request_id": "BREQ_20261003_00001",
   "status": "PROCESSING",
-  "submitted_at": "2026-10-03T10:00:00+08:00",
+  "submitted_at": "2026-10-03T10:00:00.000+08:00",
   "completed_at": null,
   "total_count": 2,
   "pending_count": 1,
@@ -59,7 +60,7 @@ Endpoint: `/bank/get_finalize_batch_status`
       "id": "ORD_20261001_00001",
       "action": "complete",
       "status": "SUCCESS",
-      "finalized_at": "2026-10-03T10:00:05+08:00",
+      "finalized_at": "2026-10-03T10:00:05.000+08:00",
       "error_code": null
     },
     {
@@ -79,8 +80,8 @@ Endpoint: `/bank/get_finalize_batch_status`
 | ---- | ---- | ---- |
 | request_id | String | 批次識別碼 |
 | status | String | 批次整體狀態，見下表 |
-| submitted_at | Datetime | 批次接收時間（UTC+8 ISO 8601） |
-| completed_at | Datetime \| null | 所有 item 處理完成時間（UTC+8 ISO 8601）；尚未完成時為 `null` |
+| submitted_at | Datetime | 批次接收時間（UTC+8 ISO 8601，毫秒精度） |
+| completed_at | Datetime \| null | 所有 item 處理完成時間（UTC+8 ISO 8601，毫秒精度）；尚未完成時為 `null` |
 | total_count | Integer | 批次內訂單總筆數 |
 | pending_count | Integer | 尚未處理的筆數 |
 | success_count | Integer | 成功處理的筆數 |
@@ -94,7 +95,7 @@ Endpoint: `/bank/get_finalize_batch_status`
 | id | String | 訂單識別碼 |
 | action | String | `complete` \| `cancel` |
 | status | String | 單筆處理狀態，見下表 |
-| finalized_at | Datetime \| null | 單筆處理成功時間（UTC+8 ISO 8601）；尚未完成或失敗時為 `null` |
+| finalized_at | Datetime \| null | 單筆處理成功時間（UTC+8 ISO 8601，毫秒精度）；尚未完成或失敗時為 `null` |
 | error_code | String \| null | 失敗原因代碼；成功或待處理時為 `null` |
 
 ### Batch Status Enum

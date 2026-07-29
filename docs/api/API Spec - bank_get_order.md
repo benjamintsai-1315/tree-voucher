@@ -7,6 +7,7 @@ permalink: /api-specs/bank-get-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-29 | 全系統時間精度盤點：`finalized_at`／`created_at` 補註「毫秒精度」，Sample 補上 `.000` 精度，與其餘系統產生的時間欄位一致 |
 | 2026-07-24 | 訂單層級 `discount_amount` 更名為 `total_discount_amount`，與 `create_order`／`get_member_orders` 同步統一命名（「加總」用 `total_discount_amount`、「單張券」維持 `discount_amount`）；`coupons_used[].discount_amount`（單張券金額）不受影響 |
 | 2026-07-13 | `order.status` 實際 DB 欄位值校正為五態：`waiting_finalization` 更名為 `processing`、`failed` 更名為 `error`；原「`processing`＝清算中」之暫態定義移除，併入 `pending` |
 | 2026-07-09 | 新增 `points_used` 與 `coupons_used[]` 對帳明細（與 `create_order` response 同結構），供發卡主機事後重查對帳；舊券（`is_new_issued=false`）本次不扣點故 `tree_points`/`cub_points` 為 0；`failed` 訂單 `coupons_used[]` 為空陣列、`points_used` 皆為 0 |
@@ -81,8 +82,8 @@ Content-Type: `application/json`
       "expired_at": "2026-11-30T23:59:59.999+08:00"
     }
   ],
-  "finalized_at": "2026-10-03T10:00:00+08:00",
-  "created_at": "2026-10-01T14:30:00+08:00"
+  "finalized_at": "2026-10-03T10:00:00.000+08:00",
+  "created_at": "2026-10-01T14:30:00.000+08:00"
 }
 ```
 
@@ -95,8 +96,8 @@ Content-Type: `application/json`
 | total_discount_amount | Integer | 本次實際折抵總金額（元）；`error` 訂單為 `0` |
 | points_used | Object | 本次扣點總計（僅新券消耗）；`error` 訂單 `tree_points`/`cub_points` 皆為 `0`，見下表 |
 | coupons_used | Array | 本次訂單所用的所有券明細（含舊券與新券），與 `create_order` response 同結構，供發卡主機對帳；`error` 訂單為空陣列，見下表 |
-| finalized_at | String \| null | 訂單終結時間；未終結（`pending`/`processing`/`error`）時為 `null`，`completed` / `cancelled` 時為終結時間 |
-| created_at | String | 訂單建立時間（UTC+8 ISO 8601） |
+| finalized_at | String \| null | 訂單終結時間（UTC+8 ISO 8601，毫秒精度）；未終結（`pending`/`processing`/`error`）時為 `null`，`completed` / `cancelled` 時為終結時間 |
+| created_at | String | 訂單建立時間（UTC+8 ISO 8601，毫秒精度） |
 
 ### points_used
 | 欄位 | 類型 | 說明 |

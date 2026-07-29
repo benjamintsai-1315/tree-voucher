@@ -7,6 +7,7 @@ permalink: /api-specs/get-member-settings-change-logs/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-29 | 全系統時間精度盤點：`created_at` 補註「毫秒精度」，Sample 補上 `.000` 精度 |
 | 2026-07-13 | 「過去 1 年內」查詢範圍精確定義為查詢當下 **T-366 天**（含）；資料本身不清除，僅查詢範圍有上限 |
 | 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
 | 2026-07-02 | 新增邊界檢查與 400 錯誤：會員須已啟用（`MEMBER_NOT_ACTIVATED`） |
@@ -74,7 +75,7 @@ Content-Type: `application/json`
         ],
         "after_brands": []
       },
-      "created_at": "2027-01-01T00:00:00+08:00"
+      "created_at": "2027-01-01T00:00:00.000+08:00"
     },
     {
       "id": "01JZY4K7VN3F4M6P8R2T5W9XQB",
@@ -85,13 +86,13 @@ Content-Type: `application/json`
           { "id": "01HZY9VC0T9M4T6W8Y1Z3B5CGK", "name": "全家便利商店" }
         ]
       },
-      "created_at": "2026-10-20T11:00:00+08:00"
+      "created_at": "2026-10-20T11:00:00.000+08:00"
     },
     {
       "id": "01JZY4K7VN3F4M6P8R2T5W9XQC",
       "type": "enable_auto_redeem",
       "data": null,
-      "created_at": "2026-10-15T20:30:00+08:00"
+      "created_at": "2026-10-15T20:30:00.000+08:00"
     },
     {
       "id": "01JZY4K7VN3F4M6P8R2T5W9XQD",
@@ -104,7 +105,7 @@ Content-Type: `application/json`
           { "id": "01HZYBXE2W1P6W8Y1A3B5D7EJN", "name": "康是美" }
         ]
       },
-      "created_at": "2026-10-01T09:00:00+08:00"
+      "created_at": "2026-10-01T09:00:00.000+08:00"
     }
   ]
 }
@@ -126,7 +127,7 @@ Content-Type: `application/json`
 | id | String | log 唯一識別碼（ULID） |
 | type | String | 操作類型：`change_selected_brands` \| `disable_auto_redeem` \| `enable_auto_redeem` \| `system_clear_brands` |
 | data | Object \| null | 品牌異動明細；`change_selected_brands` / `system_clear_brands` 回傳；`disable_auto_redeem` / `enable_auto_redeem` 為 `null` |
-| created_at | String | 操作發生時間（UTC+8 ISO 8601） |
+| created_at | String | 操作發生時間（UTC+8 ISO 8601，毫秒精度） |
 
 ### data（當 type = `change_selected_brands` 或 `system_clear_brands`）
 
