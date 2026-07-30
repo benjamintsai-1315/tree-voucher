@@ -2,6 +2,27 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-07-30 — batch_finalize_orders 與 get_finalize_batch_status：可查詢結果表設計，取消單行解析失敗時擋下整批的設計
+
+**背景**：原設計於同步階段檢查 `orders` 檔案內容可解析性，若任何一行無法解析，整批失敗回傳 422 `FILE_PARSE_ERROR`；後續以獨立 result file 交付結果，使 batch request 的成敗結果無法在 DB 中查詢與分頁
+
+**改動**：
+- **batch_finalize_orders 同步驗證縮減**：不再檢查 `orders` 檔案內容是否可解析。改為無條件逐行建立 `finalize_batch_items`；不論該行是否可解析、`order_id` 是否存在、訂單狀態如何，皆建立對應 item：
+  - 該行可正確解析（合法 JSON 且含 `order_id`、`action` 必要欄位）：寫入 `order_id`、`action`，初始狀態 `PENDING`，`raw_data` 保存原始內容，進入非同步佇列
+  - 該行無法正確解析（非合法 JSON、缺必要欄位、欄位長度超過上限）：`order_id`、`action` 留空，`raw_data` 保存原始內容，直接標記狀態 `FAILED`、`error_code = FILE_PARSE_ERROR`，**不進入非同步佇列**，無額外 result file
+- **Item-level 錯誤碼細分**：原本 `ORDER_NOT_FOUND` 涵蓋「查無訂單」與「訂單狀態為 error 不可終結」兩種情境，現拆分為：
+  - `ORDER_NOT_FOUND`：查無此 `order_id`
+  - `ORDER_NOT_FINALIZABLE`：訂單存在但 `order.status = pending`（清算尚未完成，非唯一可終結狀態）
+  - `ORDER_FAILED`：訂單存在但 `order.status = error`（清算失敗，不可終結）
+  - `ORDER_ALREADY_FINALIZED`：訂單已為終態（`completed` / `cancelled`），定義不變
+- **get_finalize_batch_status 同步更新**：
+  - 新增 `raw_data` 欄位於 `orders[]` item（原始行內容；僅解析失敗且 `id` 為 `null` 時有值，其餘為 `null`）
+  - `id`、`action` 欄位於解析失敗時允許為 `null`
+  - Item Error Code 表新增 `FILE_PARSE_ERROR`、`ORDER_NOT_FINALIZABLE`、`ORDER_FAILED`
+  - 補註：`total_count` 包含所有 item（含解析失敗的行）；解析失敗的行建立當下即為 `FAILED` 狀態並計入 `failed_count`
+- **結論**：DB 表 `finalize_batch_items` 為**唯一結果來源**，無獨立 result file，銀行端與神坊均可直接查詢 `get_finalize_batch_status` 獲得完整結果與 pagination 支援
+- 已同步更新 `batch_finalize_orders.md`、`get_finalize_batch_status.md`
+
 ## 2026-07-29 — 全系統 API response 時間精度盤點：統一補齊毫秒精度
 
 - 盤點所有現行 API spec（`docs/api/`，排除已廢除的 `get_order.md`/`finalize_order.md`/`update_member_settings.md`）的 response 時間欄位，統一補上「毫秒精度」說明與 Sample 的 `.000`（或既有 `.999` 日界值不變）
