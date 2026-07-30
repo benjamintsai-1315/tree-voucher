@@ -7,6 +7,7 @@ permalink: /api-specs/batch-finalize-orders/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-07-30 | 同步驗證移除 orders 檔案內容可解析性檢查，改為逐行建立 finalize_batch_items——不論該行是否可解析／order_id 是否存在／訂單狀態為何，皆建立一筆 item；無法解析的行（不合法 JSON、缺必要欄位、欄位過長）以 raw_data 保存原始內容，order_id／action 留空，直接標記 FAILED + error_code=FILE_PARSE_ERROR，不進入非同步佇列；取消獨立 result file 設計，DB table 為唯一結果來源；ORDER_NOT_FOUND 定義收斂為單純查無此 order_id，新增 ORDER_NOT_FINALIZABLE（訂單存在但狀態為 pending）與 ORDER_FAILED（訂單存在但狀態為 error），ORDER_ALREADY_FINALIZED 定義不變（completed／cancelled）；422 FILE_PARSE_ERROR 自 request-level 移除 |
 | 2026-07-21 | Request 格式改回 `multipart/form-data` + JSON Lines（ndjson）：`request_id` 為 text part，`orders` 為 file part（每行一筆訂單物件）；銀行端可於記憶體中逐行組出 ndjson 傳輸，不需落地實體檔案。移除單批 1000 筆上限，改以**檔案大小 < 10MB** 為批次基準，`request_id` 對應同一份檔案固定不變 |
 | 2026-07-21 | API 同步驗證範圍限縮為三項：`request_id` 冪等驗證、file size 檢查、file 內容可解析性檢查；`INVALID_ACTION` 改列為非同步 item-level 錯誤（與 `ORDER_NOT_FOUND`、`ORDER_ALREADY_FINALIZED` 同層級處理），不再於同步階段擋下整批次 |
 | 2026-07-21 | `orders[].action` 請求欄位值統一改為小寫 `complete` \| `cancel`（原 `COMPLETED` \| `CANCELLED`），使用情境段落標題與 Request Sample 一併同步 |
@@ -106,15 +107,24 @@ Body: 無
 - 神坊收到請求後，同步依序檢查：
   1. `request_id` 冪等驗證
   2. file size 是否 < 10MB
-  3. `orders` 檔案內容是否可正確解析（每行需為合法 JSON 物件，且含 `order_id`、`action` 必要欄位）
-- 上述三項通過後，建立 `finalize_batch_requests` 記錄，並逐行建立 `finalize_batch_items`（初始狀態 `PENDING`），立即回傳 `200`
-- 非同步 worker 處理各筆 item；每筆先確認 `action` 為合法值（`complete` \| `cancel`）、`order.status = processing`（唯一可終結狀態），再沿用原本的狀態轉換邏輯：
-  - `action = complete`：所有對應券 `consumed → settled`，觸發代償流程，`order.status → completed`
-  - `action = cancel`：`consumed` 券依是否到期轉為 `available` 或 `expired`，點數不返還，`order.status → cancelled`，訂單 `discount_amount` 歸零（與券狀態轉換同一 transaction）
+- 上述兩項通過後，建立 `finalize_batch_requests` 記錄，並逐行建立 `finalize_batch_items`，立即回傳 `200`；`orders` 檔案內容不論是否可解析，每一行都會建立對應 item（不再因單行格式錯誤擋下整批次，亦不再產生額外 result file，`finalize_batch_items` 為唯一結果來源）：
+  - 該行可正確解析（合法 JSON 且含 `order_id`、`action`）：寫入 `order_id`、`action`，初始狀態 `PENDING`，`raw_data` 一併保存原始內容
+  - 該行無法正確解析（非合法 JSON、缺必要欄位、或欄位長度超過上限而無法寫入）：`order_id`、`action` 留空，`raw_data` 保存該行原始內容，直接標記狀態 `FAILED`、`error_code = FILE_PARSE_ERROR`，不進入非同步處理
+- 非同步 worker 僅處理狀態為 `PENDING` 的 item；每筆先確認 `action` 為合法值（`complete` \| `cancel`），再依 `order_id` 查詢訂單並檢查 `order.status`：
+  - 查無此 `order_id`：`ORDER_NOT_FOUND`
+  - 訂單存在、`order.status = pending`：`ORDER_NOT_FINALIZABLE`（清算尚未完成，非唯一可終結狀態）
+  - 訂單存在、`order.status = error`：`ORDER_FAILED`（清算失敗訂單不可終結）
+  - 訂單存在、`order.status` 為 `completed` / `cancelled`：`ORDER_ALREADY_FINALIZED`（已為終態，不重複處理）
+  - 訂單存在、`order.status = processing`（唯一可終結狀態）：沿用原本狀態轉換邏輯
+    - `action = complete`：所有對應券 `consumed → settled`，觸發代償流程，`order.status → completed`
+    - `action = cancel`：`consumed` 券依是否到期轉為 `available` 或 `expired`，點數不返還，`order.status → cancelled`，訂單 `discount_amount` 歸零（與券狀態轉換同一 transaction）
 - 單筆驗證失敗不中斷整批次，錯誤記錄於該 item 的 `error_code`：
-  - `INVALID_ACTION`：`action` 值不合法（非同步逐筆檢查，不於同步階段擋下整批次）
-  - `ORDER_NOT_FOUND`：查無此 `order_id`（含 `error` 訂單，因其不可終結）
-  - `ORDER_ALREADY_FINALIZED`：訂單已為終態（`completed` / `cancelled`），不重複處理
+  - `FILE_PARSE_ERROR`：該行原始內容無法解析或必要欄位缺漏（同步階段建立時即判定，見上）
+  - `INVALID_ACTION`：`action` 值不合法（非同步逐筆檢查）
+  - `ORDER_NOT_FOUND`：查無此 `order_id`
+  - `ORDER_NOT_FINALIZABLE`：訂單存在，但 `order.status = pending`（清算尚未完成）
+  - `ORDER_ALREADY_FINALIZED`：訂單存在，`order.status` 為 `completed` / `cancelled`
+  - `ORDER_FAILED`：訂單存在，但 `order.status = error`（清算失敗，不可終結）
 
 ## 400 錯誤回傳（request-level）
 1. `request_id` 未提供：`BATCH_REQUEST_ID_REQUIRED`
@@ -123,4 +133,5 @@ Body: 無
 
 ## 422 錯誤回傳（語意驗證）
 1. `orders` 檔案大小超過 10MB：`FILE_SIZE_EXCEEDED`
-2. `orders` 檔案內容無法正確解析（非合法 ndjson 格式，例如某行非合法 JSON 或缺必要欄位）：`FILE_PARSE_ERROR`
+
+> `orders` 檔案內容解析失敗改為 item-level 錯誤，不再於同步階段擋下整批次，見上方「邏輯說明」與 `error_code = FILE_PARSE_ERROR`。
