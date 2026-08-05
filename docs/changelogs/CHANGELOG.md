@@ -2,6 +2,17 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-08-05（訂正） — get_member_orders：`coupon_discount_amount` 改為計算欄位，分組鍵收斂回 `campaign_id`+`campaign_name`
+
+**背景**：更名為 `coupon_discount_amount` 後進一步 review，確認單張券折抵金額於 campaign 建立後即不可變更（不像 `campaign_name` 可能因改名而使同一 `campaign_id` 對應不同值），先前假設「同一 campaign 不同批次可能有不同折抵金額」的前提不成立
+
+**改動**：
+- 分組鍵由 `campaign_id`+`campaign_name`+`coupon_discount_amount` 收斂回 `campaign_id`+`campaign_name`
+- `coupon_discount_amount` 不再視為需要快照的獨立欄位，改由聚合列計算而得：`(new_issued.total_discount_amount + existing.total_discount_amount) // (new_issued.quantity + existing.quantity)`（整數除法）
+- `get_member_orders.md`／`create_order.md`（用券摘要快照段落）同步修正；`get_member_orders.md` Sample 第 3 筆訂單範例改回示範「同 `campaign_id` 因改名產生不同 `campaign_name`」情境
+
+**影響**：已建立的 Asana ticket（`coupon_discount_amount` 派工）內容需一併更新為此版設計，尚未派工
+
 ## 2026-08-05 — get_member_orders：`campaign_discount_amount` 更名為 `coupon_discount_amount`
 
 **背景**：2026-07-29 新增此欄位時暫用 `campaign_discount_amount` 命名；review 後認為該值是 coupon 建立時凍結的快照（與 campaign 表當下設定無關，即使 campaign 事後調整金額也不回溯變動），沿用 `campaign_` 前綴容易誤導為即時反查 campaign 表的當下值
