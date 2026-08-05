@@ -7,6 +7,7 @@ permalink: /api-specs/create-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-08-05 | 「`get_member_orders` 用券摘要快照」段落：欄位更名 `campaign_discount_amount` → `coupon_discount_amount`，與 `get_member_orders.md` 同步（review 後定案：此值為 coupon 建立時快照，非即時反查 campaign 表） |
 | 2026-07-29 | 「`get_member_orders` 用券摘要快照」段落：快照新增 `campaign_discount_amount`，分組鍵擴充為 `campaign_id`+`campaign_name`+`campaign_discount_amount`（與 `get_member_orders.md` 同步） |
 | 2026-07-27 | Coupon 狀態機新增 `consuming` 中間態：既有券於 stage 1 選定時、新券於扣點成功建立時，皆先標記 `consuming`（非直接 `consumed`），待 stage 2 結尾最終 transaction 確認新券段結果後，才將涉及的既有券＋新券一併轉為 `consumed`，同時 `order.status` 由 `pending` 轉 `processing`/`error`；解決「扣點呼叫外部服務無法納入 DB rollback」與「訂單未完成、券卻已視為用掉」的一致性問題；`consuming` 卡住的回收機制待補充，與 `pending` 滯留同批次處理 |
 | 2026-07-24 | `coupon_summary.new_issued`/`existing` 新增 `quantity`（該分組券張數），與 `get_member_orders` 的 `coupon_usage_summary.coupon_usage.new_issued`/`existing` 欄位組成對齊 |
@@ -189,11 +190,11 @@ Content-Type: `application/json`
 - `cub_points`（小樹點信用卡）為銀行發行點數，是發卡主機對帳的主要依據；`tree_points`（小樹點生活）為神坊端點數，一併列出供完整核對
 
 **`get_member_orders` 用券摘要快照（效能考量）：**
-- 建單完成時（既有券段與新券段皆處理完畢後），同步將依 `campaign_id`+`campaign_name`+`campaign_discount_amount` 分組聚合的用券摘要寫入該筆 order 記錄（例如 `orders.coupon_usage_summary` JSON 欄位），供 `get_member_orders` 直接讀取快照回傳，不需在列表查詢當下即時 JOIN／GROUP BY 聚合——降低列表查詢的即時運算成本，同時避免單筆訂單使用大量券（例如 20 張）時 response 資料量過大
-- 每筆快照含 `campaign_id`、`campaign_name`、`campaign_discount_amount`（該 campaign 定義之單張券折抵金額，供前端與 `campaign_name` 組合顯示），並依券來源拆分為 `coupon_usage.new_issued` / `coupon_usage.existing` 兩個子物件（各含 `quantity`、`total_discount_amount`、`tree_points`、`cub_points`）；同一 campaign（同 `campaign_id`+`campaign_name`+`campaign_discount_amount`）若同時有新券與舊券使用，仍合併為同一筆，不再依新舊券拆成兩筆；某類別本次未使用時該子物件仍完整輸出、各欄位為 `0`，非省略
-- `campaign_name`／`campaign_discount_amount` 皆為 coupon 建立時凍結的快照值（見 §二 Coupon 規則 1），不隨 campaign 事後異動（改名或調整折抵金額）回溯變動；若 campaign 曾經異動，同一 `campaign_id` 底下不同批次發行的券可能對應不同的 `campaign_name`／`campaign_discount_amount`，會各自成一筆（各自帶完整的 `coupon_usage.new_issued`/`existing`），不合併也不互相覆蓋
+- 建單完成時（既有券段與新券段皆處理完畢後），同步將依 `campaign_id`+`campaign_name`+`coupon_discount_amount` 分組聚合的用券摘要寫入該筆 order 記錄（例如 `orders.coupon_usage_summary` JSON 欄位），供 `get_member_orders` 直接讀取快照回傳，不需在列表查詢當下即時 JOIN／GROUP BY 聚合——降低列表查詢的即時運算成本，同時避免單筆訂單使用大量券（例如 20 張）時 response 資料量過大
+- 每筆快照含 `campaign_id`、`campaign_name`、`coupon_discount_amount`（該 campaign 定義之單張券折抵金額，供前端與 `campaign_name` 組合顯示），並依券來源拆分為 `coupon_usage.new_issued` / `coupon_usage.existing` 兩個子物件（各含 `quantity`、`total_discount_amount`、`tree_points`、`cub_points`）；同一 campaign（同 `campaign_id`+`campaign_name`+`coupon_discount_amount`）若同時有新券與舊券使用，仍合併為同一筆，不再依新舊券拆成兩筆；某類別本次未使用時該子物件仍完整輸出、各欄位為 `0`，非省略
+- `campaign_name`／`coupon_discount_amount` 皆為 coupon 建立時凍結的快照值（見 §二 Coupon 規則 1），不隨 campaign 事後異動（改名或調整折抵金額）回溯變動；若 campaign 曾經異動，同一 `campaign_id` 底下不同批次發行的券可能對應不同的 `campaign_name`／`coupon_discount_amount`，會各自成一筆（各自帶完整的 `coupon_usage.new_issued`/`existing`），不合併也不互相覆蓋
 - `point_used`（訂單層級，`tree_points`/`cub_points`）同步寫入，其值等於所有 campaign 之 `coupon_usage.new_issued` 的 `tree_points`/`cub_points` 加總，屬衍生於同一快照的彙總欄位，供前台端不需自行迭代加總即可顯示點數總計
-- 此快照與本 API 回應的 `coupon_summary`（`new_issued`／`existing` 兩組彙總，供發卡主機對帳）粒度不同：`coupon_usage_summary` 快照另依 `campaign_id`+`campaign_name`+`campaign_discount_amount` 進一步分組，供前台會員訂單列表顯示用途；兩者欄位名稱不同，不會混淆
+- 此快照與本 API 回應的 `coupon_summary`（`new_issued`／`existing` 兩組彙總，供發卡主機對帳）粒度不同：`coupon_usage_summary` 快照另依 `campaign_id`+`campaign_name`+`coupon_discount_amount` 進一步分組，供前台會員訂單列表顯示用途；兩者欄位名稱不同，不會混淆
 - 快照於建單當下寫入後即固定，不隨後續 coupon 狀態變化（如 `consumed → settled`）而更動，僅反映建單當下的用券結果
 
 **訂單狀態（`order.status`）生命週期：**
