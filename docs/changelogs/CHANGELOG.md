@@ -2,6 +2,14 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-08-05 — get_member_orders：`campaign_discount_amount` 更名為 `coupon_discount_amount`
+
+**背景**：2026-07-29 新增此欄位時暫用 `campaign_discount_amount` 命名；review 後認為該值是 coupon 建立時凍結的快照（與 campaign 表當下設定無關，即使 campaign 事後調整金額也不回溯變動），沿用 `campaign_` 前綴容易誤導為即時反查 campaign 表的當下值
+
+**改動**：`docs/api/API Spec - get_member_orders.md` 的 `coupon_usage_summary[]` 欄位 `campaign_discount_amount` 更名為 `coupon_discount_amount`；分組鍵同步由 `campaign_id`+`campaign_name`+`campaign_discount_amount` 改為 `campaign_id`+`campaign_name`+`coupon_discount_amount`；Sample 與欄位說明同步更新
+
+**待辦**：已建立 Asana ticket 追蹤 RD 端改動（尚未派工，見 ticket 內容）
+
 ## 2026-07-30 — batch_finalize_orders 與 get_finalize_batch_status：可查詢結果表設計，取消單行解析失敗時擋下整批的設計
 
 **背景**：原設計於同步階段檢查 `orders` 檔案內容可解析性，若任何一行無法解析，整批失敗回傳 422 `FILE_PARSE_ERROR`；後續以獨立 result file 交付結果，使 batch request 的成敗結果無法在 DB 中查詢與分頁
