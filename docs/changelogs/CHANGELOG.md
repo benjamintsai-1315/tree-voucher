@@ -2,6 +2,17 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-08-06 — bank_get_order 更名為 get_order，並將已廢除的前台 get_order.md 移至 docs/api/legacy/
+
+**背景**：`bank_get_order` 是 `/bank/...` 這組 API 中唯一帶 `bank_` 前綴的名字，其餘（`create_order`、`batch_finalize_orders`、`get_finalize_batch_status`）皆為純「動詞_目標對象」結構，且路徑本身已含 `/bank/` 前綴、足以標示呼叫端範疇，`bank_` 前綴屬多餘。原本命名時保留此前綴是為了與前台已廢除的 `get_order`（2026-07-08 廢除）區隔
+
+**改動**：
+- 前台已廢除的 `docs/api/API Spec - get_order.md` 移至 `docs/api/legacy/`（檔名不變），permalink 由 `/api-specs/get-order/` 改為 `/api-specs/legacy/get-order/`，讓出 `get_order` 這個識別碼
+- `docs/api/API Spec - bank_get_order.md` 更名為 `docs/api/API Spec - get_order.md`，標題與 permalink（`/api-specs/get-order/`）同步更新
+- 新增 `docs/api/legacy/` 目錄慣例於 CLAUDE.md：已廢除 API 若其名稱要釋出給其他現行 API 使用，比照本次做法移入此目錄並調整 permalink
+- 全站現行文件（`CLAUDE.md`、`docs/README.md`、`docs/樹配券2.0_PRD.md`、`docs/api/API Spec - create_order.md`、`docs/misc/2026-07-16-timeout-待確認事項.md`、根目錄 `README.md`／`index.md`／`api-specs.md`／`api_list.md`／`background.md`）同步將 `bank_get_order` 引用改為 `get_order`（發卡主機端），並於前台舊 `get_order` 相鄰處補上消歧義說明，避免兩者同名混淆
+- **歷史紀錄不回溯修改**：`docs/changelogs/CHANGELOG.md` 既有條目、各 spec 文件既有 changelog 列、`docs/reviews/2026-07-06-spec-audit.md` 一律保留原用字 `bank_get_order`，維持歷史真實性
+
 ## 2026-08-06 — batch_finalize_orders：對照銀行提供 PDF（2026-07-21 版本）訂正，非同步架構改回 PDF 設計、IP 白名單擴大至所有 `/bank/...`
 
 **背景**：取得銀行方提供的 2026-07-21 版 PDF 規格，逐項比對後發現本專案 2026-07-30 的改版（拿掉 S3 落地原始檔、background job chunk 處理、`finalize_requests`/`finalize_request_order_items` 表名、`success_count`/`error_count`/`total_count` 完成判定、Batch-level error、`coupon_event_logs` 稽核紀錄）與銀行端認知的架構不一致，且原本移除的 IP 白名單邊界檢查在 PDF 中仍存在。經確認後，非同步架構改回沿用 PDF 版本，僅保留 2026-07-30「同步階段即逐行建立 item」與合併 `FILE_PARSE_ERROR` 命名的設計
