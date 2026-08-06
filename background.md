@@ -186,7 +186,7 @@ Response discount_amount = 141
 2. 由發卡主機回報商戶請款完成或取消交易，進行 finalize_order (後續待商戶請款才呼叫，非同步)
 
 create_order 時，發卡主機需額外帶入用戶本次刷卡卡號後四碼，供後續前台端查詢訂單與呈現卡號辨識資訊。
-發卡主機端若需查詢訂單狀態與折抵金額，另以 `order_id` 呼叫 `bank_get_order`；前台端訂單瀏覽改用 `get_member_orders` 摘要列表（前台 `get_order` 已於 2026-07-08 廢除，不提供單筆訂單完整明細查詢）。
+發卡主機端若需查詢訂單狀態與折抵金額，另以 `order_id` 呼叫 `get_order`（發卡主機端；2026-08-06 起由 `bank_get_order` 更名而來）；前台端訂單瀏覽改用 `get_member_orders` 摘要列表（前台 `get_order` 已於 2026-07-08 廢除，不提供單筆訂單完整明細查詢）。
 
 訂單底層資料模型包含：
 - `order_logs`：保存訂單建立與最終化歷程
