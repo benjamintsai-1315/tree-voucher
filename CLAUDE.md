@@ -137,7 +137,7 @@
 
 **Scope 外（本次不做）**：對帳 API、後台 CRUD API（第二階段）
 
-**前台 API 安全機制**：所有 `/coupon/...` API 除 `API Key` 驗證外，另須通過來源 IP 白名單檢查；`API Key`、IP 白名單皆存於 AWS Parameter Store，不寫死於程式碼或設定檔。`/bank/...` API 不在此列，邊界檢查另行定義。
+**API 安全機制**：所有 `/coupon/...` 與 `/bank/...` API 除 `API Key` 驗證外，另須通過來源 IP 白名單檢查；`API Key`、IP 白名單皆存於 AWS Parameter Store，不寫死於程式碼或設定檔。（2026-08-06 起：`/bank/...` 納入 IP 白名單檢查，原「不在此列」之例外已取消，見 `docs/changelogs/CHANGELOG.md`）
 
 **驗證失敗回應（共同定義，各 spec 不重複列）**：`API Key` 無效或未帶 → `401 Unauthorized`；來源 IP 不在白名單 → `403 Forbidden`。
 
