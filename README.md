@@ -72,7 +72,7 @@ AVAILABLE → CONSUMED → SETTLED
 | `get_coupons` | GET | 查詢特定品牌下的券列表（支援狀態篩選） |
 | `get_coupon_detail` | GET | 查詢單張券詳情（狀態、效期、兌換點數） |
 | `get_member_orders` | GET | 查詢消費折抵紀錄 |
-| ~~`get_order`~~ | GET | ⚠️ 已於 2026-07-08 廢除，前台不提供單筆訂單明細（改用 `get_member_orders`；發卡主機端用 `bank_get_order`） |
+| ~~`get_order`~~ | GET | ⚠️ 已於 2026-07-08 廢除，前台不提供單筆訂單明細（改用 `get_member_orders`；發卡主機端用 `get_order`（發卡主機端），2026-08-06 起由 `bank_get_order` 更名而來） |
 
 ### 發卡主機端（`/bank/...`）
 
@@ -81,7 +81,7 @@ AVAILABLE → CONSUMED → SETTLED
 | `create_order` | POST | 建立折抵訂單（卡片授權後呼叫） |
 | `batch_finalize_orders` | POST | 批次完成或取消訂單（非同步，202 回應） |
 | `get_finalize_batch_status` | GET | 查詢批次 finalize 執行進度 |
-| `bank_get_order` | GET | 查詢訂單狀態與折抵金額（僅回傳銀行端必要欄位） |
+| `get_order` | GET | 查詢訂單狀態與折抵金額（僅回傳銀行端必要欄位）（2026-08-06 起，原名 `bank_get_order`） |
 
 ---
 
