@@ -104,7 +104,7 @@
 `pending`（剛建立，涵蓋清算執行中；無獨立的「清算中」狀態值）→ `processing`（清算完成、待終結，`discount_amount > 0`）或 `error`（清算完成失敗，`discount_amount = 0`）→ `completed`（`batch_finalize_orders` action=COMPLETED）／`cancelled`（action=CANCELLED）
 - `create_order` 清算採兩段 DB transaction：stage 1（建單、`order.status = pending`；既有券段 FIFO 選定候選券並標記 `consuming`，非直接 `consumed`）、stage 2（呼叫 treelife-api 扣點；成功則建立新券並標記 `consuming`）；stage 2 結尾另有一筆**最終 transaction**，將本次涉及的既有券＋新券（若有）一併由 `consuming` 轉為 `consumed`，同時把 `order.status` 由 `pending` 轉為 `processing`（`discount_amount > 0`）或 `error`（`discount_amount = 0`，此時無任何券被標記 `consuming` 或全數未能轉正）；詳見 Coupon 狀態 enum 的 `consuming` 說明
 - 成敗回歸單一條件 `discount_amount > 0`；新券段失敗區分「點數端失敗」（treelife-api timeout；同步階段不查詢確認、直接標記「點數結果未定」交每日 04:00 cronjob 處理，確認成功時因點數系統目前無法同時提供 tree/cub 拆分而無法正確發券記帳，故呼叫返點退點；待未來支援拆分查詢後可改為同步階段即時查詢並續行發券）與「我方失敗」（扣點成功但發券失敗，孤兒點數、人工善後），兩者皆不改變成敗判定
-- 可查性：`get_member_orders` 剔除 `error`；admin 端 status filter 可查；`bank_get_order` 不分 status 全回
+- 可查性：`get_member_orders` 剔除 `error`；admin 端 status filter 可查；`get_order`（發卡主機端）不分 status 全回
 
 **Member 啟用狀態**（2026-07-02 起之權威定義）：
 - DB 欄位：`members.is_activated`（Boolean）：`TRUE`（已啟用）／`FALSE`（未啟用或已停用）
@@ -130,10 +130,10 @@
 `get_current_rotation`、`activate_member`、`deactivate_member`、`get_member_settings`、`update_member_selected_brands`、`update_member_auto_redeem_settings`、`get_member_settings_change_logs`、`get_coupon_wallet`、`get_coupons`、`get_coupon_detail`、`get_member_orders`
 
 > ⚠️ `update_member_settings` 已於 2026-06-25 拆分為 `update_member_selected_brands` 與 `update_member_auto_redeem_settings`，不再使用
-> ⚠️ 前台 `get_order` 已於 2026-07-08 廢除（前台不提供單筆訂單明細）；發卡主機端單筆訂單查詢由 `bank_get_order` 承接
+> ⚠️ 前台 `get_order` 已於 2026-07-08 廢除（前台不提供單筆訂單明細）；spec 文件移至 `docs/api/legacy/`。發卡主機端單筆訂單查詢由 `get_order`（發卡主機端）承接——2026-08-06 起由 `bank_get_order` 更名而來，`/bank/...` 路徑本身已含端點歸屬資訊，不再另加 `bank_` 前綴，與同組其他 API 命名結構一致
 
 **發卡主機 `/bank/...`（已有 spec）**：
-`create_order`、`batch_finalize_orders`、`get_finalize_batch_status`、`bank_get_order`
+`create_order`、`batch_finalize_orders`、`get_finalize_batch_status`、`get_order`
 
 **Scope 外（本次不做）**：對帳 API、後台 CRUD API（第二階段）
 
@@ -289,6 +289,7 @@ C. [具體行動]（若適用）
 
 ### docs/ 結構慣例
 - `docs/api/`：所有 API spec
+- `docs/api/legacy/`：已廢除 API 的 spec 文件（2026-08-06 起）；廢除當下若其名稱要釋出給其他現行 API 使用，將文件移入此目錄（檔名不變），並更新其 permalink（加 `/legacy/` 前綴）避免與新用途的識別碼衝突；文件內容保留原樣僅供歷史查閱，不再是現行端點
 - `docs/changelogs/CHANGELOG.md`：changelog subagent 寫入目標；**業務規則的歷史變更也記錄於此**
 - `docs/reviews/`：`spec-audit` skill 的復盤報告輸出目標，檔名格式 `YYYY-MM-DD-spec-audit.md`（審查對象，不屬被審查文件）
 - `docs/README.md`：文件索引
