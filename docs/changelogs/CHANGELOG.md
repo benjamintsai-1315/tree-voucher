@@ -2,6 +2,15 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-08-06 — bank_get_order：response 結構改為與 create_order 對齊
+
+**背景**：`bank_get_order` 原本回傳逐張券明細 `coupons_used[]` 與 `points_used`，與 `create_order` 的彙總式 `coupon_summary`（`new_issued`／`existing` 分組）結構不同，兩支 API 對同一筆訂單描述用券結果卻用不同形狀，增加維護與對帳理解成本
+
+**改動**：
+- `docs/api/API Spec - bank_get_order.md` response 移除 `coupons_used[]`／`points_used`，改用 `coupon_summary`（與 `create_order` response 同結構：`new_issued`／`existing` 各含 `quantity`、`total_discount_amount`、`tree_points`、`cub_points`）
+- 保留 `order_id`（回顯查詢參數）與 `finalized_at`（訂單終結時間；`create_order` 建單當下尚無此資訊，故該 API 不含此欄位）
+- 對帳恆等式同步簡化為 `coupon_summary.new_issued.total_discount_amount + coupon_summary.existing.total_discount_amount == total_discount_amount`
+
 ## 2026-08-05（訂正） — get_member_orders：`coupon_discount_amount` 改為計算欄位，分組鍵收斂回 `campaign_id`+`campaign_name`
 
 **背景**：更名為 `coupon_discount_amount` 後進一步 review，確認單張券折抵金額於 campaign 建立後即不可變更（不像 `campaign_name` 可能因改名而使同一 `campaign_id` 對應不同值），先前假設「同一 campaign 不同批次可能有不同折抵金額」的前提不成立
