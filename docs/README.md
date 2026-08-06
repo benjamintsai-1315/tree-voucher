@@ -34,7 +34,7 @@
 | `get_coupons` | `docs/api/API Spec - get_coupons.md` |
 | `get_coupon_detail` | `docs/api/API Spec - get_coupon_detail.md` |
 | `get_member_orders` | `docs/api/API Spec - get_member_orders.md` |
-| ~~`get_order`~~ | `docs/api/API Spec - get_order.md`（⚠️ 已於 2026-07-08 廢除，前台不提供單筆訂單明細；改用 `get_member_orders`，發卡主機端用 `bank_get_order`） |
+| ~~`get_order`~~ | `docs/api/legacy/API Spec - get_order.md`（⚠️ 已於 2026-07-08 廢除，前台不提供單筆訂單明細；改用 `get_member_orders`，發卡主機端用 `get_order`（發卡主機端）） |
 
 ### 發卡主機（`/bank/...`）
 
@@ -43,4 +43,4 @@
 | `create_order` | `docs/api/API Spec - create_order.md` |
 | `batch_finalize_orders` | `docs/api/API Spec - batch_finalize_orders.md` |
 | `get_finalize_batch_status` | `docs/api/API Spec - get_finalize_batch_status.md` |
-| `bank_get_order` | `docs/api/API Spec - bank_get_order.md` |
+| `get_order` | `docs/api/API Spec - get_order.md`（2026-08-06 起，原名 `bank_get_order`） |
