@@ -1,21 +1,23 @@
 ---
-title: API Spec - get_order
-permalink: /api-specs/get-order/
+title: API Spec - get_order (legacy)
+permalink: /api-specs/legacy/get-order/
 ---
 
-> **⚠️ Deprecated：** 前台端已不再提供單筆訂單明細查詢。訂單摘要列表請用 [`get_member_orders`](API%20Spec%20-%20get_member_orders.md)；發卡主機端單筆訂單狀態查詢由 [`bank_get_order`](API%20Spec%20-%20bank_get_order.md) 取代。請勿使用本文件。
+> **⚠️ Deprecated：** 前台端已不再提供單筆訂單明細查詢。訂單摘要列表請用 [`get_member_orders`](../API%20Spec%20-%20get_member_orders.md)；發卡主機端單筆訂單狀態查詢由 [`get_order`（發卡主機端）](../API%20Spec%20-%20get_order.md) 取代。請勿使用本文件。
+>
+> **⚠️ 檔案位置變更（2026-08-06）**：本文件移至 `docs/api/legacy/`，讓出 `get_order` 這個名字給發卡主機端 API 使用（原名 `bank_get_order`，因路徑本身已含 `/bank/` 前綴，改採與其他 `/bank/...` API 一致的「動詞_目標對象」命名結構）。本文件內容與 permalink 皆僅供歷史查閱，不再是現行端點。
 
 ## Changelog
 
 | Date | Summary |
 | ---- | ------- |
-| 2026-07-08 | **Deprecated**：前台端單筆明細查詢廢除（前台不需單筆明細），發卡主機端由 `bank_get_order` 取代 |
+| 2026-07-08 | **Deprecated**：前台端單筆明細查詢廢除（前台不需單筆明細），發卡主機端由 `bank_get_order`（後更名為 `get_order`，見上方注意事項）取代 |
 | 2026-07-08 | `order_status` 對齊 `order.status` 六態（小寫），前台端剔除 `failed`（改回 `ORDER_NOT_FOUND`）；actions 映射更新 `CREATED` → `waiting_finalization`；`finalize_order` 敘述改為 `batch_finalize_orders` |
 | 2026-07-02 | 新增邊界檢查：來源 IP 須在白名單內；`API Key` 與 IP 白名單皆存於 Parameter Store |
 | 2026-06-16 | `coupons_used[]` 欄位去除多餘 prefix：`coupon_id` → `id`；`coupon_min_order_amount/redeem_points/discount_amount` → `min_order_amount/redeem_points/discount_amount` |
 | 2026-07-01 | `brand_id`/`campaign_id` 範例值改為 ULID 格式，並於 response items 補上 ULID 型別註記 |
 | 2026-06-15 | `coupons_used[]` 新增 `discount_rate` 計算欄位 |
-| 2026-06-15 | 拆分為前台端（`/coupon/get_order`）與發卡主機端（`/bank/get_order`）兩支獨立 API；前台端加入 `member_id` 參數防呆，回傳完整訂單與事件歷程；發卡主機端請見 [API Spec - bank_get_order](API Spec - bank_get_order.md) |
+| 2026-06-15 | 拆分為前台端（`/coupon/get_order`）與發卡主機端（`/bank/get_order`）兩支獨立 API；前台端加入 `member_id` 參數防呆，回傳完整訂單與事件歷程；發卡主機端請見 [API Spec - get_order（發卡主機端，原名 bank_get_order）](../API%20Spec%20-%20get_order.md) |
 | 2026-06-15 | 路徑依呼叫端拆分（原共用同一份 spec） |
 | 2026-06-12 | response 欄位 `user_id` → `member_id` |
 
