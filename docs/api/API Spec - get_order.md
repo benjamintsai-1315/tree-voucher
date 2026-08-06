@@ -1,12 +1,13 @@
 ---
-title: API Spec - bank_get_order
-permalink: /api-specs/bank-get-order/
+title: API Spec - get_order（發卡主機端）
+permalink: /api-specs/get-order/
 ---
 
 ## Changelog
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-08-06 | API 更名 `bank_get_order` → `get_order`：路徑本身已含 `/bank/` 前綴，與其他 `/bank/...` API（`create_order`、`batch_finalize_orders`、`get_finalize_batch_status`）一致採「動詞_目標對象」命名結構，不再另加 `bank_` 前綴；原前台端 `get_order`（已於 2026-07-08 廢除）之 spec 文件移至 `docs/api/legacy/`，讓出此名稱 |
 | 2026-08-06 | Response 結構改為與 `create_order` 對齊：移除逐張 `coupons_used[]`／`points_used` 明細，改用 `coupon_summary`（`new_issued`／`existing` 彙總，與 `create_order` response 同結構）；保留 `order_id`（回顯查詢參數）與 `finalized_at`（`create_order` 建單當下尚無終結時間，故該 API 不含此欄位） |
 | 2026-07-29 | 全系統時間精度盤點：`finalized_at`／`created_at` 補註「毫秒精度」，Sample 補上 `.000` 精度，與其餘系統產生的時間欄位一致 |
 | 2026-07-24 | 訂單層級 `discount_amount` 更名為 `total_discount_amount`，與 `create_order`／`get_member_orders` 同步統一命名（「加總」用 `total_discount_amount`、「單張券」維持 `discount_amount`）；`coupons_used[].discount_amount`（單張券金額）不受影響 |
@@ -15,7 +16,7 @@ permalink: /api-specs/bank-get-order/
 | 2026-07-08 | `order_status` 對齊 `order.status` 六態（小寫）；發卡主機端不分 status 全回（含 `failed`）；`failed` 訂單 `discount_amount = 0`、`finalized_at = null`；`finalized_at` 說明改為終結（`completed`/`cancelled`）前為 null |
 | 2026-06-15 | 從 get_order 拆分而來，僅供發卡主機端使用，回傳 order status 與必要欄位 |
 
-# API: bank_get_order（發卡主機端）
+# API: get_order（發卡主機端）
 
 ## 功能說明
 讓發卡主機依 `order_id` 查詢單筆訂單的當前狀態與折抵金額，供銀行確認訂單是否成立及清算結果。
