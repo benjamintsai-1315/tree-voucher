@@ -7,6 +7,7 @@ permalink: /api-specs/bank-get-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-08-06 | Response 結構改為與 `create_order` 對齊：移除逐張 `coupons_used[]`／`points_used` 明細，改用 `coupon_summary`（`new_issued`／`existing` 彙總，與 `create_order` response 同結構）；保留 `order_id`（回顯查詢參數）與 `finalized_at`（`create_order` 建單當下尚無終結時間，故該 API 不含此欄位） |
 | 2026-07-29 | 全系統時間精度盤點：`finalized_at`／`created_at` 補註「毫秒精度」，Sample 補上 `.000` 精度，與其餘系統產生的時間欄位一致 |
 | 2026-07-24 | 訂單層級 `discount_amount` 更名為 `total_discount_amount`，與 `create_order`／`get_member_orders` 同步統一命名（「加總」用 `total_discount_amount`、「單張券」維持 `discount_amount`）；`coupons_used[].discount_amount`（單張券金額）不受影響 |
 | 2026-07-13 | `order.status` 實際 DB 欄位值校正為五態：`waiting_finalization` 更名為 `processing`、`failed` 更名為 `error`；原「`processing`＝清算中」之暫態定義移除，併入 `pending` |
@@ -26,7 +27,7 @@ permalink: /api-specs/bank-get-order/
   - `order_id` 必須存在於神坊系統中
 
 ## 使用情境
-發卡主機於 `create_order` 或 `batch_finalize_orders` 後，依需要查詢訂單當前狀態、實際折抵金額，以及 `coupons_used[]` 對帳明細（含每張券的折抵與 `tree_points`/`cub_points` 點數拆分）。此明細與 `create_order` 建單當下回傳者一致，供發卡主機事後批次對帳重查。
+發卡主機於 `create_order` 或 `batch_finalize_orders` 後，依需要查詢訂單當前狀態、實際折抵金額，以及 `coupon_summary` 對帳彙總（依新發券／既有券分組，各含折抵金額與 `tree_points`/`cub_points` 點數拆分）。此彙總與 `create_order` 建單當下回傳者同結構，供發卡主機事後批次對帳重查。
 
 # Request
 HTTP method: `GET`
@@ -53,37 +54,13 @@ Content-Type: `application/json`
 {
   "order_id": "ORD_20261001_00001",
   "order_status": "completed",
-  "total_discount_amount": 141,
-  "points_used": {
-    "tree_points": 8,
-    "cub_points": 12
+  "total_discount_amount": 109,
+  "created_at": "2026-10-01T14:30:00.000+08:00",
+  "coupon_summary": {
+    "new_issued": { "quantity": 2, "total_discount_amount": 46, "tree_points": 30, "cub_points": 10 },
+    "existing": { "quantity": 3, "total_discount_amount": 63, "tree_points": 25, "cub_points": 38 }
   },
-  "coupons_used": [
-    {
-      "coupon_id": "01HZYA1B2C3D4E5F6G7H8J9K0M",
-      "campaign_id": "01HZY7SAYR7J2R4T6W8X1Z3AEH",
-      "is_new_issued": false,
-      "min_order_amount": 400,
-      "discount_amount": 120,
-      "redeem_points": 100,
-      "tree_points": 0,
-      "cub_points": 0,
-      "expired_at": "2026-10-31T23:59:59.999+08:00"
-    },
-    {
-      "coupon_id": "01HZYB2C3D4E5F6G7H8J9K0MNP",
-      "campaign_id": "01HZY8TBZS8K3S5V7X9Y2A4BFJ",
-      "is_new_issued": true,
-      "min_order_amount": 100,
-      "discount_amount": 21,
-      "redeem_points": 20,
-      "tree_points": 8,
-      "cub_points": 12,
-      "expired_at": "2026-11-30T23:59:59.999+08:00"
-    }
-  ],
-  "finalized_at": "2026-10-03T10:00:00.000+08:00",
-  "created_at": "2026-10-01T14:30:00.000+08:00"
+  "finalized_at": "2026-10-03T10:00:00.000+08:00"
 }
 ```
 
@@ -93,36 +70,30 @@ Content-Type: `application/json`
 | ---- | ---- | ---- |
 | order_id | String | 訂單識別碼 |
 | order_status | String | 訂單當前狀態，取自 `order.status` 五態：`pending` \| `processing` \| `error` \| `completed` \| `cancelled`；發卡主機端**不分 status 一律全回**（含清算失敗的 `error`） |
-| total_discount_amount | Integer | 本次實際折抵總金額（元）；`error` 訂單為 `0` |
-| points_used | Object | 本次扣點總計（僅新券消耗）；`error` 訂單 `tree_points`/`cub_points` 皆為 `0`，見下表 |
-| coupons_used | Array | 本次訂單所用的所有券明細（含舊券與新券），與 `create_order` response 同結構，供發卡主機對帳；`error` 訂單為空陣列，見下表 |
+| total_discount_amount | Integer | 本次實際折抵總金額（元），與 `create_order` response 定義相同；`error` 訂單為 `0` |
+| created_at | String | 該筆 order 於神坊資料庫中建立的時間（UTC+8 ISO 8601，毫秒精度），與 `create_order` response 定義相同 |
+| coupon_summary | Object | 本次折抵金額與點數消耗，依新發券／既有券分組彙總，與 `create_order` response 同結構，供發卡主機對帳；`error` 訂單兩分組皆為 `0`，見下表 |
 | finalized_at | String \| null | 訂單終結時間（UTC+8 ISO 8601，毫秒精度）；未終結（`pending`/`processing`/`error`）時為 `null`，`completed` / `cancelled` 時為終結時間 |
-| created_at | String | 訂單建立時間（UTC+8 ISO 8601，毫秒精度） |
 
-### points_used
+### coupon_summary
+
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| tree_points | Integer | 本次使用的小樹點(生活)總數 |
-| cub_points | Integer | 本次使用的小樹點(信用卡)總數 |
+| new_issued | Object | 本次訂單**新券段**即時發行之新券的彙總，見下表 |
+| existing | Object | 本次訂單**既有券段**使用之舊券的彙總，見下表 |
 
-### coupons_used
+`new_issued` 與 `existing` 皆為同一結構：
+
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| coupon_id | String | 券識別碼（ULID） |
-| campaign_id | String | 該券所屬 campaign 識別碼（ULID） |
-| is_new_issued | Boolean | `true`：本訂單即時發行的新券；`false`：本訂單之前已存在的舊券 |
-| min_order_amount | Integer | 該券對應的最低消費門檻（元） |
-| discount_amount | Integer | 該券本次實際折抵金額（元） |
-| redeem_points | Integer | 該券**發行時**的點數成本（固定屬性，非本次扣點）；新券等於本次 `tree_points + cub_points`，舊券為其原始發行成本 |
-| tree_points | Integer | 該券於**本次訂單**消耗的小樹點(生活)；舊券本次不扣點，固定為 `0` |
-| cub_points | Integer | 該券於**本次訂單**消耗的小樹點(信用卡)；舊券本次不扣點，固定為 `0` |
-| expired_at | String | 該券到期時間（UTC+8 ISO 8601，毫秒精度、含邊界） |
+| quantity | Integer | 該分組使用的券張數 |
+| total_discount_amount | Integer | 該分組本次折抵金額合計（元） |
+| tree_points | Integer | `new_issued`：本次訂單消耗的小樹點(生活)總數；`existing`：該分組舊券於其**原始發行時**所使用的小樹點(生活)總數（非本次消耗，僅呈現歷史組成） |
+| cub_points | Integer | `new_issued`：本次訂單消耗的小樹點(信用卡)總數；`existing`：該分組舊券於其**原始發行時**所使用的小樹點(信用卡)總數（原因同上） |
 
-### 對帳恆等式（僅新券貢獻點數）
-- `Σ coupons_used[].tree_points == points_used.tree_points`
-- `Σ coupons_used[].cub_points == points_used.cub_points`
-- `Σ coupons_used[].discount_amount == total_discount_amount`（含舊券與新券）
-- `cub_points`（小樹點信用卡）為銀行發行點數，是發卡主機對帳的主要依據；此明細與 `create_order` 建單當下回傳者一致，供事後重查
+### 對帳恆等式
+- `coupon_summary.new_issued.total_discount_amount + coupon_summary.existing.total_discount_amount == total_discount_amount`
+- `cub_points`（小樹點信用卡）為銀行發行點數，是發卡主機對帳的主要依據；此彙總與 `create_order` 建單當下回傳者同結構，供事後重查
 
 # Error Handling
 
