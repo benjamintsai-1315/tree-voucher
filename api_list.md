@@ -39,7 +39,7 @@ permalink: /api-list/
 | `get_coupons` | `GET` | `/coupon/get_coupons` | 查詢使用者券列表，預設回全部券狀態，並支援 `brand_id`、`status` 篩選。（原 `get_coupon_wallet`） | 已有 spec |
 | `get_coupon_detail` | `GET` | `/coupon/get_coupon_detail` | 查詢單張券詳情，包含狀態、效期、折抵規則及兌換時所花費的點數。 | 已有 spec |
 | `get_member_orders` | `GET` | `/coupon/get_member_orders` | 查詢使用者歷史折抵訂單列表，供用戶瀏覽折抵紀錄。 | 已有 spec |
-| ~~`get_order`~~ | `GET` | `/coupon/get_order` | ⚠️ 已於 2026-07-08 廢除：前台不提供單筆訂單明細，改用 `get_member_orders`；發卡主機端單筆查詢由 `bank_get_order` 承接。 | 已廢除 |
+| ~~`get_order`~~ | `GET` | `/coupon/get_order` | ⚠️ 已於 2026-07-08 廢除：前台不提供單筆訂單明細，改用 `get_member_orders`；發卡主機端單筆查詢由 `get_order`（發卡主機端；2026-08-06 起由 `bank_get_order` 更名而來）承接。spec 文件移至 `docs/api/legacy/`。 | 已廢除 |
 | `preview_discount` | `POST` | `/coupon/preview_discount` | 在未建立訂單前，試算指定品牌與刷卡金額可能折抵多少。若前端不需要即時試算，可不做。 | 可選 |
 | `redeem_manual_coupon`（暫定名） | `POST` | `/coupon/redeem_manual_coupon`（暫定） | 讓用戶對 `type=manual` 的 campaign 主動發起兌換，取得該 campaign 對應的 coupon。2026-07-01 調查發現：`get_current_rotation` 已回傳 `manual` campaign 規則供前端「手動換券頁面」顯示，但目前沒有任何 API 讓用戶實際執行兌換動作；兌換觸發方式、扣點時機等細節尚待確認。 | 需新增 spec |
 
@@ -51,7 +51,7 @@ permalink: /api-list/
 | `create_order` | `POST` | `/bank/create_order` | 信用卡授權後由發卡主機呼叫。神坊依 brand、用戶、刷卡金額執行清算，使用既有 coupon、扣點、即時發新 coupon，並保存卡號後四碼供後續前台查詢顯示。 | 已有 spec |
 | `batch_finalize_orders` | `POST` | `/bank/batch_finalize_orders` | 商戶請款完成或取消交易後由發卡主機批次呼叫。以 CSV 檔案上傳多筆 `{order_id, action}`，神坊立即回 `202 Accepted`，實際處理以非同步方式執行。`request_id` 由發卡主機自行產生，相同 `request_id` 重送時回傳 `BATCH_REQUEST_ALREADY_EXISTS`。 | 已有 spec |
 | `get_finalize_batch_status` | `GET` | `/bank/get_finalize_batch_status` | 發卡主機以 `request_id` 查詢批次 finalize 請求的整體狀態與各筆訂單的處理進度。 | 已有 spec |
-| `bank_get_order` | `GET` | `/bank/get_order` | 發卡主機依 `order_id` 查詢訂單狀態與折抵金額，僅回傳銀行端必要欄位。 | 已有 spec |
+| `get_order` | `GET` | `/bank/get_order` | 發卡主機依 `order_id` 查詢訂單狀態與折抵金額，僅回傳銀行端必要欄位。（2026-08-06 起，原名 `bank_get_order`） | 已有 spec |
 
 ### 發卡主機端說明
 - `order_id` 由發卡主機編制，神坊直接以該 `order_id` 作為訂單主識別。
