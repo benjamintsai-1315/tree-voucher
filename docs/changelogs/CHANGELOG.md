@@ -18,7 +18,7 @@
 - **`docs/api/API Spec - get_finalize_batch_status.md`**：Item Error Code 表補上 `DUPLICATE_ORDER_ID`（先前遺漏，本次一併訂正）
 - **`CLAUDE.md`**：「前台 API 安全機制」更名為「API 安全機制」，移除「`/bank/...` 不在此列」的例外描述，IP 白名單檢查擴大適用於所有 `/bank/...` API（非僅 `batch_finalize_orders`）
 
-**待確認**：`DUPLICATE_ORDER_ID` 與 `INVALID_ACTION` 判定時機維持在非同步階段（與同步建立 item 的時機分開），此為本次訂正時的合理推定，未經逐項覆核，如需調整請提出
+**確認**：`DUPLICATE_ORDER_ID` 與 `INVALID_ACTION` 判定時機維持在非同步階段（與同步建立 item 的時機分開），2026-08-06 已與 PM 確認採此設計
 
 ## 2026-08-06 — bank_get_order：response 結構改為與 create_order 對齊
 
