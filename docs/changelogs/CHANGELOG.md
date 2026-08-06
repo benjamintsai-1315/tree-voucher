@@ -2,6 +2,24 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-08-06 — batch_finalize_orders：對照銀行提供 PDF（2026-07-21 版本）訂正，非同步架構改回 PDF 設計、IP 白名單擴大至所有 `/bank/...`
+
+**背景**：取得銀行方提供的 2026-07-21 版 PDF 規格，逐項比對後發現本專案 2026-07-30 的改版（拿掉 S3 落地原始檔、background job chunk 處理、`finalize_requests`/`finalize_request_order_items` 表名、`success_count`/`error_count`/`total_count` 完成判定、Batch-level error、`coupon_event_logs` 稽核紀錄）與銀行端認知的架構不一致，且原本移除的 IP 白名單邊界檢查在 PDF 中仍存在。經確認後，非同步架構改回沿用 PDF 版本，僅保留 2026-07-30「同步階段即逐行建立 item」與合併 `FILE_PARSE_ERROR` 命名的設計
+
+**改動**：
+- **`docs/api/API Spec - batch_finalize_orders.md`**：
+  - 權限需求恢復「來源 IP 白名單」檢查
+  - 非同步處理架構改回 PDF 版本：S3 落地原始檔（`tree_coupon_{env}_s3/orders/finalize_requests/{request_id}.ndjson`）、background job 以 100 行為一 chunk 處理、`finalize_requests`／`finalize_request_order_items` 表名、`success_count`/`error_count`/`total_count` 完成判定、Batch-level error 段落、`coupon_event_logs` 稽核紀錄
+  - 保留 2026-07-30 設計：檔案上傳完成後**同步**逐行解析並建立 item（不等 background job），無法解析者以合併後的單一 `FILE_PARSE_ERROR` 標記，不進入非同步佇列
+  - `DUPLICATE_ORDER_ID`、`INVALID_ACTION` 維持於非同步階段判定（與 PDF 一致）
+  - Response body 由「無」改回 `{}`
+  - `request_id`／`order_id` 恢復「僅限英數字與底線」與「全系統唯一」限制
+  - 422／413 錯誤分類恢復為 PDF 版本：`request_id`／`orders` 內容驗證維持 422，`FILE_SIZE_EXCEEDED` 改回 413（原 422）；移除 `BATCH_REQUEST_ID_REQUIRED`／`ORDERS_FILE_REQUIRED` 400 錯誤碼
+- **`docs/api/API Spec - get_finalize_batch_status.md`**：Item Error Code 表補上 `DUPLICATE_ORDER_ID`（先前遺漏，本次一併訂正）
+- **`CLAUDE.md`**：「前台 API 安全機制」更名為「API 安全機制」，移除「`/bank/...` 不在此列」的例外描述，IP 白名單檢查擴大適用於所有 `/bank/...` API（非僅 `batch_finalize_orders`）
+
+**待確認**：`DUPLICATE_ORDER_ID` 與 `INVALID_ACTION` 判定時機維持在非同步階段（與同步建立 item 的時機分開），此為本次訂正時的合理推定，未經逐項覆核，如需調整請提出
+
 ## 2026-08-06 — bank_get_order：response 結構改為與 create_order 對齊
 
 **背景**：`bank_get_order` 原本回傳逐張券明細 `coupons_used[]` 與 `points_used`，與 `create_order` 的彙總式 `coupon_summary`（`new_issued`／`existing` 分組）結構不同，兩支 API 對同一筆訂單描述用券結果卻用不同形狀，增加維護與對帳理解成本
