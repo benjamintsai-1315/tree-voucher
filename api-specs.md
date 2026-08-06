@@ -18,7 +18,7 @@ permalink: /api-specs/
 - [update_member_auto_redeem_settings]({{ '/api-specs/update-member-auto-redeem-settings/' | relative_url }})
 - [get_member_settings_change_logs]({{ '/api-specs/get-member-settings-change-logs/' | relative_url }})
 - [get_member_orders]({{ '/api-specs/get-member-orders/' | relative_url }})
-- ~~[get_order]({{ '/api-specs/get-order/' | relative_url }})~~ ⚠️ 已於 2026-07-08 廢除（前台改用 get_member_orders，發卡主機端用 bank_get_order）
+- ~~[get_order（前台端，legacy）]({{ '/api-specs/legacy/get-order/' | relative_url }})~~ ⚠️ 已於 2026-07-08 廢除（前台改用 get_member_orders，發卡主機端用 get_order，2026-08-06 起由 bank_get_order 更名而來）
 - [activate_member]({{ '/api-specs/activate-member/' | relative_url }})
 - [deactivate_member]({{ '/api-specs/deactivate-member/' | relative_url }})
 
@@ -26,4 +26,4 @@ permalink: /api-specs/
 
 - [create_order]({{ '/api-specs/create-order/' | relative_url }})
 - [batch_finalize_orders]({{ '/api-specs/batch-finalize-orders/' | relative_url }})
-- [bank_get_order]({{ '/api-specs/bank-get-order/' | relative_url }})
+- [get_order（發卡主機端）]({{ '/api-specs/get-order/' | relative_url }})
