@@ -7,6 +7,7 @@ permalink: /api-specs/get-finalize-batch-status/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-08-06 | Item Error Code 補上 `DUPLICATE_ORDER_ID`（呼應 `batch_finalize_orders.md` 同日訂正：非同步階段對同批次重複 `order_id` 的判定，先前遺漏於本表） |
 | 2026-07-30 | 呼應 batch_finalize_orders 同日變更：orders[] 新增 raw_data 欄位（原始內容解析失敗時揭露，id 為 null）；id／action 欄位在解析失敗時可為 null；Item Error Code 新增 FILE_PARSE_ERROR、ORDER_NOT_FINALIZABLE、ORDER_FAILED；ORDER_NOT_FOUND 定義收斂為單純查無此 order_id（不再涵蓋 error 訂單） |
 | 2026-07-29 | 全系統時間精度盤點：`submitted_at`／`completed_at`／`finalized_at` 補註「毫秒精度」，Sample 補上 `.000` 精度 |
 | 2026-07-21 | `orders[].action` 回傳值同步改為小寫 `complete`/`cancel`（原 `COMPLETED`/`CANCELLED`），與 `batch_finalize_orders` 本次調整對齊；Item Error Code 補上 `INVALID_ACTION`（該檢查已改列 `batch_finalize_orders` 非同步 item-level 錯誤） |
@@ -133,6 +134,7 @@ Endpoint: `/bank/get_finalize_batch_status`
 | error_code | 說明 |
 | ---------- | ---- |
 | `FILE_PARSE_ERROR` | 該行原始內容無法解析（非合法 JSON、缺 `order_id`／`action` 必要欄位，或欄位長度超過上限） |
+| `DUPLICATE_ORDER_ID` | 同批次內 `order_id` 重複；以第一筆格式合法的資料為有效項目，後續資料不執行結案 |
 | `INVALID_ACTION` | `action` 值不合法（非 `complete`/`cancel`） |
 | `ORDER_NOT_FOUND` | `order_id` 不存在於神坊系統 |
 | `ORDER_NOT_FINALIZABLE` | 訂單存在，但 `order.status = pending`（清算尚未完成，非唯一可終結狀態） |
