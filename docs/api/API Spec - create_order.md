@@ -7,6 +7,7 @@ permalink: /api-specs/create-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-08-06 | 跨檔引用同步：`bank_get_order` 更名為 `get_order`（發卡主機端），本文內對該 API 的引用同步更新（見 `get_order.md` 該次 changelog 說明更名原因） |
 | 2026-08-05（訂正） | 「`get_member_orders` 用券摘要快照」段落：修正前次改動——`coupon_discount_amount` 因折抵金額於 campaign 建立後不可變更，改為非快照欄位，由聚合列計算而得；分組鍵收斂回 `campaign_id`+`campaign_name`（移除 `coupon_discount_amount`），與 `get_member_orders.md` 同步 |
 | 2026-08-05 | 「`get_member_orders` 用券摘要快照」段落：欄位更名 `campaign_discount_amount` → `coupon_discount_amount`，與 `get_member_orders.md` 同步（review 後定案：此值為 coupon 建立時快照，非即時反查 campaign 表） |
 | 2026-07-29 | 「`get_member_orders` 用券摘要快照」段落：快照新增 `campaign_discount_amount`，分組鍵擴充為 `campaign_id`+`campaign_name`+`campaign_discount_amount`（與 `get_member_orders.md` 同步） |
@@ -68,7 +69,7 @@ permalink: /api-specs/create-order/
 
 發卡主機需一併帶入該筆刷卡卡號後四碼及刷卡門市名稱（`store_name`），供神坊保存於訂單資料，後續由前台端查詢訂單時顯示。
 
-若同一 `order_id` 已建立（無論 `waiting_finalization` 或 `failed`），任何再次收到的 `create_order` 請求皆不重做清算，直接回 `ORDER_ALREADY_EXISTS`。發卡主機若需查詢訂單狀態與折抵金額，應另呼叫 `bank_get_order`。
+若同一 `order_id` 已建立（無論 `waiting_finalization` 或 `failed`），任何再次收到的 `create_order` 請求皆不重做清算，直接回 `ORDER_ALREADY_EXISTS`。發卡主機若需查詢訂單狀態與折抵金額，應另呼叫 `get_order`（發卡主機端；原名 `bank_get_order`）。
 
 # Request
 HTTP method: `POST`
@@ -228,7 +229,7 @@ Content-Type: `application/json`
 | **點數端失敗** | treelife-api 扣點 fail / timeout | 未扣、已扣但退還、或未定 | 跳過新券段，只計舊券折抵：有舊券折抵→`processing`；無→`error`（`TREELIFE_ERROR`） | 確認成功即退點；未定者交每日 04:00 cronjob 對帳（見上「扣點逾時處理」） |
 | **我方失敗** | 扣點已成功、但神坊端發券寫入失敗 | 已扣（孤兒點數） | **不影響判定**，僅計舊券折抵：有舊券折抵→`processing`；無→`error` | 屬 5xx 非預期錯誤，人工事後補券或退還已扣點數 |
 
-- **可查性**：`get_member_orders` 剔除 `error`；admin 端可經 status filter 查得；`bank_get_order` 不分 status 一律全回
+- **可查性**：`get_member_orders` 剔除 `error`；admin 端可經 status filter 查得；`get_order`（發卡主機端）不分 status 一律全回
 - **冪等**：同一 `order_id` 只允許建立一次（不論最終為 `processing` 或 `error`，皆佔用 `order_id`）；任何再次收到的請求皆回 `ORDER_ALREADY_EXISTS`，不得再次扣點、發券、改券狀態或新增事件
 
 **時間與 rotation 邊界：**
@@ -236,7 +237,7 @@ Content-Type: `application/json`
 - 券的 `issued_at` / `expired_at` 均以神坊**收到 request 的實際時間**為準，與 `transaction_time` 無關；`expired_at` 的日界（`23:59:59.999` UTC+8、含邊界）與 rotation active 判定採相同精度與邊界規則
 - **rotation 邊界暫定：** 若 `transaction_time` 早於 `rotation.end_time`（交易發生在舊檔期內），但神坊收到 request 時當下時間已超過 `rotation.end_time`，**暫定仍以收到 request 時間為準**執行清算（不回溯舊 rotation）
 - `max_points_per_member`：定義於 **rotation 屬性**（非 campaign）；語意為「同一用戶於此 rotation 內、跨所有品牌與 campaign 合計可用的點數上限」；計數條件為同一 `member_id + rotation_id` 下已發行 coupon 的 `coupon_redeem_points` 加總；`0` 代表無上限
-- `create_order` response 回傳 `total_discount_amount` 與 `coupon_summary`（新券段／既有券段彙總）；發卡主機若需事後重查訂單狀態與折抵金額，應另呼叫 `bank_get_order`（前台端不提供單筆訂單明細查詢）
+- `create_order` response 回傳 `total_discount_amount` 與 `coupon_summary`（新券段／既有券段彙總）；發卡主機若需事後重查訂單狀態與折抵金額，應另呼叫 `get_order`（發卡主機端；前台端不提供單筆訂單明細查詢）
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
 
