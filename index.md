@@ -19,10 +19,10 @@ permalink: /
 - [API 規格總覽]({{ '/api-specs/' | relative_url }})
 - [create_order]({{ '/api-specs/create-order/' | relative_url }})
 - [finalize_order]({{ '/api-specs/finalize-order/' | relative_url }})
-- [bank_get_order]({{ '/api-specs/bank-get-order/' | relative_url }})
+- [get_order（發卡主機端）]({{ '/api-specs/get-order/' | relative_url }})
 - [get_current_rotation]({{ '/api-specs/get-current-rotation/' | relative_url }})
 - [get_coupon_wallet]({{ '/api-specs/get-coupon-wallet/' | relative_url }})
-- ~~[get_order]({{ '/api-specs/get-order/' | relative_url }})~~ ⚠️ 已於 2026-07-08 廢除（前台改用 get_member_orders，發卡主機端用 bank_get_order）
+- ~~[get_order（前台端，legacy）]({{ '/api-specs/legacy/get-order/' | relative_url }})~~ ⚠️ 已於 2026-07-08 廢除（前台改用 get_member_orders，發卡主機端用 get_order，2026-08-06 起由 bank_get_order 更名而來）
 - [get_member_settings_change_logs]({{ '/api-specs/get-member-settings-change-logs/' | relative_url }})
 - [get_member_orders]({{ '/api-specs/get-member-orders/' | relative_url }})
 - [get_member_settings]({{ '/api-specs/get-member-settings/' | relative_url }})
