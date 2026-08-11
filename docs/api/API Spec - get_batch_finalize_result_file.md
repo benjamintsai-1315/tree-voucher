@@ -7,6 +7,7 @@ permalink: /api-specs/get-batch-finalize-result-file/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-08-11 | 依銀行提供之最新規格文件訂正：Response Body 欄位改為 `line_no`／`order_id`／`action`／`status`／`error_type`（移除 `id`／`finalized_at`／`error_code`／`raw_data` 命名，改採與 `batch_finalize_orders` 內部 item 表一致的欄位名稱）；`error_type` 列表同步 `batch_finalize_orders.md` 本次訂正：`FILE_PARSE_ERROR` 拆回 `INVALID_JSON`／`INVALID_PAYLOAD`，移除 `INVALID_ACTION`（併入 `INVALID_PAYLOAD`） |
 | 2026-08-11 | 新增 API，供發卡主機下載指定批次 finalize 請求的逐筆處理結果檔案；逐筆明細內容原包含於 `get_batch_finalize_status` inline `orders[]`（已於 2026-08-11 移除） |
 
 # API: get_batch_finalize_result_file
@@ -59,48 +60,47 @@ Endpoint: `/bank/get_batch_finalize_result_file`
 
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
-| id | String \| null | 訂單識別碼；該行原始內容解析失敗（無法取得 order_id）時為 `null` |
+| line_no | Integer | 原始 ndjson 檔案中的行號（1-based）；解析失敗的行亦保留行號，供發卡主機對照原始檔案確認 |
+| order_id | String \| null | 訂單識別碼；該行原始內容解析失敗（無法取得 order_id）時為 `null` |
 | action | String \| null | `complete` \| `cancel`；解析失敗時為 `null` |
 | status | String | 單筆處理狀態，見下表 |
-| finalized_at | Datetime \| null | 單筆處理成功時間（UTC+8 ISO 8601，毫秒精度）；尚未完成或失敗時為 `null` |
-| error_code | String \| null | 失敗原因代碼；成功或待處理時為 `null` |
-| raw_data | String \| null | 該行原始內容；僅在 `id` 為 `null`（解析失敗）時有值，其餘為 `null` |
+| error_type | String \| null | 失敗原因代碼；成功或待處理時為 `null` |
 
 ### Item Status Enum
 
 | 狀態 | 說明 |
 | ---- | ---- |
 | `PENDING` | 尚未處理 |
-| `SUCCESS` | 處理成功，`finalized_at` 有值 |
-| `FAILED` | 處理失敗，`error_code` 說明原因 |
+| `SUCCESS` | 處理成功 |
+| `FAILED` | 處理失敗，`error_type` 說明原因 |
 
-### Item Error Code 說明
+### Item Error Type 說明
 
-| error_code | 說明 |
+| error_type | 說明 |
 | ---------- | ---- |
-| `FILE_PARSE_ERROR` | 該行原始內容無法解析（非合法 JSON、缺 `order_id`／`action` 必要欄位，或欄位長度超過上限）；`order_id`／`action` 為 `null`，可依 `line_no` 對照原始檔案確認 |
-| `DUPLICATE_ORDER_ID` | 同批次內 `order_id` 重複；以第一筆格式合法的資料為有效項目，後續資料不執行結案 |
-| `INVALID_ACTION` | `action` 值不合法（非 `complete`/`cancel`） |
-| `ORDER_NOT_FOUND` | `order_id` 不存在於神坊系統 |
-| `ORDER_NOT_FINALIZABLE` | 訂單存在，但 `order.status = pending`（清算尚未完成，非唯一可終結狀態） |
-| `ORDER_ALREADY_FINALIZED` | 訂單已完成最終化，不可重複執行 |
-| `ORDER_FAILED` | 訂單存在，但 `order.status = error`（清算失敗，不可終結） |
+| `INVALID_JSON` | 該行 Json Line 無法解析 |
+| `INVALID_PAYLOAD` | Payload 無法解析或欄位格式錯誤（缺 `order_id`／`action` 必要欄位、欄位長度超過上限，或 `action` 值不合法） |
+| `DUPLICATE_ORDER_ID` | 同一批 `order_id` 重複；以第一筆格式合法的資料為有效項目，後續資料不執行結案 |
+| `ORDER_NOT_FOUND` | 訂單不存在於票券系統 |
+| `ORDER_ALREADY_FINALIZED` | 訂單已為終態，不可重複執行（`status: completed, cancelled`） |
+| `ORDER_NOT_FINALIZABLE` | 訂單存在，但目前狀態不可結案（`status: pending`） |
+| `ORDER_FAILED` | 訂單存在，但先前 `create_order` 失敗，無法執行結案（`status: error`） |
 
 ## Response Sample（JSON Lines）
 
 ```
-{"id": "ORD_20261001_00001", "action": "complete", "status": "SUCCESS", "finalized_at": "2026-10-03T10:00:05.000+08:00", "error_code": null, "raw_data": null}
-{"id": "ORD_20261001_00002", "action": "cancel", "status": "PENDING", "finalized_at": null, "error_code": null, "raw_data": null}
-{"id": null, "action": null, "status": "FAILED", "finalized_at": null, "error_code": "FILE_PARSE_ERROR", "raw_data": "{\"order_id\": \"ORD_20261001_00003\", \"action\": }"}
+{"line_no": 1, "order_id": "ORD_20261001_00001", "action": "complete", "status": "SUCCESS", "error_type": null}
+{"line_no": 2, "order_id": "ORD_20261001_00002", "action": "cancel", "status": "PENDING", "error_type": null}
+{"line_no": 3, "order_id": null, "action": null, "status": "FAILED", "error_type": "INVALID_JSON"}
 ```
 
 ## Response Sample（CSV）
 
 ```
-id,action,status,finalized_at,error_code,raw_data
-ORD_20261001_00001,complete,SUCCESS,2026-10-03T10:00:05.000+08:00,,
-ORD_20261001_00002,cancel,PENDING,,,
-,,FAILED,,FILE_PARSE_ERROR,"{""order_id"": ""ORD_20261001_00003"", ""action"": }"
+line_no,order_id,action,status,error_type
+1,ORD_20261001_00001,complete,SUCCESS,
+2,ORD_20261001_00002,cancel,PENDING,
+3,,,FAILED,INVALID_JSON
 ```
 
 ## 400 錯誤回傳（TYPE: MESSAGE）
