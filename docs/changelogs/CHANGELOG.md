@@ -2,6 +2,16 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-08-11 — batch_finalize_orders item error_type 訂正：FILE_PARSE_ERROR 拆回 INVALID_JSON／INVALID_PAYLOAD，INVALID_ACTION 併入 INVALID_PAYLOAD
+
+**背景**：依銀行提供之最新規格文件訂正 item-level error_type 定義，此次訂正影響 `batch_finalize_orders.md`（錯誤碼實際產生處）與 `get_batch_finalize_result_file.md`（結果檔案對外呈現處）
+
+**改動**：
+- **`FILE_PARSE_ERROR` 拆分**：推翻 2026-08-06 之合併決定，改回拆分為 `INVALID_JSON`（該行 Json Line 無法解析）與 `INVALID_PAYLOAD`（Payload 無法解析或欄位格式錯誤，含缺必要欄位、欄位過長）
+- **`INVALID_ACTION` 移除**：`action` 值不合法（非 `complete`/`cancel`）併入 `INVALID_PAYLOAD` 判定；驗證時機由原本的非同步階段（background job 逐行處理）提前至同步逐行解析階段（原本僅檢查 JSON 格式與必要欄位）。⚠️ 待確認：此驗證時機提前是否為預期設計，尚待與銀行／RD 進一步確認
+- **`get_batch_finalize_result_file` Response Body 欄位訂正**：由 `id`/`action`/`status`/`finalized_at`/`error_code`/`raw_data` 改為 `line_no`/`order_id`/`action`/`status`/`error_type`，與 `finalize_request_order_items` 內部欄位命名一致；`finalized_at`／`raw_data` 不再對外提供
+- `docs/樹配券2.0_PRD.md` 同步將 `INVALID_ACTION`／`error_code` 引用改為 `INVALID_PAYLOAD`／`error_type`
+
 ## 2026-08-11 — get_finalize_batch_status 更名為 get_batch_finalize_status、response 改為檔案外取、status enum 擴展至五態
 
 **背景**：API 名稱對齊銀行提供的最新規格文件用語，命名字序改為「get_批次 finalize_狀態」；同時重構 response 結構、移除內嵌的訂單明細陣列，改由新增之 `get_batch_finalize_result_file` API 提供成行級別的細節檔案下載
