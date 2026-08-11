@@ -7,6 +7,7 @@ permalink: /api-specs/batch-finalize-orders/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-08-11 | 同步 `get_finalize_batch_status` → `get_batch_finalize_status` 更名；補充逐筆明細查詢指引，改由新 API `get_batch_finalize_result_file` 提供 |
 | 2026-08-06 | 依 2026-07-21 PDF 版本核對後訂正：權限邊界恢復「來源 IP 白名單」檢查（連動擴大至所有 `/bank/...` API，見 CLAUDE.md 同步修改）；非同步處理架構改回沿用 S3 落地原始檔（`tree_coupon_{env}_s3/orders/finalize_requests/{request_id}.ndjson`）＋ background job 以 100 行為一 chunk 處理＋ `finalize_requests`／`finalize_request_order_items` 表名＋ `success_count`/`error_count`/`total_count` 完成判定＋ Batch-level error 段落＋ `coupon_event_logs` 稽核紀錄，取代 2026-07-30 版本的取消設計；保留 2026-07-30「同步階段即逐行建立 item」的做法——檔案上傳至 S3 後不等 background job，同步解析每一行並建立 `finalize_request_order_items`，無法解析者（不合法 JSON／缺必要欄位／欄位過長）以合併後的單一 `FILE_PARSE_ERROR` 標記（取代原 `INVALID_JSON`／`INVALID_PAYLOAD` 兩碼），不進入非同步佇列；`DUPLICATE_ORDER_ID`、`INVALID_ACTION` 維持於非同步階段判定；Response body 改回 `{}`；`request_id`／`order_id` 恢復「僅限英數字與底線」與「全系統唯一」限制；422／413 錯誤分類恢復為 PDF 版本（`request_id`／`orders` 內容驗證為 422，`FILE_SIZE_EXCEEDED` 為 413），移除 `BATCH_REQUEST_ID_REQUIRED`／`ORDERS_FILE_REQUIRED` 400 錯誤碼 |
 | 2026-07-30 | 同步驗證移除 orders 檔案內容可解析性檢查，改為逐行建立 finalize_batch_items——不論該行是否可解析／order_id 是否存在／訂單狀態為何，皆建立一筆 item；無法解析的行（不合法 JSON、缺必要欄位、欄位過長）以 raw_data 保存原始內容，order_id／action 留空，直接標記 FAILED + error_code=FILE_PARSE_ERROR，不進入非同步佇列；取消獨立 result file 設計，DB table 為唯一結果來源；ORDER_NOT_FOUND 定義收斂為單純查無此 order_id，新增 ORDER_NOT_FINALIZABLE（訂單存在但狀態為 pending）與 ORDER_FAILED（訂單存在但狀態為 error），ORDER_ALREADY_FINALIZED 定義不變（completed／cancelled）；422 FILE_PARSE_ERROR 自 request-level 移除（2026-08-06 起：item 建立時機與 FILE_PARSE_ERROR 合併命名部分保留，其餘非同步架構已改回 PDF 版本，見上方 2026-08-06 條目） |
 | 2026-07-21 | Request 格式改回 `multipart/form-data` + JSON Lines（ndjson）：`request_id` 為 text part，`orders` 為 file part（每行一筆訂單物件）；銀行端可於記憶體中逐行組出 ndjson 傳輸，不需落地實體檔案。移除單批 1000 筆上限，改以**檔案大小 < 10MB** 為批次基準，`request_id` 對應同一份檔案固定不變 |
@@ -17,7 +18,7 @@ permalink: /api-specs/batch-finalize-orders/
 | 2026-07-08 | 補述訂單狀態銜接：終結前置為 `order.status = waiting_finalization`，COMPLETED → `completed`、CANCELLED → `cancelled`；釐清 `ORDER_NOT_FOUND`（含不可終結的 `failed` 訂單）與 `ORDER_ALREADY_FINALIZED`（已為 `completed`/`cancelled`）判定 |
 | 2026-07-06 | 冪等統一：相同 `request_id` 一律回 `400 BATCH_REQUEST_ALREADY_EXISTS`；修正內文「冪等設計」誤述為直接回傳原批次接收資訊 |
 | 2026-06-25 | `BATCH_SIZE_EXCEEDED`、`INVALID_ACTION` 改為 422（語意驗證錯誤，與格式錯誤的 400 區分） |
-| 2026-06-25 | Response 改為 `200 OK` no body — `accepted_count` 無附加資訊（發卡主機自知筆數）；`submitted_at` 可由 `get_finalize_batch_status` 查詢；`request_id` 由發卡主機自行編列，回傳無意義（2026-08-06 起：Response body 恢復為 `{}`，見上方 2026-08-06 條目） |
+| 2026-06-25 | Response 改為 `200 OK` no body — `accepted_count` 無附加資訊（發卡主機自知筆數）；`submitted_at` 可由 `get_batch_finalize_status` 查詢；`request_id` 由發卡主機自行編列，回傳無意義（2026-08-06 起：Response body 恢復為 `{}`，見上方 2026-08-06 條目） |
 | 2026-06-24 | 改為 JSON body（`application/json`）；`request_id` 改名為 `request_id`；新增單批次上限 1000 筆（超過回 `BATCH_SIZE_EXCEEDED`）；移除 CSV 上傳設計；建議銀行端每批 500–1000 筆分批打入 |
 | 2026-06-22 | Response HTTP status 改為 `200 OK` |
 | 2026-06-16 | 由 `finalize_order` 更名為 `batch_finalize_orders`；輸入改為 CSV 檔案上傳（`multipart/form-data`）；冪等設計改為相同 `request_id` 直接回 `BATCH_REQUEST_ALREADY_EXISTS` |
@@ -28,7 +29,7 @@ permalink: /api-specs/batch-finalize-orders/
 # API: batch_finalize_orders
 
 ## 功能說明
-讓發卡主機在商戶請款完成或申請退刷後，以 `multipart/form-data`（訂單資料採 JSON Lines / ndjson 格式）批次傳入訂單結案通知。神坊完成請求驗證、原始檔案上傳至 S3 及逐行建立處理項目後回應 `200 OK`，實際訂單狀態轉換以非同步方式（background job）執行。發卡主機可透過 `get_finalize_batch_status` 查詢各筆訂單的處理進度。
+讓發卡主機在商戶請款完成或申請退刷後，以 `multipart/form-data`（訂單資料採 JSON Lines / ndjson 格式）批次傳入訂單結案通知。神坊完成請求驗證、原始檔案上傳至 S3 及逐行建立處理項目後回應 `200 OK`，實際訂單狀態轉換以非同步方式（background job）執行。發卡主機可透過 `get_batch_finalize_status` 查詢批次整體進度；如需查詢各筆訂單的逐筆處理明細，請使用 `get_batch_finalize_result_file`。
 
 ## 權限需求
 - 認證：Authorization: `ApiKey {{issuer_api_key}}`
