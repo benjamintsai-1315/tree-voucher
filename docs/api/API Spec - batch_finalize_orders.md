@@ -18,7 +18,7 @@ permalink: /api-specs/batch-finalize-orders/
 | 2026-07-08 | 補述訂單狀態銜接：終結前置為 `order.status = waiting_finalization`，COMPLETED → `completed`、CANCELLED → `cancelled`；釐清 `ORDER_NOT_FOUND`（含不可終結的 `failed` 訂單）與 `ORDER_ALREADY_FINALIZED`（已為 `completed`/`cancelled`）判定 |
 | 2026-07-06 | 冪等統一：相同 `request_id` 一律回 `400 BATCH_REQUEST_ALREADY_EXISTS`；修正內文「冪等設計」誤述為直接回傳原批次接收資訊 |
 | 2026-06-25 | `BATCH_SIZE_EXCEEDED`、`INVALID_ACTION` 改為 422（語意驗證錯誤，與格式錯誤的 400 區分） |
-| 2026-06-25 | Response 改為 `200 OK` no body — `accepted_count` 無附加資訊（發卡主機自知筆數）；`submitted_at` 可由 `get_batch_finalize_status` 查詢；`request_id` 由發卡主機自行編列，回傳無意義（2026-08-06 起：Response body 恢復為 `{}`，見上方 2026-08-06 條目） |
+| 2026-06-25 | Response 改為 `200 OK` no body — `accepted_count` 無附加資訊（發卡主機自知筆數）；`submitted_at` 可由 `get_finalize_batch_status` 查詢；`request_id` 由發卡主機自行編列，回傳無意義（2026-08-06 起：Response body 恢復為 `{}`，見上方 2026-08-06 條目） |
 | 2026-06-24 | 改為 JSON body（`application/json`）；`request_id` 改名為 `request_id`；新增單批次上限 1000 筆（超過回 `BATCH_SIZE_EXCEEDED`）；移除 CSV 上傳設計；建議銀行端每批 500–1000 筆分批打入 |
 | 2026-06-22 | Response HTTP status 改為 `200 OK` |
 | 2026-06-16 | 由 `finalize_order` 更名為 `batch_finalize_orders`；輸入改為 CSV 檔案上傳（`multipart/form-data`）；冪等設計改為相同 `request_id` 直接回 `BATCH_REQUEST_ALREADY_EXISTS` |
