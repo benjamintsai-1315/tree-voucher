@@ -80,7 +80,8 @@ AVAILABLE → CONSUMED → SETTLED
 |-----|--------|------|
 | `create_order` | POST | 建立折抵訂單（卡片授權後呼叫） |
 | `batch_finalize_orders` | POST | 批次完成或取消訂單（非同步，202 回應） |
-| `get_finalize_batch_status` | GET | 查詢批次 finalize 執行進度 |
+| `get_batch_finalize_status` | GET | 查詢批次 finalize 整體狀態與聚合統計（不含逐筆明細）（2026-08-11 起，原名 `get_finalize_batch_status`） |
+| `get_batch_finalize_result_file` | GET | 下載批次 finalize 逐筆處理結果檔案（CSV 或 JSON Lines，streaming 回傳）（2026-08-11 新增） |
 | `get_order` | GET | 查詢訂單狀態與折抵金額（僅回傳銀行端必要欄位）（2026-08-06 起，原名 `bank_get_order`） |
 
 ---
