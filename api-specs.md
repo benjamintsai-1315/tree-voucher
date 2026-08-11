@@ -26,4 +26,6 @@ permalink: /api-specs/
 
 - [create_order]({{ '/api-specs/create-order/' | relative_url }})
 - [batch_finalize_orders]({{ '/api-specs/batch-finalize-orders/' | relative_url }})
+- [get_batch_finalize_status]({{ '/api-specs/get-batch-finalize-status/' | relative_url }})
+- [get_batch_finalize_result_file]({{ '/api-specs/get-batch-finalize-result-file/' | relative_url }})
 - [get_order（發卡主機端）]({{ '/api-specs/get-order/' | relative_url }})
