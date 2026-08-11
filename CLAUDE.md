@@ -133,7 +133,7 @@
 > ⚠️ 前台 `get_order` 已於 2026-07-08 廢除（前台不提供單筆訂單明細）；spec 文件移至 `docs/api/legacy/`。發卡主機端單筆訂單查詢由 `get_order`（發卡主機端）承接——2026-08-06 起由 `bank_get_order` 更名而來，`/bank/...` 路徑本身已含端點歸屬資訊，不再另加 `bank_` 前綴，與同組其他 API 命名結構一致
 
 **發卡主機 `/bank/...`（已有 spec）**：
-`create_order`、`batch_finalize_orders`、`get_finalize_batch_status`、`get_order`
+`create_order`、`batch_finalize_orders`、`get_batch_finalize_status`（2026-08-11 起，原名 `get_finalize_batch_status`；回應精簡為僅整體狀態＋聚合統計）、`get_batch_finalize_result_file`（2026-08-11 新增，逐筆結果改由此 API 以檔案 streaming 提供）、`get_order`
 
 **Scope 外（本次不做）**：對帳 API、後台 CRUD API（第二階段）
 
