@@ -42,5 +42,6 @@
 |---|---|
 | `create_order` | `docs/api/API Spec - create_order.md` |
 | `batch_finalize_orders` | `docs/api/API Spec - batch_finalize_orders.md` |
-| `get_finalize_batch_status` | `docs/api/API Spec - get_finalize_batch_status.md` |
+| `get_batch_finalize_status` | `docs/api/API Spec - get_batch_finalize_status.md`（2026-08-11 起，原名 `get_finalize_batch_status`） |
+| `get_batch_finalize_result_file` | `docs/api/API Spec - get_batch_finalize_result_file.md` |
 | `get_order` | `docs/api/API Spec - get_order.md`（2026-08-06 起，原名 `bank_get_order`） |
