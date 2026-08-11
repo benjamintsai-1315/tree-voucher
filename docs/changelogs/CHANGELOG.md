@@ -2,6 +2,18 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-08-11 — get_finalize_batch_status 更名為 get_batch_finalize_status、response 改為檔案外取、status enum 擴展至五態
+
+**背景**：API 名稱對齊銀行提供的最新規格文件用語，命名字序改為「get_批次 finalize_狀態」；同時重構 response 結構、移除內嵌的訂單明細陣列，改由新增之 `get_batch_finalize_result_file` API 提供成行級別的細節檔案下載
+
+**改動**：
+- **API 更名**：`docs/api/API Spec - get_finalize_batch_status.md` 更名為 `docs/api/API Spec - get_batch_finalize_status.md`；路徑、標題、所有交叉參照同步更新
+- **Response 結構簡化**：移除內嵌 `orders[]` 陣列（含 Item Status Enum 與 Item Error Code 表）；彙總計數 `total_count`、`pending_count`、`success_count`、`error_count` 改為包裹於 `result_statistics` 物件，而非平放於頂層。與銀行規格文件異之處：本系統 `result_statistics` 在整個 batch 處理期間維持填值（不為 null），保留進度可見性
+- **Status Enum 擴展**：`status` 從 3 態（大寫：`PENDING`/`PROCESSING`/`COMPLETED`）擴至 5 態（小寫：`receiving`/`pending`/`processing`/`completed`/`error`）；且轉為小寫風格。⚠️ 註記：`error` 狀態的精確觸發條件目前標註為 TBD，尚未明確對應至既有的「Batch 層級 error」或「Batch 內所有 item 皆失敗」等情境定義
+- **新增 `get_batch_finalize_result_file` API**（`GET /bank/get_batch_finalize_result_file`）：提供請求對應的成行明細檔案下載，取代先前內嵌於 response 的 `orders[]` 內容。支援 `format` query 參數選擇 CSV 或 JSON Lines；檔案包含原 `orders[]` 所有欄位（`id`/`action`/`status`/`finalized_at`/`error_code`/`raw_data`）
+- **重要澄清**（避免與 2026-07-30 決議衝突）：此次改動重新引入「外部檔案交付成行細節」的做法，但**不**推翻 2026-07-30 的決策。兩次決策的區別在於：2026-07-30 係評估「DB 查詢 vs result file」孰優，決定保留 DB 表為唯一查詢來源以支援分頁與即時查詢；本次則針對「外部 API 呈現形式」調整——`finalize_requests`/`finalize_request_order_items` 仍為權威 DB 來源、內部系統依舊 DB-backed query，僅改變外部面向前端的交付方式（從內嵌 JSON 陣列改為可下載的流式檔案）
+- 全站現行文件（`CLAUDE.md`、`docs/README.md`、根目錄 `api_list.md`／`api-specs.md`、`docs/api/API Spec - batch_finalize_orders.md` 與其他相關引用）同步將 `get_finalize_batch_status` 改為 `get_batch_finalize_status`、補註新增 `get_batch_finalize_result_file`
+
 ## 2026-08-06 — bank_get_order 更名為 get_order，並將已廢除的前台 get_order.md 移至 docs/api/legacy/
 
 **背景**：`bank_get_order` 是 `/bank/...` 這組 API 中唯一帶 `bank_` 前綴的名字，其餘（`create_order`、`batch_finalize_orders`、`get_finalize_batch_status`）皆為純「動詞_目標對象」結構，且路徑本身已含 `/bank/` 前綴、足以標示呼叫端範疇，`bank_` 前綴屬多餘。原本命名時保留此前綴是為了與前台已廢除的 `get_order`（2026-07-08 廢除）區隔
