@@ -50,7 +50,8 @@ permalink: /api-list/
 | ---- | ---- | ---- | ---- | ---- |
 | `create_order` | `POST` | `/bank/create_order` | 信用卡授權後由發卡主機呼叫。神坊依 brand、用戶、刷卡金額執行清算，使用既有 coupon、扣點、即時發新 coupon，並保存卡號後四碼供後續前台查詢顯示。 | 已有 spec |
 | `batch_finalize_orders` | `POST` | `/bank/batch_finalize_orders` | 商戶請款完成或取消交易後由發卡主機批次呼叫。以 CSV 檔案上傳多筆 `{order_id, action}`，神坊立即回 `202 Accepted`，實際處理以非同步方式執行。`request_id` 由發卡主機自行產生，相同 `request_id` 重送時回傳 `BATCH_REQUEST_ALREADY_EXISTS`。 | 已有 spec |
-| `get_finalize_batch_status` | `GET` | `/bank/get_finalize_batch_status` | 發卡主機以 `request_id` 查詢批次 finalize 請求的整體狀態與各筆訂單的處理進度。 | 已有 spec |
+| `get_batch_finalize_status` | `GET` | `/bank/get_batch_finalize_status` | 發卡主機以 `request_id` 查詢批次 finalize 請求的整體狀態與聚合統計（不含逐筆明細）。（2026-08-11 起，原名 `get_finalize_batch_status`） | 已有 spec |
+| `get_batch_finalize_result_file` | `GET` | `/bank/get_batch_finalize_result_file` | 發卡主機以 `request_id` 下載批次 finalize 請求的逐筆處理結果檔案（CSV 或 JSON Lines，streaming 回傳），取代原 `get_finalize_batch_status` 的 inline `orders[]` 明細。 | 已有 spec |
 | `get_order` | `GET` | `/bank/get_order` | 發卡主機依 `order_id` 查詢訂單狀態與折抵金額，僅回傳銀行端必要欄位。（2026-08-06 起，原名 `bank_get_order`） | 已有 spec |
 
 ### 發卡主機端說明
