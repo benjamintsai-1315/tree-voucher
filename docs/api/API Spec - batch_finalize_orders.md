@@ -7,6 +7,7 @@ permalink: /api-specs/batch-finalize-orders/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-08-11 | Item error_type 依銀行提供之最新規格文件訂正：`FILE_PARSE_ERROR` 拆回 `INVALID_JSON`（JSON 解析失敗）與 `INVALID_PAYLOAD`（缺必要欄位、欄位格式錯誤或過長），推翻 2026-08-06 之合併決定；`INVALID_ACTION` 移除，`action` 值不合法併入 `INVALID_PAYLOAD` 判定，驗證時機由原非同步階段提前至同步逐行解析階段（⚠️ 待確認：此時機調整尚待與銀行/RD 確認是否為預期設計） |
 | 2026-08-11 | 同步 `get_finalize_batch_status` → `get_batch_finalize_status` 更名；補充逐筆明細查詢指引，改由新 API `get_batch_finalize_result_file` 提供 |
 | 2026-08-06 | 依 2026-07-21 PDF 版本核對後訂正：權限邊界恢復「來源 IP 白名單」檢查（連動擴大至所有 `/bank/...` API，見 CLAUDE.md 同步修改）；非同步處理架構改回沿用 S3 落地原始檔（`tree_coupon_{env}_s3/orders/finalize_requests/{request_id}.ndjson`）＋ background job 以 100 行為一 chunk 處理＋ `finalize_requests`／`finalize_request_order_items` 表名＋ `success_count`/`error_count`/`total_count` 完成判定＋ Batch-level error 段落＋ `coupon_event_logs` 稽核紀錄，取代 2026-07-30 版本的取消設計；保留 2026-07-30「同步階段即逐行建立 item」的做法——檔案上傳至 S3 後不等 background job，同步解析每一行並建立 `finalize_request_order_items`，無法解析者（不合法 JSON／缺必要欄位／欄位過長）以合併後的單一 `FILE_PARSE_ERROR` 標記（取代原 `INVALID_JSON`／`INVALID_PAYLOAD` 兩碼），不進入非同步佇列；`DUPLICATE_ORDER_ID`、`INVALID_ACTION` 維持於非同步階段判定；Response body 改回 `{}`；`request_id`／`order_id` 恢復「僅限英數字與底線」與「全系統唯一」限制；422／413 錯誤分類恢復為 PDF 版本（`request_id`／`orders` 內容驗證為 422，`FILE_SIZE_EXCEEDED` 為 413），移除 `BATCH_REQUEST_ID_REQUIRED`／`ORDERS_FILE_REQUIRED` 400 錯誤碼 |
 | 2026-07-30 | 同步驗證移除 orders 檔案內容可解析性檢查，改為逐行建立 finalize_batch_items——不論該行是否可解析／order_id 是否存在／訂單狀態為何，皆建立一筆 item；無法解析的行（不合法 JSON、缺必要欄位、欄位過長）以 raw_data 保存原始內容，order_id／action 留空，直接標記 FAILED + error_code=FILE_PARSE_ERROR，不進入非同步佇列；取消獨立 result file 設計，DB table 為唯一結果來源；ORDER_NOT_FOUND 定義收斂為單純查無此 order_id，新增 ORDER_NOT_FINALIZABLE（訂單存在但狀態為 pending）與 ORDER_FAILED（訂單存在但狀態為 error），ORDER_ALREADY_FINALIZED 定義不變（completed／cancelled）；422 FILE_PARSE_ERROR 自 request-level 移除（2026-08-06 起：item 建立時機與 FILE_PARSE_ERROR 合併命名部分保留，其餘非同步架構已改回 PDF 版本，見上方 2026-08-06 條目） |
@@ -122,8 +123,9 @@ HTTP Status: `200 OK`
 - 原始檔案上傳至 S3：`tree_coupon_{env}_s3/orders/finalize_requests/{request_id}.ndjson`
   - 若接收或上傳期間發生錯誤：清理本次請求已建立但尚未成立的批次資料及檔案，不建立 item、不排入 background job；若對應紀錄已於失敗清理時刪除，修正問題後可用相同 `request_id` 重新上傳，若 `request_id` 原本已存在則須改用新的 `request_id`
 - 原始檔案成功上傳至 S3 後，**同步逐行解析**並建立 `finalize_request_order_items`（保存 `line_no`、`raw_data`）：
-  - 該行可正確解析（合法 JSON 且含 `order_id`、`action`）：寫入 `order_id`、`action`，初始狀態 `pending`
-  - 該行無法正確解析（非合法 JSON、缺必要欄位、或欄位長度超過上限）：狀態直接標記為 `error`，`error_type = FILE_PARSE_ERROR`，不進入非同步處理
+  - 該行可正確解析（合法 JSON、含 `order_id`／`action` 必要欄位、欄位長度符合限制，且 `action` 值為 `complete` \| `cancel`）：寫入 `order_id`、`action`，初始狀態 `pending`
+  - 該行非合法 JSON：狀態直接標記為 `error`，`error_type = INVALID_JSON`，不進入非同步處理
+  - 該行為合法 JSON，但缺必要欄位、欄位長度超過上限，或 `action` 值不合法（非 `complete` \| `cancel`）：狀態直接標記為 `error`，`error_type = INVALID_PAYLOAD`，不進入非同步處理
 - `finalize_requests.status` 由 `receiving` 更新為 `pending`，並設定 `total_count`（＝本批次總行數）
 - 排入 background job，回傳 `200 OK`。僅表示請求驗證、原始檔案上傳及 item 建立完成；實際訂單結案結果由非同步流程處理
 
@@ -132,7 +134,6 @@ HTTP Status: `200 OK`
 - 僅處理狀態為 `pending` 的 item，依 `line_no` 以每 100 行為一個 chunk 逐行處理
 - 單行處理規則：
   - `order_id` 重複：以第一筆格式合法的資料為有效項目，後續資料不執行結案，item 設為 `error`，並記錄 `DUPLICATE_ORDER_ID`
-  - `action` 值不合法（非 `complete` \| `cancel`）：item 設為 `error`，記錄 `INVALID_ACTION`
   - 通過上述檢查：依 `order_id` 查詢訂單並檢查 `order.status`：
     - 查無此 `order_id`：`ORDER_NOT_FOUND`
     - 訂單存在、狀態為 `completed` / `cancelled`：`ORDER_ALREADY_FINALIZED`（已為終態，不重複處理）
@@ -170,4 +171,4 @@ HTTP Status: `200 OK`
 | BATCH_REQUEST_ALREADY_EXISTS | 批次請求已存在 | 相同 `request_id` 已存在 |
 | UPLOAD_FILE_FAILED | 檔案上傳失敗 | S3 上傳或後續同步流程發生非預期錯誤 |
 
-> item-level 錯誤（`FILE_PARSE_ERROR`、`DUPLICATE_ORDER_ID`、`INVALID_ACTION`、`ORDER_NOT_FOUND`、`ORDER_NOT_FINALIZABLE`、`ORDER_ALREADY_FINALIZED`、`ORDER_FAILED`）不影響整批次的 HTTP 回應，記錄於對應 item 的 `error_type`，見上方「邏輯說明」。
+> item-level 錯誤（`INVALID_JSON`、`INVALID_PAYLOAD`、`DUPLICATE_ORDER_ID`、`ORDER_NOT_FOUND`、`ORDER_NOT_FINALIZABLE`、`ORDER_ALREADY_FINALIZED`、`ORDER_FAILED`）不影響整批次的 HTTP 回應，記錄於對應 item 的 `error_type`，見上方「邏輯說明」。
