@@ -112,6 +112,7 @@
 - `create_order` 清算採兩段 DB transaction：stage 1（建單、`order.status = pending`；既有券段 FIFO 選定候選券並標記 `consuming`，非直接 `consumed`）、stage 2（呼叫 treelife-api 扣點；成功則建立新券並標記 `consuming`）；stage 2 結尾另有一筆**最終 transaction**，將本次涉及的既有券＋新券（若有）一併由 `consuming` 轉為 `consumed`，同時把 `order.status` 由 `pending` 轉為 `processing`（`discount_amount > 0`）或 `error`（`discount_amount = 0`，此時無任何券被標記 `consuming` 或全數未能轉正）；詳見 Coupon 狀態 enum 的 `consuming` 說明
 - 成敗回歸單一條件 `discount_amount > 0`；新券段失敗區分「點數端失敗」（treelife-api timeout；同步階段不查詢確認、直接標記「點數結果未定」交每日 04:00 cronjob 處理，確認成功時因點數系統目前無法同時提供 tree/cub 拆分而無法正確發券記帳，故呼叫返點退點；待未來支援拆分查詢後可改為同步階段即時查詢並續行發券）與「我方失敗」（扣點成功但發券失敗，孤兒點數、人工善後），兩者皆不改變成敗判定
 - 可查性：`get_member_orders` 剔除 `error`；admin 端 status filter 可查；`get_order`（發卡主機端）不分 status 全回
+- **`revoke`（2026-08-18 起）**：銀行 `create_order` 逾時、`get_order` 6 次確認失敗後送 `batch_finalize_orders action=revoke`，處理**等同 `cancel`**（→`cancelled`、券還原 `available`/`expired`、點不返還），差別為訂單記 **`cancel_reason=revoked`**（一般退刷記 `cancel_reason=cancel`）供財務辨識「銀行未確認扣款之撤銷」；**不新增 order 狀態**（維持五態），`get_order`（發卡主機端）將 `cancelled`+`cancel_reason=revoked` 對外呈現為 `order_status=revoked`，前端 `get_member_orders` 維持 `cancelled`
 
 **Member 啟用狀態**（2026-07-02 起之權威定義）：
 - DB 欄位：`members.is_activated`（Boolean）：`TRUE`（已啟用）／`FALSE`（未啟用或已停用）
@@ -140,7 +141,7 @@
 > ⚠️ 前台 `get_order` 已於 2026-07-08 廢除（前台不提供單筆訂單明細）；spec 文件移至 `docs/api/legacy/`。發卡主機端單筆訂單查詢由 `get_order`（發卡主機端）承接——2026-08-06 起由 `bank_get_order` 更名而來，`/bank/...` 路徑本身已含端點歸屬資訊，不再另加 `bank_` 前綴，與同組其他 API 命名結構一致
 
 **發卡主機 `/bank/...`（已有 spec）**：
-`create_order`、`batch_finalize_orders`、`get_batch_finalize_status`（2026-08-11 起，原名 `get_finalize_batch_status`；回應精簡為僅整體狀態＋聚合統計）、`get_batch_finalize_result_file`（2026-08-11 新增，逐筆結果改由此 API 以檔案 streaming 提供）、`get_order`
+`create_order`、`batch_finalize_orders`（2026-08-18 起 `action` 新增 `revoke`）、`get_batch_finalize_status`（2026-08-11 起，原名 `get_finalize_batch_status`；回應精簡為僅整體狀態＋聚合統計）、`get_batch_finalize_result_file`（2026-08-11 新增，逐筆結果改由此 API 以檔案 streaming 提供）、`get_order`
 
 **Scope 外（本次不做）**：對帳 API、後台 CRUD API（第二階段）
 
