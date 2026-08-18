@@ -64,7 +64,7 @@
 | **campaign** | 品牌底下的產券規則（折抵比率、兌換點數、最大使用張數） |
 | **coupon** | 基於 campaign 產出、所屬於用戶的 instance |
 | **rotation** | 檔期，定義活動期間與品牌選擇上限（`max_selectable_auto_brand_count`，僅計入具備 active `auto` campaign 之品牌） |
-| **brand_rotation_campaigns** | campaign 掛載 rotation 的中間表（2026-07-02 起之定名）；刪除此記錄 = campaign 下架 |
+| **brand_rotation_campaigns** | campaign 掛載 rotation 的中間表（2026-07-02 起之定名）；刪除此記錄 = campaign 下架；亦承載品牌顯示排序設定（`sort_order`，2026-08-18 起，見下方「品牌顯示排序規則」） |
 | **active rotation** | `start_time <= now() <= end_time`（end_time **含**邊界，2026-07-05 起） |
 | **active campaign** | `brand_rotation_campaigns` 中存在對應當前 active rotation 記錄的 campaign |
 
@@ -93,6 +93,13 @@
 - `type = auto`：同一 brand 同一時間只允許一個 active；`type = manual`：無數量上限
 - `type` 一經建立不得更改
 - `get_current_rotation` 的 `brands` 清單僅回傳具備 active `auto` campaign 的品牌（純 `manual` campaign 品牌不列入，也不可被選入 `update_member_selected_brands` 的 `brand_ids`）；品牌一旦入選，其 `campaigns` 陣列仍回傳該品牌所有 active campaign（`auto` 與 `manual`），不受此篩選限制
+
+**品牌顯示排序規則**（2026-08-18 起）：
+- `brand_rotation_campaigns` 新增 `sort_order`（Integer，NOT NULL，DEFAULT 999）與 `updated_at` 欄位；`sort_order` 數字越小顯示越前面，未特別設定者維持預設值 999（排在該分組最後）
+- `sort_order` 僅對品牌於該 rotation 下 active 的 `auto` campaign 所對應之 `brand_rotation_campaigns` 記錄有意義（因 `get_current_rotation` 的 `brands` 清單只回傳具備 active auto campaign 之品牌）；設定於 `manual` campaign 對應記錄上不生效
+- `get_current_rotation` 的 `brands` 排序邏輯：先依 `category` 分組，組內依 `sort_order` 由小到大排序，數值相同時維持現行 `name` 字母序 tie-break
+- 現階段不提供設定 `sort_order` 的正式 API（屬「後台 CRUD API（第二階段）」範疇前的過渡方案）；資料更新方式為 operation 開立工單，由 RD 以 CLI 人工更正，無「預約生效時間」或排程機制
+- 此排序機制僅涵蓋 `get_current_rotation`；`get_coupon_wallet` 等其他回傳品牌清單之 API 排序邏輯不受影響，維持原邏輯
 
 **Coupon 狀態 enum**（必須用這些，不得自造；小寫，與 DB 欄位一致，API 不做大小寫轉換）：
 `available` → `consuming`（`create_order` 清算中間態，2026-07-27 起）→ `consumed`（授權中）→ `settled`（請款完成）或 `expired`；`available` → `voided`（人工注銷，2026-07-23 起）
