@@ -7,6 +7,7 @@ permalink: /api-specs/get-order/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-08-18 | `order_status` 新增可回傳值 `revoked`：資料層仍為 `order.status=cancelled` + `cancel_reason=revoked`（銀行送 `batch_finalize_orders action=revoke` 所致），本 API 將此組合對外呈現為 `revoked`，供發卡主機/財務辨識「銀行未確認扣款之撤銷」；一般退刷（`cancel_reason=cancel`）維持 `cancelled`。`revoked` 之 `total_discount_amount=0`、`finalized_at` 為終結時間，與 `cancelled` 一致 |
 | 2026-08-06 | API 更名 `bank_get_order` → `get_order`：路徑本身已含 `/bank/` 前綴，與其他 `/bank/...` API（`create_order`、`batch_finalize_orders`、`get_finalize_batch_status`）一致採「動詞_目標對象」命名結構，不再另加 `bank_` 前綴；原前台端 `get_order`（已於 2026-07-08 廢除）之 spec 文件移至 `docs/api/legacy/`，讓出此名稱 |
 | 2026-08-06 | Response 結構改為與 `create_order` 對齊：移除逐張 `coupons_used[]`／`points_used` 明細，改用 `coupon_summary`（`new_issued`／`existing` 彙總，與 `create_order` response 同結構）；保留 `order_id`（回顯查詢參數）與 `finalized_at`（`create_order` 建單當下尚無終結時間，故該 API 不含此欄位） |
 | 2026-07-29 | 全系統時間精度盤點：`finalized_at`／`created_at` 補註「毫秒精度」，Sample 補上 `.000` 精度，與其餘系統產生的時間欄位一致 |
@@ -70,11 +71,11 @@ Content-Type: `application/json`
 | 欄位 | 類型 | 說明 |
 | ---- | ---- | ---- |
 | order_id | String | 訂單識別碼 |
-| order_status | String | 訂單當前狀態，取自 `order.status` 五態：`pending` \| `processing` \| `error` \| `completed` \| `cancelled`；發卡主機端**不分 status 一律全回**（含清算失敗的 `error`） |
-| total_discount_amount | Integer | 本次實際折抵總金額（元），與 `create_order` response 定義相同；`error` 訂單為 `0` |
+| order_status | String | 訂單當前狀態：`pending` \| `processing` \| `error` \| `completed` \| `cancelled` \| `revoked`；發卡主機端**不分 status 一律全回**（含清算失敗的 `error`）。前五者直接取自 `order.status`（資料層仍為五態）；`revoked` 為**呈現層衍生值**——資料層 `order.status` 仍為 `cancelled`，當其 `cancel_reason=revoked`（銀行 `action=revoke` 撤銷、非真實退刷）時本 API 回傳 `revoked`，以與一般退刷（`cancel_reason=cancel` → `cancelled`）區分 |
+| total_discount_amount | Integer | 本次實際折抵總金額（元），與 `create_order` response 定義相同；`error` 訂單為 `0`；`cancelled`／`revoked` 訂單折抵已取消，亦為 `0` |
 | created_at | String | 該筆 order 於神坊資料庫中建立的時間（UTC+8 ISO 8601，毫秒精度），與 `create_order` response 定義相同 |
 | coupon_summary | Object | 本次折抵金額與點數消耗，依新發券／既有券分組彙總，與 `create_order` response 同結構，供發卡主機對帳；`error` 訂單兩分組皆為 `0`，見下表 |
-| finalized_at | String \| null | 訂單終結時間（UTC+8 ISO 8601，毫秒精度）；未終結（`pending`/`processing`/`error`）時為 `null`，`completed` / `cancelled` 時為終結時間 |
+| finalized_at | String \| null | 訂單終結時間（UTC+8 ISO 8601，毫秒精度）；未終結（`pending`/`processing`/`error`）時為 `null`，`completed` / `cancelled` / `revoked` 時為終結時間 |
 
 ### coupon_summary
 
