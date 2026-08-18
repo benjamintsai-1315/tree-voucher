@@ -2,6 +2,19 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-08-18 — batch_finalize_orders 新增 action=revoke：以 cancelled + cancel_reason=revoked 標記「銀行未確認扣款之撤銷」
+
+**背景**：銀行呼叫 `create_order` 遇連線層 timeout、經 `get_order` 每 5 分鐘重試至第 6 次仍無法確認結果時，需一個機制讓該筆訂單收斂。此類單銀行端從未實際扣款，若沿用 `cancel` 收尾，帳務報表無法與「真退刷」區分（詳見決策紀錄 `docs/misc/2026-08-07-order-manual-revoke-mechanism.md`）。跨端對齊（銀行／帳務／RD／營運）後定案：新增獨立 `action=revoke`，但**不新增 order 狀態**——落在既有 `cancelled`，以新欄位 `cancel_reason` 區分，達成「前端零改 + 帳務可辨識」。
+
+**改動**：
+- **`batch_finalize_orders`**：`action` 合法值由 `complete`/`cancel` 擴充為 `complete`/`cancel`/`revoke`；`action=revoke` 處理**完全等同 `cancel`**（訂單→`cancelled`、`discount_amount` 歸零、`consumed` 券依到期轉 `available`/`expired`、點數不返還、`coupon_event_logs` 記 `reverted`/`expired`），**唯一差別**為訂單記 `cancel_reason=revoked`（`action=cancel` 記 `cancel_reason=cancel`）；不合法 action 仍併入 `INVALID_PAYLOAD`；狀態機限制不變（僅 `processing` 可終結，非 processing 沿用既有 `ORDER_*` error_type，不新增 error_type）
+- **`get_order`（發卡主機端）**：`order_status` 新增可回傳值 `revoked`——為呈現層衍生值，資料層 `order.status` 仍為 `cancelled`，當 `cancel_reason=revoked` 時本 API 對外呈現 `revoked`；`total_discount_amount`（=0）、`finalized_at`（終結時間）與 `cancelled` 一致
+- **不新增 order 狀態**：`order.status` 維持五態；前端 `get_member_orders` 與 DB 皆以 `cancelled` 呈現 revoke 單，零改動
+- **CLAUDE.md**：Order 狀態 enum 段補述 `revoke` 機制與 `cancel_reason`；`/bank/...` API 摘要標註 `batch_finalize_orders` 新增 `revoke` action
+- **決策紀錄**：`docs/misc/2026-08-07-order-manual-revoke-mechanism.md` 更新為定案版（原「新增 `revoked` 狀態」設計已被「`cancelled` + `cancel_reason`」取代，保留討論脈絡）
+
+**待辦**：`orders` 表新增 `cancel_reason` 欄位（值 `cancel`/`revoked`，非 cancelled 時 null）——schema 尚未更新。帳務端「A 流按 COMPLETED 結算 vs 報表按 processing 計數」之落差，建議帳務團隊內部再對齊一次。
+
 ## 2026-08-18 — 品牌顯示排序機制：採用 sort_order 取代生效期間設計，資料以 CLI 暫行維護
 
 **背景**：CUBE Rewards 需求提出品牌於各 rotation 下的可配置顯示順序，因應不同時期的商務策略調整。初步方案設計「生效期間 + 預約排序」機制，但 spec-review 發現涉及 15 項結構性與邊界條件問題（見 `docs/misc/2026-08-14-cube-rewards-brand-ranking-review.md`）。經內部決策，採用更簡化方案：在既有 `brand_rotation_campaigns` 表增加 `sort_order` 欄位取代複雜的事件機制，資料管理方式比照 coupon 人工注銷先例，於後台 CRUD API（第二階段）完成前改用 RD CLI 人工維護，無預約生效或排程機制。
