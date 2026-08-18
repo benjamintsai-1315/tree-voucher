@@ -2,6 +2,22 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-08-18 — 品牌顯示排序機制：採用 sort_order 取代生效期間設計，資料以 CLI 暫行維護
+
+**背景**：CUBE Rewards 需求提出品牌於各 rotation 下的可配置顯示順序，因應不同時期的商務策略調整。初步方案設計「生效期間 + 預約排序」機制，但 spec-review 發現涉及 15 項結構性與邊界條件問題（見 `docs/misc/2026-08-14-cube-rewards-brand-ranking-review.md`）。經內部決策，採用更簡化方案：在既有 `brand_rotation_campaigns` 表增加 `sort_order` 欄位取代複雜的事件機制，資料管理方式比照 coupon 人工注銷先例，於後台 CRUD API（第二階段）完成前改用 RD CLI 人工維護，無預約生效或排程機制。
+
+**改動**：
+- **Schema 變更**：`brand_rotation_campaigns` 新增兩欄位：
+  - `sort_order`（Integer，NOT NULL，DEFAULT 999）：在該 category 分組內，數值越小顯示越前面；未特別設定者使用預設值 999 排在分組最後
+  - `updated_at`：記錄欄位最後異動時間
+- **API 排序邏輯改寫**：`get_current_rotation` 的 `brands` 排序改為「先依 `category` 分組 → 組內依 `sort_order` 由小到大 → 數值相同時維持 `name` 字母序 tie-break」（原為「依 `category` 分組 + `name` 字母序」）；排序僅對具備 active `auto` campaign 之品牌適用
+- **應用邊界**：`sort_order` 應用於該品牌於該 rotation 下的 **active `auto` campaign** 對應之 `brand_rotation_campaigns` 記錄；掛在 `manual` campaign 記錄上的 `sort_order` 不生效
+- **資料更新方式**：現階段不提供設定 `sort_order` 的正式 API（待第二階段後台 CRUD API），採暫行方案——operation 開工單，RD 以 CLI（或手動 SQL）人工更正
+- **其他 API 不受影響**：本次變更僅涵蓋 `get_current_rotation`；`get_coupon_wallet`、`get_coupons` 等回傳品牌清單的 API 排序邏輯保持既有實作，不受此規則約束
+- **相關文件**：新增 `docs/misc/2026-08-14-cube-rewards-brand-ranking-requirement.md`（原始需求轉錄）與 `docs/misc/2026-08-14-cube-rewards-brand-ranking-review.md`（審查問題清單與決策記錄）；CLAUDE.md 同步新增「品牌顯示排序規則」段落；`docs/api/API Spec - get_current_rotation.md` 更新排序邏輯描述與 Sample 輸出順序
+
+**澄清**：此方案不支援「過期品牌失聯」（R-11）與「get_coupon_wallet 是否同步更新」（R-12）的決策；R-11 風險因保留 category 分組而續存，若未來需處理另行決議；R-12 超出本次範疇，`get_coupon_wallet` 排序維持原邏輯
+
 ## 2026-08-11 — batch_finalize_orders item error_type 訂正：FILE_PARSE_ERROR 拆回 INVALID_JSON／INVALID_PAYLOAD，INVALID_ACTION 併入 INVALID_PAYLOAD
 
 **背景**：依銀行提供之最新規格文件訂正 item-level error_type 定義，此次訂正影響 `batch_finalize_orders.md`（錯誤碼實際產生處）與 `get_batch_finalize_result_file.md`（結果檔案對外呈現處）
