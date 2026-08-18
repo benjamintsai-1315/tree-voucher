@@ -7,6 +7,7 @@ permalink: /api-specs/get-current-rotation/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-08-18 | 邏輯說明更新：`brands` 組內排序由 `name` 字母順序改為 `brand_rotation_campaigns.sort_order` 由小到大（DEFAULT 999），相同值時以 `name` 字母序作為 tie-break；`sort_order` 不對外回傳 |
 | 2026-07-29 | 全系統時間精度盤點：`start_time`／`end_time`、品牌與 campaign 的 `created_at`／`updated_at` 補註「毫秒精度」，Sample 補上 `.000` 精度 |
 | 2026-07-17 | 邏輯說明補充：`max_selectable_auto_brand_count` 現階段僅服務 `auto` campaign，`manual` 品牌選擇機制若未來需要納入此上限，須重新設計（回應 RD 對 DB 欄位命名對齊的提問） |
 | 2026-07-13 | 補跟已於 2026-07-06/07-08 定案的 quota 規則變更：移除 campaigns 下已廢棄的 `max_redemption_per_rotation`（campaign 屬性、計張數）；新增 rotation 層級的 `max_points_per_member`（同一用戶於此 rotation 內跨品牌合計可用點數上限，原名 `max_points_per_rotation`，此次一併更名） |
@@ -175,7 +176,7 @@ Content-Type: `application/json`
 - active rotation 判斷：`start_time <= now() <= end_time`（end_time 含邊界）；前後緊接的 rotation 不得交界重疊，由建立 rotation 時的邊界檢查保證（`next.start_time > prev.end_time`）
 - 每個 brand 的 `campaigns` 陣列包含 `auto` 與 `manual` 兩種類型；同一 brand 同一時間最多一個 `type = auto` 的 active campaign；`type = manual` 無此限制
 - `discount_rate` 為 server 端計算後附帶回傳，不存於 DB
-- brands 排序：以 `category` 分組後，組內依 `name` 字母順序排列
+- brands 排序：以 `category` 分組後，組內依 `brand_rotation_campaigns.sort_order` 由小到大排序；此值取自該品牌於當前 rotation 下 active 的 `auto` campaign 所對應之 `brand_rotation_campaigns` 記錄；未設定者維持 DEFAULT 999，排在該分組最後；`sort_order` 相同時，以 `name` 字母順序作為 tie-break；`sort_order` 為後端排序依據，不對外回傳，顯示順序完全由 `brands` 陣列本身的排列順序表達 <!-- updated: 2026-08-18 -->
 - `campaigns` 排序：依 `campaign.id`
 - 無任何符合條件的品牌時，回傳 `brands: []`，不報錯
 - `NO_ACTIVE_ROTATION` 僅代表當前**完全無 active rotation**（不在任何 rotation 的時間區間內）；若 active rotation 存在但無符合條件的品牌，屬於「有 rotation 但無 brand」情境，回傳 `brands: []`，非錯誤，兩者不可混用
