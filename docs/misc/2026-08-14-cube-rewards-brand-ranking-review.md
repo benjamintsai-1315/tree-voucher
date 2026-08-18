@@ -10,6 +10,8 @@
 
 排序邏輯：category 分組（維持現況）→ 組內依 `sort_order` 由小到大 → 數值相同時維持現行 `name` 字母序 tie-break。
 
+補充決定（2026-08-18）：`sort_order` 異動不加稽核紀錄（僅 `updated_at` 記錄時間，不記錄操作者/原因），與 coupon manual void 的稽核機制不同；本次不建 Asana ticket，文件先定案存查，開發排期另議。
+
 | 編號 | 狀態 | 說明 |
 |---|---|---|
 | R-01 | ✅ 已解決 | 保留 category 分組，組內依 sort_order，不採跨品牌攤平 |
@@ -22,8 +24,8 @@
 | R-08 | ✅ 已解決（不再適用） | 同上，不需事件表 |
 | R-09 | ✅ 已解決（不再適用） | 同上 |
 | R-10 | ✅ 已解決 | 比照 coupon manual void 先例，設定端以 operation 開工單、RD CLI 執行，不做正式後台 API |
-| R-11 | ⏳ 仍待確認 | category 字串異動導致排序失聯的風險依然存在（因保留 category 分組），未來若要處理需另外決議 |
-| R-12 | ⏳ 仍待確認 | 本次決策僅明確涵蓋 get_current_rotation；get_coupon_wallet 排序是否比照調整未討論，暫依現況（brand_name ASC）不變，非本次範疇 |
+| R-11 | ✅ 已確認 | category 字串異動導致排序失聯的風險，2026-08-18 確認接受風險、不加防護機制，有事故再處理 |
+| R-12 | ✅ 已確認 | 2026-08-18 確認僅 get_current_rotation 套用 sort_order，get_coupon_wallet 等其他 API 維持現況（brand_name ASC）不變 |
 | R-13 | ✅ 已解決（不再適用） | 不需新增事件表，僅在既有表加兩欄位 |
 | R-14 | ✅ 已解決（不再適用） | sort_order 必填有 default，不存在「未設定」的異常情境，不需新增錯誤碼 |
 | R-15 | ✅ 已解決（不再適用） | tie-break 不再使用倍率，此操作陷阱不存在 |
