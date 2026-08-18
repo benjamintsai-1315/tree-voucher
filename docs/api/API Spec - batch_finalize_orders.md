@@ -7,6 +7,7 @@ permalink: /api-specs/batch-finalize-orders/
 
 | Date | Summary |
 | ---- | ------- |
+| 2026-08-18 | 新增 `action=revoke`（發卡主機 `create_order` 逾時、經 `get_order` 重試第 6 次仍無法確認結果後送出）：處理**完全等同 `cancel`**（訂單→`cancelled`、`discount_amount` 歸零、`consumed` 券還原 `available`/`expired`、點數不返還、`coupon_event_logs` `reverted`/`expired`），**唯一差別**為訂單記 `cancel_reason=revoked` 供財務辨識（`action=cancel` 記 `cancel_reason=cancel`）；`action` 合法值擴充為 `complete`\|`cancel`\|`revoke`，不合法值仍併入 `INVALID_PAYLOAD`；狀態機限制不變（僅 `processing` 可終結，非 processing 沿用既有 `ORDER_*` error_type）；資料層維持五態、不新增 `order.status`，由 `get_order` 依 `cancel_reason` 對外呈現 `order_status=revoked`（見該 spec） |
 | 2026-08-11 | Item error_type 依銀行提供之最新規格文件訂正：`FILE_PARSE_ERROR` 拆回 `INVALID_JSON`（JSON 解析失敗）與 `INVALID_PAYLOAD`（缺必要欄位、欄位格式錯誤或過長），推翻 2026-08-06 之合併決定；`INVALID_ACTION` 移除，`action` 值不合法併入 `INVALID_PAYLOAD` 判定，驗證時機由原非同步階段提前至同步逐行解析階段（⚠️ 待確認：此時機調整尚待與銀行/RD 確認是否為預期設計） |
 | 2026-08-11 | 同步 `get_finalize_batch_status` → `get_batch_finalize_status` 更名；補充逐筆明細查詢指引，改由新 API `get_batch_finalize_result_file` 提供 |
 | 2026-08-06 | 依 2026-07-21 PDF 版本核對後訂正：權限邊界恢復「來源 IP 白名單」檢查（連動擴大至所有 `/bank/...` API，見 CLAUDE.md 同步修改）；非同步處理架構改回沿用 S3 落地原始檔（`tree_coupon_{env}_s3/orders/finalize_requests/{request_id}.ndjson`）＋ background job 以 100 行為一 chunk 處理＋ `finalize_requests`／`finalize_request_order_items` 表名＋ `success_count`/`error_count`/`total_count` 完成判定＋ Batch-level error 段落＋ `coupon_event_logs` 稽核紀錄，取代 2026-07-30 版本的取消設計；保留 2026-07-30「同步階段即逐行建立 item」的做法——檔案上傳至 S3 後不等 background job，同步解析每一行並建立 `finalize_request_order_items`，無法解析者（不合法 JSON／缺必要欄位／欄位過長）以合併後的單一 `FILE_PARSE_ERROR` 標記（取代原 `INVALID_JSON`／`INVALID_PAYLOAD` 兩碼），不進入非同步佇列；`DUPLICATE_ORDER_ID`、`INVALID_ACTION` 維持於非同步階段判定；Response body 改回 `{}`；`request_id`／`order_id` 恢復「僅限英數字與底線」與「全系統唯一」限制；422／413 錯誤分類恢復為 PDF 版本（`request_id`／`orders` 內容驗證為 422，`FILE_SIZE_EXCEEDED` 為 413），移除 `BATCH_REQUEST_ID_REQUIRED`／`ORDERS_FILE_REQUIRED` 400 錯誤碼 |
@@ -52,7 +53,13 @@ permalink: /api-specs/batch-finalize-orders/
 - 神坊（非同步）將該訂單所有 `consumed` 券依是否到期轉為 `available` 或 `expired`
 - 點數不返還
   - 退回且尚未到期的券成為後續可使用的舊券；已到期的券更新為 `expired`
-- 訂單狀態 `order.status` 由 `processing` 推進為 `cancelled`，同時訂單 `discount_amount` 歸零（本次折抵取消，前台據此顯示「已退回券匣」）
+- 訂單狀態 `order.status` 由 `processing` 推進為 `cancelled`，同時訂單 `discount_amount` 歸零（本次折抵取消，前台據此顯示「已退回券匣」），並記 `cancel_reason=cancel`
+
+### 撤銷未確認訂單（revoke）
+- 發卡主機呼叫 `create_order` 遇連線層 timeout，改以 `get_order`（發卡主機端）每 5 分鐘重試確認；至第 6 次仍無法取得確定結果時，送出 `action=revoke`
+- 處理與 `cancel` **完全相同**：神坊（非同步）將該訂單所有 `consumed` 券依是否到期轉為 `available` 或 `expired`（點數不返還），`order.status` 由 `processing` 推進為 `cancelled`、`discount_amount` 歸零
+- **唯一差別**：訂單記 `cancel_reason=revoked`（一般退刷之 `cancel` 記 `cancel_reason=cancel`），供財務辨識「銀行未確認扣款、非真實退刷」；`get_order` 亦據此對外呈現 `order_status=revoked`（見該 API spec）
+- 因銀行端該筆從未實際扣款，此類單不對應真實退款金流；資料層仍為 `cancelled`，辨識依據即 `cancel_reason`
 
 ### 冪等設計
 - `request_id` 由發卡主機自行產生並帶入，用於識別批次請求
@@ -87,7 +94,7 @@ Content-Type: `multipart/form-data`
 | 欄位 | 類型 | 必填 | 說明 |
 | ---- | ---- | ---- | ---- |
 | order_id | string | TRUE | 訂單識別碼，最多 50 字；僅限英數字與底線；全系統唯一 |
-| action | string | TRUE | 僅接受 `complete` \| `cancel` |
+| action | string | TRUE | 僅接受 `complete` \| `cancel` \| `revoke` |
 
 ## Request Sample（multipart/form-data）
 
@@ -102,6 +109,7 @@ Content-Type: application/x-ndjson
 
 {"order_id": "ORD_20261001_00001", "action": "complete"}
 {"order_id": "ORD_20261001_00002", "action": "cancel"}
+{"order_id": "ORD_20261001_00003", "action": "revoke"}
 --boundary123--
 ```
 
@@ -123,9 +131,9 @@ HTTP Status: `200 OK`
 - 原始檔案上傳至 S3：`tree_coupon_{env}_s3/orders/finalize_requests/{request_id}.ndjson`
   - 若接收或上傳期間發生錯誤：清理本次請求已建立但尚未成立的批次資料及檔案，不建立 item、不排入 background job；若對應紀錄已於失敗清理時刪除，修正問題後可用相同 `request_id` 重新上傳，若 `request_id` 原本已存在則須改用新的 `request_id`
 - 原始檔案成功上傳至 S3 後，**同步逐行解析**並建立 `finalize_request_order_items`（保存 `line_no`、`raw_data`）：
-  - 該行可正確解析（合法 JSON、含 `order_id`／`action` 必要欄位、欄位長度符合限制，且 `action` 值為 `complete` \| `cancel`）：寫入 `order_id`、`action`，初始狀態 `pending`
+  - 該行可正確解析（合法 JSON、含 `order_id`／`action` 必要欄位、欄位長度符合限制，且 `action` 值為 `complete` \| `cancel` \| `revoke`）：寫入 `order_id`、`action`，初始狀態 `pending`
   - 該行非合法 JSON：狀態直接標記為 `error`，`error_type = INVALID_JSON`，不進入非同步處理
-  - 該行為合法 JSON，但缺必要欄位、欄位長度超過上限，或 `action` 值不合法（非 `complete` \| `cancel`）：狀態直接標記為 `error`，`error_type = INVALID_PAYLOAD`，不進入非同步處理
+  - 該行為合法 JSON，但缺必要欄位、欄位長度超過上限，或 `action` 值不合法（非 `complete` \| `cancel` \| `revoke`）：狀態直接標記為 `error`，`error_type = INVALID_PAYLOAD`，不進入非同步處理
 - `finalize_requests.status` 由 `receiving` 更新為 `pending`，並設定 `total_count`（＝本批次總行數）
 - 排入 background job，回傳 `200 OK`。僅表示請求驗證、原始檔案上傳及 item 建立完成；實際訂單結案結果由非同步流程處理
 
@@ -141,7 +149,8 @@ HTTP Status: `200 OK`
     - 訂單存在、狀態為 `error`：`ORDER_FAILED`（先前 `create_order` 清算失敗，無法執行結案）
     - 訂單存在、狀態為 `processing`（唯一可終結狀態）：執行訂單結案邏輯
       - `action = complete`：訂單狀態由 `processing` 更新為 `completed`，並設定 `finalized_at`；對應 `consumed` 券更新為 `settled`、`settle_order_id={order_id}`；每張被更新的 coupon 各新增一筆 `type=settled` 的 `coupon_event_logs`
-      - `action = cancel`：訂單狀態由 `processing` 更新為 `cancelled`、`discount_amount` 歸零，並設定 `finalized_at`；對應 `consumed` 券依處理當下是否到期，更新為 `available` 或 `expired`，點數不返還；每張被更新的 coupon 各新增一筆 `coupon_event_logs`（券轉為 `available` 時 `type=reverted`；轉為 `expired` 時 `type=expired`）
+      - `action = cancel`：訂單狀態由 `processing` 更新為 `cancelled`、`discount_amount` 歸零、`cancel_reason=cancel`，並設定 `finalized_at`；對應 `consumed` 券依處理當下是否到期，更新為 `available` 或 `expired`，點數不返還；每張被更新的 coupon 各新增一筆 `coupon_event_logs`（券轉為 `available` 時 `type=reverted`；轉為 `expired` 時 `type=expired`）
+      - `action = revoke`：處理**完全等同 `action = cancel`**（訂單→`cancelled`、`discount_amount` 歸零、`consumed` 券還原 `available`/`expired`、點數不返還、`coupon_event_logs` 記 `reverted`/`expired`、設定 `finalized_at`），**唯一差別**為記 `cancel_reason=revoked`（供財務辨識「銀行未確認扣款之撤銷」，並使 `get_order` 對外呈現 `order_status=revoked`）
   - 成功時 item 更新為 `success` 並設定 `finalized_at`；失敗時 item 更新為 `error` 並記錄對應 `error_type`
   - 單筆失敗不會中斷整批處理
 - 每完成一個 chunk，依完成的 item 結果更新 `finalize_requests` 的 `success_count`、`error_count`
