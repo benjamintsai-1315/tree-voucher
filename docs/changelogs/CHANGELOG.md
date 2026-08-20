@@ -2,6 +2,28 @@
 
 <!-- changelog subagent 會在此處插入最新條目 -->
 
+## 2026-08-20 — 新建 expire_coupon cronjob spec：DB 狀態回壓機制（第一支 cronjob 規格）
+
+**背景**：系統目前各前台 API 與 `create_order` 清算邏輯皆已各自即時比對 `expired_at` 與當下時間判定過期，因此 `coupons.status` 欄位已過期卻仍為 `available` 的 DB 髒資料不影響業務正確性。然「狀態欄位不誠實」會造成未來 admin 後台查詢、報表分析等直接信任 `status` 欄位的場景誤判，且每新增一個讀取路徑都必須重新實作「`status=available` 且 `expired_at` 未到期」的雙條件判斷，形成重複邏輯與遺漏風險。新建 `expire_coupon` cronjob 純粹用於資料衛生（housekeeping）：將 DB 狀態與實際過期事實同步。
+
+**新增文件**：
+- `docs/cronjobs/Cronjob Spec - expire_coupon.md`（第一份 cronjob 規格，奠定該目錄與文件格式基礎；監控／告警機制兩項待確認）
+- `docs/README.md` 同步新增 `docs/cronjobs/` 目錄描述與該 spec 索引項
+
+**核心決策（已定案）**：
+- **篩選條件**：`status='available' AND expired_at < now()`（嚴格小於，與既有 API 即時判定邏輯一致）；範圍明確界定為純狀態回壓，**不含**以下：
+  - 統計數據或報表生成
+  - 即將到期提醒通知
+  - `consuming` 狀態卡住的券回收（該機制待補充，與 `order.status=pending` 滯留問題同批次處理）
+- **排程**：每日一次、`00:00` 後盡快執行（建議 `00:10` UTC+8）；與既有每日 04:00 cronjob（create_order 扣點逾時對帳）為兩支獨立排程，職責不合併
+- **實作限制**：**必須為單一條件式 `UPDATE ... WHERE status='available' AND expired_at < now()`，不得先 `SELECT` 出候選再逐筆 `UPDATE`**——因併發考量：`create_order` 既有券段可能同時把即將到期的券由 `available` 轉為 `consuming`；條件式 UPDATE 一旦該筆券已搶先轉為 `consuming`，WHERE 條件不再命中，該筆自然跳過，等同該券在到期前一刻被使用，屬正常 FIFO 結果
+- **事件日誌**：比照 `batch_finalize_orders` 既有 pattern，回壓為 `expired` 時同步寫入 `coupon_event_logs`（`type=expired`），維持「同樣轉為 `expired` 的券，無論觸發路徑為 cronjob 或 `batch_finalize_orders`，稽核軌跡完整度一致」——事後可單純從 event log 判斷任一張券何時、經由何種路徑變成 `expired`
+- **並發容錯**：job 具備天然冪等性，已轉為 `expired` 的券不再符合 WHERE 條件；若單次執行中途失敗，下次排程重跑會自然補齊未處理部分，不需額外的執行紀錄表或 checkpoint
+
+**待確認**（已在 spec 文件中明確標註為 open，不影響業務邏輯定案）：
+- 執行失敗（DB 連線中斷、chunk 中途失敗等）的告警機制與重試策略
+- 是否需記錄每次執行的處理筆數（本次回壓幾筆 `available → expired`），供事後稽核；若需要，寫入位置（application log／監控系統）待定
+
 ## 2026-08-18 — batch_finalize_orders 新增 action=revoke：以 cancelled + cancel_reason=revoked 標記「銀行未確認扣款之撤銷」
 
 **背景**：銀行呼叫 `create_order` 遇連線層 timeout、經 `get_order` 每 5 分鐘重試至第 6 次仍無法確認結果時，需一個機制讓該筆訂單收斂。此類單銀行端從未實際扣款，若沿用 `cancel` 收尾，帳務報表無法與「真退刷」區分（詳見決策紀錄 `docs/misc/2026-08-07-order-manual-revoke-mechanism.md`）。跨端對齊（銀行／帳務／RD／營運）後定案：新增獨立 `action=revoke`，但**不新增 order 狀態**——落在既有 `cancelled`，以新欄位 `cancel_reason` 區分，達成「前端零改 + 帳務可辨識」。
