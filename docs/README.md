@@ -5,6 +5,7 @@
 | 路徑 | 內容 |
 |---|---|
 | `docs/api/` | API 規格文件（18 個 API spec） |
+| `docs/cronjobs/` | 排程批次作業規格文件（非 request-driven，格式比照 API spec 但無 request/response，改為觸發時機／篩選條件／動作／併發考量） |
 | `docs/changelogs/CHANGELOG.md` | 文件變更歷程 |
 | `docs/樹配券2.0_PRD.md` | 核心產品需求文件（2026-07-13 由 repo root 移入；內容尚未跟上近期 API spec 變更，待後續整理） |
 | `docs/reviews/` | spec-audit 復盤報告 |
@@ -45,3 +46,9 @@
 | `get_batch_finalize_status` | `docs/api/API Spec - get_batch_finalize_status.md`（2026-08-11 起，原名 `get_finalize_batch_status`） |
 | `get_batch_finalize_result_file` | `docs/api/API Spec - get_batch_finalize_result_file.md` |
 | `get_order` | `docs/api/API Spec - get_order.md`（2026-08-06 起，原名 `bank_get_order`） |
+
+## Cronjob spec 清單
+
+| Job | 檔案 |
+|---|---|
+| `expire_coupon` | `docs/cronjobs/Cronjob Spec - expire_coupon.md`（核心邏輯已定案，監控／告警機制待確認，見文件內標註） |
